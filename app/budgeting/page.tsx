@@ -526,7 +526,7 @@ export default function BudgetingPage() {
                   </CardContent>
                 </Card>
 
-                {/* Budget Summary -- THIS IS THE CORRECTED PART -- */}
+                {/* Budget Summary */}
                 <Card>
                   <CardHeader>
                     <CardTitle>Budget Summary</CardTitle>
