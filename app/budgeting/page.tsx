@@ -8,12 +8,13 @@ import {
   TrendingUp,
   TrendingDown,
   DollarSign,
-  PieChart,
+  PieChart as PieChartIcon, // Renamed to avoid conflict
   Target,
   AlertCircle,
   PiggyBankIcon as Piggy,
   Trash2,
 } from "lucide-react"
+import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from "recharts" // Import chart components
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -44,6 +45,9 @@ interface SavingsGoal {
   targetDate: string
   monthlyContribution: number
 }
+
+// Define a color palette for the pie chart
+const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#AF19FF", "#FF1943", "#19D7FF"];
 
 export default function BudgetingPage() {
   // Use localStorage hooks for persistent data
@@ -204,6 +208,13 @@ export default function BudgetingPage() {
           {} as Record<string, number>,
       )
 
+  // Prepare data for the Pie Chart
+  const pieChartData = Object.keys(expenseCategories).map(key => ({
+    name: key,
+    value: expenseCategories[key]
+  }));
+
+
   const getRecommendations = () => {
     const recommendations = []
 
@@ -215,7 +226,7 @@ export default function BudgetingPage() {
       })
     }
 
-    if (monthlyNet > 0 && monthlyNet < monthlyIncome * 0.2) {
+    if (monthlyIncome > 0 && monthlyNet > 0 && monthlyNet < monthlyIncome * 0.2) {
       recommendations.push({
         type: "info",
         title: "Low Savings Rate",
@@ -224,7 +235,7 @@ export default function BudgetingPage() {
     }
 
     const housingCost = expenseCategories["Housing"] || 0
-    if (housingCost > monthlyIncome * 0.3) {
+    if (monthlyIncome > 0 && housingCost > monthlyIncome * 0.3) {
       recommendations.push({
         type: "warning",
         title: "High Housing Costs",
@@ -233,7 +244,7 @@ export default function BudgetingPage() {
     }
 
     const foodCost = expenseCategories["Food"] || 0
-    if (foodCost > monthlyIncome * 0.15) {
+    if (monthlyIncome > 0 && foodCost > monthlyIncome * 0.15) {
       recommendations.push({
         type: "info",
         title: "Food Spending Analysis",
@@ -242,7 +253,7 @@ export default function BudgetingPage() {
     }
 
     const entertainmentCost = expenseCategories["Entertainment"] || 0
-    if (entertainmentCost > monthlyIncome * 0.1) {
+    if (monthlyIncome > 0 && entertainmentCost > monthlyIncome * 0.1) {
       recommendations.push({
         type: "info",
         title: "Entertainment Spending",
@@ -251,7 +262,7 @@ export default function BudgetingPage() {
     }
 
     const transportationCost = expenseCategories["Transportation"] || 0
-    if (transportationCost > monthlyIncome * 0.15) {
+    if (monthlyIncome > 0 && transportationCost > monthlyIncome * 0.15) {
       recommendations.push({
         type: "info",
         title: "Transportation Costs",
@@ -260,7 +271,7 @@ export default function BudgetingPage() {
     }
 
     // Positive recommendations
-    if (monthlyNet >= monthlyIncome * 0.2) {
+    if (monthlyIncome > 0 && monthlyNet >= monthlyIncome * 0.2) {
       recommendations.push({
         type: "success",
         title: "Excellent Savings Rate!",
@@ -540,7 +551,10 @@ export default function BudgetingPage() {
                             const monthlyAmount = convertToMonthly(item.amount, item.frequency);
                             return (
                                 <div key={item.id} className="flex justify-between items-center">
-                                  <span className="text-sm font-medium truncate">{item.subcategory || item.category}</span>
+                                  <div>
+                                    <p className="text-sm font-medium truncate">{item.category}</p>
+                                    <p className="text-xs text-gray-500">{item.subcategory || 'No description'}</p>
+                                  </div>
                                   <div className="text-right flex items-center gap-3">
                                     <span className="text-sm font-bold">${monthlyAmount.toFixed(2)}</span>
                                     <div className="w-20 sm:w-24 bg-gray-200 rounded-full h-2">
@@ -661,7 +675,42 @@ export default function BudgetingPage() {
                 </CardContent>
               </Card>
 
-              {/* Expense Breakdown Chart */}
+              {/* NEW PIE CHART ADDED HERE */}
+              {pieChartData.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Expense Distribution</CardTitle>
+                      <CardDescription>A visual breakdown of your spending categories.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div style={{ width: '100%', height: 300 }}>
+                        <ResponsiveContainer>
+                          <PieChart>
+                            <Pie
+                                data={pieChartData}
+                                cx="50%"
+                                cy="50%"
+                                labelLine={false}
+                                outerRadius={80}
+                                fill="#8884d8"
+                                dataKey="value"
+                                nameKey="name"
+                                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                            >
+                              {pieChartData.map((entry, index) => (
+                                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                              ))}
+                            </Pie>
+                            <Tooltip formatter={(value: number) => `$${value.toFixed(2)}`} />
+                            <Legend />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </CardContent>
+                  </Card>
+              )}
+
+              {/* Expense Breakdown List */}
               {Object.keys(expenseCategories).length > 0 && (
                   <Card>
                     <CardHeader>
@@ -874,7 +923,7 @@ export default function BudgetingPage() {
                     </Link>
                     <Link href="/break-even-calculator">
                       <Button variant="outline" className="w-full h-20 flex flex-col">
-                        <PieChart className="h-6 w-6 mb-2" />
+                        <PieChartIcon className="h-6 w-6 mb-2" />
                         Break-Even Calculator
                       </Button>
                     </Link>
