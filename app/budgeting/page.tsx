@@ -526,32 +526,40 @@ export default function BudgetingPage() {
                 </CardContent>
               </Card>
 
+
               {/* Budget Summary */}
               <Card>
                 <CardHeader>
                   <CardTitle>Budget Summary</CardTitle>
-                  <CardDescription>Your current financial overview</CardDescription>
+                  <CardDescription>A list of your monthly expenses</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {Object.entries(expenseCategories).map(([category, amount]) => (
-                      <div key={category} className="flex justify-between items-center">
-                        <span className="text-sm font-medium">{category}</span>
-                        <div className="text-right">
-                          <span className="text-sm font-bold">${amount.toFixed(2)}</span>
-                          <div className="w-24 sm:w-32 bg-gray-200 rounded-full h-2 mt-1">
-                            <div
-                              className="bg-blue-600 h-2 rounded-full"
-                              style={{ width: `${Math.min((amount / monthlyExpenses) * 100, 100)}%` }}
-                            ></div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+                    {budgetItems
+                        .filter((item) => item.type === 'expense')
+                        .map((item) => {
+                          const monthlyAmount = convertToMonthly(item.amount, item.frequency);
+                          return (
+                              <div key={item.id} className="flex justify-between items-center">
+                                <span className="text-sm font-medium truncate">{item.subcategory || item.category}</span>
+                                <div className="text-right flex items-center gap-3">
+                                  <span className="text-sm font-bold">${monthlyAmount.toFixed(2)}</span>
+                                  <div className="w-20 sm:w-24 bg-gray-200 rounded-full h-2">
+                                    <div
+                                        className="bg-blue-600 h-2 rounded-full"
+                                        style={{ width: monthlyExpenses > 0 ? `${Math.min((monthlyAmount / monthlyExpenses) * 100, 100)}%` : '0%' }}
+                                    ></div>
+                                  </div>
+                                </div>
+                              </div>
+                          );
+                        })}
+                    {budgetItems.filter((item) => item.type === 'expense').length === 0 && (
+                        <p className="text-gray-500 text-sm text-center py-4">Your expenses will appear here.</p>
+                    )}
                   </div>
                 </CardContent>
               </Card>
-            </div>
 
             {/* Budget Items List */}
             <Card>
