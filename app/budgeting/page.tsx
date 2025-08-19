@@ -8,13 +8,14 @@ import {
   TrendingUp,
   TrendingDown,
   DollarSign,
-  PieChart as PieChartIcon, // Renamed to avoid conflict
+  PieChart as PieChartIcon,
   Target,
   AlertCircle,
   PiggyBankIcon as Piggy,
   Trash2,
+  Edit, // Import the Edit icon
 } from "lucide-react"
-import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from "recharts" // Import chart components
+import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from "recharts"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -537,40 +538,42 @@ export default function BudgetingPage() {
                   </CardContent>
                 </Card>
 
-                {/* Budget Summary */}
+                {/* Budget Summary (NOW A PIE CHART) */}
                 <Card>
                   <CardHeader>
                     <CardTitle>Budget Summary</CardTitle>
-                    <CardDescription>A list of your monthly expenses</CardDescription>
+                    <CardDescription>A visual breakdown of your monthly expenses</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-4">
-                      {budgetItems
-                          .filter((item) => item.type === 'expense')
-                          .map((item) => {
-                            const monthlyAmount = convertToMonthly(item.amount, item.frequency);
-                            return (
-                                <div key={item.id} className="flex justify-between items-center">
-                                  <div>
-                                    <p className="text-sm font-medium truncate">{item.category}</p>
-                                    <p className="text-xs text-gray-500">{item.subcategory || 'No description'}</p>
-                                  </div>
-                                  <div className="text-right flex items-center gap-3">
-                                    <span className="text-sm font-bold">${monthlyAmount.toFixed(2)}</span>
-                                    <div className="w-20 sm:w-24 bg-gray-200 rounded-full h-2">
-                                      <div
-                                          className="bg-blue-600 h-2 rounded-full"
-                                          style={{ width: monthlyExpenses > 0 ? `${Math.min((monthlyAmount / monthlyExpenses) * 100, 100)}%` : '0%' }}
-                                      ></div>
-                                    </div>
-                                  </div>
-                                </div>
-                            );
-                          })}
-                      {budgetItems.filter((item) => item.type === 'expense').length === 0 && (
-                          <p className="text-gray-500 text-sm text-center py-4">Your expenses will appear here.</p>
-                      )}
-                    </div>
+                    {pieChartData.length > 0 ? (
+                        <div style={{ width: '100%', height: 250 }}>
+                          <ResponsiveContainer>
+                            <PieChart>
+                              <Pie
+                                  data={pieChartData}
+                                  cx="50%"
+                                  cy="50%"
+                                  labelLine={false}
+                                  outerRadius={80}
+                                  fill="#8884d8"
+                                  dataKey="value"
+                                  nameKey="name"
+                                  label={({ name, percent }) => `${(percent * 100).toFixed(0)}%`}
+                              >
+                                {pieChartData.map((entry, index) => (
+                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                ))}
+                              </Pie>
+                              <Tooltip formatter={(value: number) => `$${value.toFixed(2)}`} />
+                              <Legend />
+                            </PieChart>
+                          </ResponsiveContainer>
+                        </div>
+                    ) : (
+                        <div className="flex items-center justify-center h-full min-h-[250px]">
+                          <p className="text-gray-500 text-sm text-center">Your expense summary chart will appear here.</p>
+                        </div>
+                    )}
                   </CardContent>
                 </Card>
               </div>
@@ -601,6 +604,15 @@ export default function BudgetingPage() {
                                 ${convertToMonthly(item.amount, item.frequency).toFixed(2)}/month
                               </div>
                             </div>
+                            {/* EDIT BUTTON ADDED HERE */}
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 p-2"
+                                title="Edit this item"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
                             <Button
                                 variant="ghost"
                                 size="sm"
@@ -674,41 +686,6 @@ export default function BudgetingPage() {
                   )}
                 </CardContent>
               </Card>
-
-              {/* NEW PIE CHART ADDED HERE */}
-              {pieChartData.length > 0 && (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Expense Distribution</CardTitle>
-                      <CardDescription>A visual breakdown of your spending categories.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div style={{ width: '100%', height: 300 }}>
-                        <ResponsiveContainer>
-                          <PieChart>
-                            <Pie
-                                data={pieChartData}
-                                cx="50%"
-                                cy="50%"
-                                labelLine={false}
-                                outerRadius={80}
-                                fill="#8884d8"
-                                dataKey="value"
-                                nameKey="name"
-                                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                            >
-                              {pieChartData.map((entry, index) => (
-                                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                              ))}
-                            </Pie>
-                            <Tooltip formatter={(value: number) => `$${value.toFixed(2)}`} />
-                            <Legend />
-                          </PieChart>
-                        </ResponsiveContainer>
-                      </div>
-                    </CardContent>
-                  </Card>
-              )}
 
               {/* Expense Breakdown List */}
               {Object.keys(expenseCategories).length > 0 && (
