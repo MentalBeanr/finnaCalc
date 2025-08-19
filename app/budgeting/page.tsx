@@ -13,7 +13,7 @@ import {
   AlertCircle,
   PiggyBankIcon as Piggy,
   Trash2,
-  Edit, // Import the Edit icon
+  Edit,
 } from "lucide-react"
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from "recharts"
 import { Button } from "@/components/ui/button"
@@ -59,15 +59,19 @@ export default function BudgetingPage() {
   )
   const [lastSaved, setLastSaved] = useState<Date | undefined>()
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+  const [editingItemId, setEditingItemId] = useState<string | null>(null) // State to track editing
 
-  const [newItem, setNewItem] = useState({
+  const initialFormState = {
     category: "",
     subcategory: "",
     amount: "",
     frequency: "monthly" as const,
     type: "expense" as const,
     isFixed: false,
-  })
+  };
+
+  const [newItem, setNewItem] = useState(initialFormState);
+
   const [newGoal, setNewGoal] = useState({
     name: "",
     targetAmount: "",
@@ -110,27 +114,55 @@ export default function BudgetingPage() {
 
   const monthlyNet = monthlyIncome - monthlyExpenses
 
-  const addBudgetItem = () => {
-    if (newItem.category && newItem.amount) {
-      const item: BudgetItem = {
-        id: Date.now().toString(),
-        category: newItem.category,
-        subcategory: newItem.subcategory,
-        amount: Number.parseFloat(newItem.amount),
-        frequency: newItem.frequency,
-        type: newItem.type,
-        isFixed: newItem.isFixed,
+  // Function to handle both adding and updating items
+  const handleFormSubmit = () => {
+    if (editingItemId) {
+      // Update existing item
+      setBudgetItems(budgetItems.map(item =>
+          item.id === editingItemId
+              ? {
+                ...item,
+                category: newItem.category,
+                subcategory: newItem.subcategory,
+                amount: Number.parseFloat(newItem.amount),
+                frequency: newItem.frequency,
+                type: newItem.type,
+                isFixed: newItem.isFixed,
+              }
+              : item
+      ));
+      setEditingItemId(null);
+    } else {
+      // Add new item
+      if (newItem.category && newItem.amount) {
+        const itemToAdd: BudgetItem = {
+          id: Date.now().toString(),
+          category: newItem.category,
+          subcategory: newItem.subcategory,
+          amount: Number.parseFloat(newItem.amount),
+          frequency: newItem.frequency,
+          type: newItem.type,
+          isFixed: newItem.isFixed,
+        }
+        setBudgetItems([...budgetItems, itemToAdd]);
       }
-      setBudgetItems([...budgetItems, item])
-      setNewItem({
-        category: "",
-        subcategory: "",
-        amount: "",
-        frequency: "monthly",
-        type: "expense",
-        isFixed: false,
-      })
     }
+    setNewItem(initialFormState); // Reset form
+  }
+
+  // Function to handle clicking the edit button on an item
+  const handleEditClick = (itemToEdit: BudgetItem) => {
+    setEditingItemId(itemToEdit.id);
+    setNewItem({
+      ...itemToEdit,
+      amount: itemToEdit.amount.toString(), // Convert amount back to string for input
+    });
+  }
+
+  // Function to cancel editing
+  const handleCancelEdit = () => {
+    setEditingItemId(null);
+    setNewItem(initialFormState);
   }
 
   const removeBudgetItem = (id: string, itemName: string) => {
@@ -424,11 +456,13 @@ export default function BudgetingPage() {
 
             <TabsContent value="budget" className="space-y-6">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Add Income/Expense */}
+                {/* Add/Edit Income/Expense */}
                 <Card>
                   <CardHeader>
-                    <CardTitle>Add Income or Expense</CardTitle>
-                    <CardDescription>Track your financial inflows and outflows</CardDescription>
+                    <CardTitle>{editingItemId ? 'Edit Item' : 'Add Income or Expense'}</CardTitle>
+                    <CardDescription>
+                      {editingItemId ? 'Update the details of your item below.' : 'Track your financial inflows and outflows'}
+                    </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
@@ -532,13 +566,20 @@ export default function BudgetingPage() {
                       <Label htmlFor="isFixed">Fixed amount (doesn't vary month to month)</Label>
                     </div>
 
-                    <Button onClick={addBudgetItem} className="w-full">
-                      Add to Budget
-                    </Button>
+                    <div className="flex gap-2">
+                      {editingItemId && (
+                          <Button variant="outline" onClick={handleCancelEdit} className="w-full">
+                            Cancel
+                          </Button>
+                      )}
+                      <Button onClick={handleFormSubmit} className="w-full">
+                        {editingItemId ? 'Update Item' : 'Add to Budget'}
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
 
-                {/* Budget Summary (NOW A PIE CHART) */}
+                {/* Budget Summary (PIE CHART) */}
                 <Card>
                   <CardHeader>
                     <CardTitle>Budget Summary</CardTitle>
@@ -604,10 +645,10 @@ export default function BudgetingPage() {
                                 ${convertToMonthly(item.amount, item.frequency).toFixed(2)}/month
                               </div>
                             </div>
-                            {/* EDIT BUTTON ADDED HERE */}
                             <Button
                                 variant="ghost"
                                 size="sm"
+                                onClick={() => handleEditClick(item)}
                                 className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 p-2"
                                 title="Edit this item"
                             >
@@ -686,33 +727,6 @@ export default function BudgetingPage() {
                   )}
                 </CardContent>
               </Card>
-
-              {/* Expense Breakdown List */}
-              {Object.keys(expenseCategories).length > 0 && (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Expense Breakdown</CardTitle>
-                      <CardDescription>Where your money goes each month</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-4">
-                        {Object.entries(expenseCategories)
-                            .sort(([, a], [, b]) => b - a)
-                            .map(([category, amount]) => (
-                                <div key={category} className="space-y-2">
-                                  <div className="flex justify-between">
-                                    <span className="text-sm font-medium">{category}</span>
-                                    <span className="text-sm">
-                              ${amount.toFixed(2)} ({((amount / monthlyExpenses) * 100).toFixed(1)}%)
-                            </span>
-                                  </div>
-                                  <Progress value={(amount / monthlyExpenses) * 100} className="h-2" />
-                                </div>
-                            ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-              )}
             </TabsContent>
 
             <TabsContent value="goals" className="space-y-6">
