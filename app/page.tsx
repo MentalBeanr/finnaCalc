@@ -96,19 +96,19 @@ export default function HomePage() {
 
               {/* Desktop Navigation */}
               <nav className="hidden md:flex space-x-8">
-                <Link href="/" className="text-gray-700 hover:text-blue-600">
+                <Link href="/" className="text-gray-700 hover:text-blue-600 font-bold">
                   Home
                 </Link>
-                <Link href="/budgeting" className="text-gray-700 hover:text-blue-600">
+                <Link href="/budgeting" className="text-gray-700 hover:text-blue-600 font-bold">
                   Budgeting
                 </Link>
-                <Link href="/investing" className="text-gray-700 hover:text-blue-600">
+                <Link href="/investing" className="text-gray-700 hover:text-blue-600 font-bold">
                   Investing
                 </Link>
-                <Link href="/advising" className="text-gray-700 hover:text-blue-600">
+                <Link href="/advising" className="text-gray-700 hover:text-blue-600 font-bold">
                   Advising
                 </Link>
-                <Link href="/about" className="text-gray-700 hover:text-blue-600">
+                <Link href="/about" className="text-gray-700 hover:text-blue-600 font-bold">
                   About
                 </Link>
               </nav>
@@ -117,10 +117,7 @@ export default function HomePage() {
               <div className="hidden md:flex items-center gap-4">
                 <SignedOut>
                   <Link href="/sign-in">
-                    <Button variant="ghost">Sign In</Button>
-                  </Link>
-                  <Link href="/sign-up">
-                    <Button className="bg-blue-600 hover:bg-blue-700">Sign Up</Button>
+                    <Button className="bg-blue-600 hover:bg-blue-700">Sign In</Button>
                   </Link>
                 </SignedOut>
                 <SignedIn>
@@ -144,43 +141,43 @@ export default function HomePage() {
                   <div className="px-2 pt-2 pb-3 space-y-1">
                     <Link
                         href="/"
-                        className="block px-3 py-2 text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-md"
+                        className="block px-3 py-2 text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-md font-bold"
                         onClick={() => setMobileMenuOpen(false)}
                     >
                       Home
                     </Link>
                     <Link
                         href="/budgeting"
-                        className="block px-3 py-2 text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-md"
+                        className="block px-3 py-2 text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-md font-bold"
                         onClick={() => setMobileMenuOpen(false)}
                     >
                       Budgeting
                     </Link>
                     <Link
                         href="/investing"
-                        className="block px-3 py-2 text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-md"
+                        className="block px-3 py-2 text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-md font-bold"
                         onClick={() => setMobileMenuOpen(false)}
                     >
                       Investing
                     </Link>
                     <Link
                         href="/advising"
-                        className="block px-3 py-2 text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-md"
+                        className="block px-3 py-2 text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-md font-bold"
                         onClick={() => setMobileMenuOpen(false)}
                     >
                       Advising
                     </Link>
                     <Link
                         href="/about"
-                        className="block px-3 py-2 text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-md"
+                        className="block px-3 py-2 text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-md font-bold"
                         onClick={() => setMobileMenuOpen(false)}
                     >
                       About
                     </Link>
                     <div className="px-3 py-2">
                       <SignedOut>
-                        <Link href="/sign-up" onClick={() => setMobileMenuOpen(false)}>
-                          <Button className="w-full bg-blue-600 hover:bg-blue-700">Sign Up</Button>
+                        <Link href="/sign-in" onClick={() => setMobileMenuOpen(false)}>
+                          <Button className="w-full bg-blue-600 hover:bg-blue-700">Sign In</Button>
                         </Link>
                       </SignedOut>
                     </div>
