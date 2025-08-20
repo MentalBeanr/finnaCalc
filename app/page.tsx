@@ -214,7 +214,7 @@ export default function HomePage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               {calculators.map((calc, index) => (
-                  <Card key={index} className="hover:shadow-lg transition-shadow cursor-pointer">
+                  <Card key={index} className="transition-all duration-200 hover:shadow-lg hover:-translate-y-1 cursor-pointer">
                     <Link href={calc.href}>
                       <CardHeader className="pb-3">
                         <div className="flex items-start gap-3">
