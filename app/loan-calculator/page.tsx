@@ -37,7 +37,6 @@ export default function LoanCalculator() {
 
   const [loanType, setLoanType] = useState("personal")
   const [paymentFrequency, setPaymentFrequency] = useState("monthly")
-  const [extraPayment, setExtraPayment] = useState("")
   const [downPayment, setDownPayment] = useState("")
   const [result, setResult] = useState<any>(null)
 
@@ -45,7 +44,6 @@ export default function LoanCalculator() {
     const principal = (Number.parseFloat(loanAmount) || 0) - (Number.parseFloat(downPayment) || 0)
     const annualRate = (Number.parseFloat(interestRate) || 0) / 100
     const termMonths = Number.parseFloat(loanTerm) || 0
-    const extra = Number.parseFloat(extraPayment) || 0
 
     const frequencies = {
       monthly: { periods: 12, termPeriods: termMonths },
@@ -59,24 +57,20 @@ export default function LoanCalculator() {
     const rate = annualRate / freq.periods
     const term = freq.termPeriods
 
-    // Updated validation to allow zero interest and zero principal
     if (principal < 0 || term <= 0) {
       setResult({ error: "Please enter valid positive numbers for Loan Amount and Term." })
       return
     }
 
     let basePayment = 0;
-    // Special calculation for 0% interest rate
     if (rate === 0) {
       if (term > 0) {
         basePayment = principal / term;
       }
     } else {
-      // Standard loan payment formula
       basePayment = (principal * rate * Math.pow(1 + rate, term)) / (Math.pow(1 + rate, term) - 1)
     }
 
-    // Ensure basePayment is a valid number, otherwise set to 0.
     if (!isFinite(basePayment)) {
       basePayment = 0;
     }
@@ -95,6 +89,7 @@ export default function LoanCalculator() {
     })
   }
 
+  // ... (rest of the calculator functions remain the same)
   const calculateAPR = () => {
     const principal = Number.parseFloat(loanAmountAPR) || 0
     const interest = Number.parseFloat(totalInterest) || 0
@@ -164,8 +159,9 @@ export default function LoanCalculator() {
     })
   }
 
+
   const handleCalculate = () => {
-    setResult(null); // Clear previous results before calculating
+    setResult(null);
     switch (calculationType) {
       case "payment":
         calculatePayment()
@@ -183,6 +179,7 @@ export default function LoanCalculator() {
   }
 
   return (
+      // ... (rest of the JSX remains the same)
       <div className="min-h-screen bg-gray-50">
         {/* Header */}
         <header className="border-b border-gray-200 bg-white">

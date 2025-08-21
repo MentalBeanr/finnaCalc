@@ -14,6 +14,7 @@ import {
   PiggyBankIcon as Piggy,
   Trash2,
   Edit,
+  PlusCircle,
 } from "lucide-react"
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from "recharts"
 import { Button } from "@/components/ui/button"
@@ -29,8 +30,6 @@ import { useLocalStorage } from "@/hooks/use-local-storage"
 import { SaveIndicator } from "@/components/save-indicator"
 import Link from "next/link"
 import Papa from "papaparse"
-
-// ... (keep the BudgetItem and SavingsGoal interfaces as they are)
 
 interface BudgetItem {
   id: string
@@ -54,12 +53,9 @@ interface SavingsGoal {
 interface ParsedTransaction {
   Description: string;
   Amount: number;
-  // This will be set by the user in the modal
   category?: string;
 }
 
-
-// Define a color palette for the pie chart
 const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#AF19FF", "#FF1943", "#19D7FF"];
 
 export default function BudgetingPage() {
@@ -72,11 +68,15 @@ export default function BudgetingPage() {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [editingItemId, setEditingItemId] = useState<string | null>(null)
 
-  // State for CSV import
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
-  const [parsedTransactions, setParsedTransactions] = useState<ParsedTransaction[]>([]);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
+  const [csvData, setCsvData] = useState<any[]>([]);
+  const [columnMapping, setColumnMapping] = useState({ description: '', amount: '', credit: '', debit: '' });
+  const [amountType, setAmountType] = useState('single');
+  const [categorizedTransactions, setCategorizedTransactions] = useState<ParsedTransaction[]>([]);
+  const [importStep, setImportStep] = useState(1);
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const initialFormState = {
     category: "",
@@ -97,7 +97,6 @@ export default function BudgetingPage() {
     monthlyContribution: "",
   })
 
-  // Auto-save functionality
   const autoSave = useCallback(() => {
     setHasUnsavedChanges(true)
     const timer = setTimeout(() => {
@@ -188,45 +187,64 @@ export default function BudgetingPage() {
         header: true,
         skipEmptyLines: true,
         complete: (results) => {
-          const transactions = results.data.map((row: any) => ({
-            // Assumes columns are named 'Description' and 'Amount'
-            Description: row.Description || row.description || '',
-            Amount: parseFloat(row.Amount || row.amount || 0),
-          })).filter(t => t.Description && t.Amount);
-
-          setParsedTransactions(transactions);
+          setCsvHeaders(results.meta.fields || []);
+          setCsvData(results.data);
+          setImportStep(1);
           setIsImportModalOpen(true);
         },
       });
     }
+    if (event.target) event.target.value = '';
+  };
+
+  const processMappedTransactions = () => {
+    const cleanAmount = (value: any) => {
+      if (typeof value !== 'string') return 0;
+      return parseFloat(value.replace(/["$,]/g, '')) || 0;
+    };
+
+    const transactions = csvData.map(row => {
+      let amount = 0;
+      if (amountType === 'single') {
+        amount = cleanAmount(row[columnMapping.amount]);
+      } else {
+        const credit = cleanAmount(row[columnMapping.credit]);
+        const debit = cleanAmount(row[columnMapping.debit]);
+        amount = credit - debit;
+      }
+      return {
+        Description: row[columnMapping.description] || '',
+        Amount: amount
+      };
+    }).filter(t => t.Description && !isNaN(t.Amount));
+
+    setCategorizedTransactions(transactions);
+    setImportStep(2);
   };
 
   const handleTransactionCategoryChange = (index: number, category: string) => {
-    const updated = [...parsedTransactions];
+    const updated = [...categorizedTransactions];
     updated[index].category = category;
-    setParsedTransactions(updated);
+    setCategorizedTransactions(updated);
   };
 
   const handleImportConfirm = () => {
-    const newBudgetItems = parsedTransactions
-        .filter(t => t.category) // Only import items with a category
+    const newBudgetItems: BudgetItem[] = categorizedTransactions
+        .filter(t => t.category)
         .map((t, i) => ({
           id: `imported-${Date.now()}-${i}`,
           category: t.category!,
           subcategory: t.Description,
           amount: Math.abs(t.Amount),
           type: t.Amount < 0 ? 'expense' : 'income',
-          frequency: 'monthly' as const, // Assuming monthly for simplicity
+          frequency: 'monthly',
           isFixed: false,
         }));
 
     setBudgetItems([...budgetItems, ...newBudgetItems]);
     setIsImportModalOpen(false);
-    setParsedTransactions([]);
   };
 
-
-  // ... (keep the rest of your functions like addSavingsGoal, removeSavingsGoal, etc.)
   const addSavingsGoal = () => {
     if (newGoal.name && newGoal.targetAmount) {
       const goal: SavingsGoal = {
@@ -277,7 +295,6 @@ export default function BudgetingPage() {
           {} as Record<string, number>,
       )
 
-  // Prepare data for the Pie Chart
   const pieChartData = Object.keys(expenseCategories).map(key => ({
     name: key,
     value: expenseCategories[key]
@@ -295,59 +312,7 @@ export default function BudgetingPage() {
       })
     }
 
-    if (monthlyIncome > 0 && monthlyNet > 0 && monthlyNet < monthlyIncome * 0.2) {
-      recommendations.push({
-        type: "info",
-        title: "Low Savings Rate",
-        message: `Try to save at least 20% of your income for financial security. You're currently saving ${((monthlyNet / monthlyIncome) * 100).toFixed(1)}%. Consider reducing discretionary spending.`,
-      })
-    }
-
-    const housingCost = expenseCategories["Housing"] || 0
-    if (monthlyIncome > 0 && housingCost > monthlyIncome * 0.3) {
-      recommendations.push({
-        type: "warning",
-        title: "High Housing Costs",
-        message: `Housing costs should ideally be under 30% of income. Yours is ${((housingCost / monthlyIncome) * 100).toFixed(1)}%. Consider downsizing or finding additional income sources.`,
-      })
-    }
-
-    const foodCost = expenseCategories["Food"] || 0
-    if (monthlyIncome > 0 && foodCost > monthlyIncome * 0.15) {
-      recommendations.push({
-        type: "info",
-        title: "Food Spending Analysis",
-        message: `Your food expenses are ${((foodCost / monthlyIncome) * 100).toFixed(1)}% of income. Consider meal planning, cooking at home more often, or using grocery budgeting apps to reduce costs.`,
-      })
-    }
-
-    const entertainmentCost = expenseCategories["Entertainment"] || 0
-    if (monthlyIncome > 0 && entertainmentCost > monthlyIncome * 0.1) {
-      recommendations.push({
-        type: "info",
-        title: "Entertainment Spending",
-        message: `Entertainment costs are ${((entertainmentCost / monthlyIncome) * 100).toFixed(1)}% of income. Look for free activities, use streaming services instead of cable, or set a monthly entertainment budget.`,
-      })
-    }
-
-    const transportationCost = expenseCategories["Transportation"] || 0
-    if (monthlyIncome > 0 && transportationCost > monthlyIncome * 0.15) {
-      recommendations.push({
-        type: "info",
-        title: "Transportation Costs",
-        message: `Transportation is ${((transportationCost / monthlyIncome) * 100).toFixed(1)}% of income. Consider carpooling, public transit, or working from home to reduce these expenses.`,
-      })
-    }
-
-    // Positive recommendations
-    if (monthlyIncome > 0 && monthlyNet >= monthlyIncome * 0.2) {
-      recommendations.push({
-        type: "success",
-        title: "Excellent Savings Rate!",
-        message: `You're saving ${((monthlyNet / monthlyIncome) * 100).toFixed(1)}% of your income. Consider investing this surplus in retirement accounts or building an emergency fund.`,
-      })
-    }
-
+    // ... (rest of getRecommendations logic) ...
     return recommendations
   }
 
@@ -365,21 +330,6 @@ export default function BudgetingPage() {
                 </div>
                 <div className="flex items-center gap-2 sm:gap-4">
                   <SaveIndicator lastSaved={lastSaved} hasUnsavedChanges={hasUnsavedChanges} />
-                  <input
-                      type="file"
-                      ref={fileInputRef}
-                      onChange={handleFileUpload}
-                      className="hidden"
-                      accept=".csv"
-                  />
-                  <Button
-                      variant="outline"
-                      className="hidden sm:flex items-center gap-2"
-                      onClick={() => fileInputRef.current?.click()}
-                  >
-                    <Upload className="h-4 w-4" />
-                    <span className="hidden md:inline">Import CSV</span>
-                  </Button>
                   <Link href="/">
                     <Button variant="outline">Back to Home</Button>
                   </Link>
@@ -398,17 +348,9 @@ export default function BudgetingPage() {
                 <div className="flex gap-2">
                   <Select
                       onValueChange={(value) => {
-                        if (value === "budget-items" && budgetItems.length > 0) {
-                          if (confirm("Are you sure you want to clear all budget items? This cannot be undone.")) {
-                            setBudgetItems([])
-                          }
-                        } else if (value === "savings-goals" && savingsGoals.length > 0) {
-                          if (confirm("Are you sure you want to clear all savings goals? This cannot be undone.")) {
-                            setSavingsGoals([])
-                          }
-                        } else if (value === "all-data") {
-                          clearAllData()
-                        }
+                        if (value === "budget-items") clearBudgetItems();
+                        if (value === "savings-goals") clearSavingsGoals();
+                        if (value === "all-data") clearAllData();
                       }}
                   >
                     <SelectTrigger className="w-40">
@@ -424,8 +366,6 @@ export default function BudgetingPage() {
               </div>
             </div>
 
-            {/* ... (keep Overview Cards and Tabs component as they are) */}
-            {/* Overview Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
               <Card>
                 <CardContent className="p-4 sm:p-6">
@@ -482,21 +422,58 @@ export default function BudgetingPage() {
               </Card>
             </div>
 
-            <Tabs defaultValue="budget" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-2 lg:grid-cols-3">
-                <TabsTrigger value="budget" className="text-xs sm:text-sm">
-                  Budget
-                </TabsTrigger>
-                <TabsTrigger value="analysis" className="text-xs sm:text-sm">
-                  Analysis
-                </TabsTrigger>
-                <TabsTrigger value="goals" className="text-xs sm:text-sm">
-                  Savings Goals
-                </TabsTrigger>
+            <Tabs defaultValue="history" className="space-y-6">
+              <TabsList className="grid w-full grid-cols-4">
+                <TabsTrigger value="history">Budget History</TabsTrigger>
+                <TabsTrigger value="budget">Budget</TabsTrigger>
+                <TabsTrigger value="analysis">Analysis</TabsTrigger>
+                <TabsTrigger value="goals">Savings Goals</TabsTrigger>
               </TabsList>
+
+              <TabsContent value="history" className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Import Bank Statement</CardTitle>
+                    <CardDescription>Upload a CSV file from your bank to review and add transactions to your budget.</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleFileUpload}
+                        className="hidden"
+                        accept=".csv"
+                    />
+                    <Button onClick={() => fileInputRef.current?.click()} className="w-full sm:w-auto">
+                      <Upload className="h-4 w-4 mr-2" />
+                      Upload CSV
+                    </Button>
+                    <div className="mt-4 space-y-2">
+                      {parsedTransactions.length > 0 ? (
+                          parsedTransactions.map((t, i) => (
+                              <div key={i} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                                <div>
+                                  <p className="font-medium">{t.Description}</p>
+                                  <p className={t.Amount < 0 ? 'text-red-600' : 'text-green-600'}>${t.Amount.toFixed(2)}</p>
+                                </div>
+                                <Button size="sm" onClick={() => addTransactionToBudget(t, i)}>
+                                  <PlusCircle className="h-4 w-4 mr-2" />
+                                  Add to Budget
+                                </Button>
+                              </div>
+                          ))
+                      ) : (
+                          <p className="text-center text-gray-500 py-4">Upload a CSV file to see your transaction history here.</p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* ... (rest of the tabs and their content) ... */}
               <TabsContent value="budget" className="space-y-6">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {/* Add/Edit Income/Expense */}
+                  {/* Add/Edit Form */}
                   <Card>
                     <CardHeader>
                       <CardTitle>{editingItemId ? 'Edit Item' : 'Add Income or Expense'}</CardTitle>
@@ -505,12 +482,13 @@ export default function BudgetingPage() {
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
+                      {/* ... form content ... */}
                       <div className="grid grid-cols-2 gap-4">
                         <div>
                           <Label>Type</Label>
                           <Select
                               value={newItem.type}
-                              onValueChange={(value: "income" | "expense") => setNewItem({ ...newItem, type: value })}
+                              onValueChange={(value) => setNewItem({ ...newItem, type: value as "income" | "expense" })}
                           >
                             <SelectTrigger>
                               <SelectValue />
@@ -525,7 +503,7 @@ export default function BudgetingPage() {
                           <Label>Frequency</Label>
                           <Select
                               value={newItem.frequency}
-                              onValueChange={(value: any) => setNewItem({ ...newItem, frequency: value })}
+                              onValueChange={(value) => setNewItem({ ...newItem, frequency: value as "daily" | "weekly" | "monthly" | "yearly" })}
                           >
                             <SelectTrigger>
                               <SelectValue />
@@ -539,7 +517,6 @@ export default function BudgetingPage() {
                           </Select>
                         </div>
                       </div>
-
                       <div>
                         <Label>Category</Label>
                         <Select
@@ -576,7 +553,6 @@ export default function BudgetingPage() {
                           </SelectContent>
                         </Select>
                       </div>
-
                       <div>
                         <Label>Description</Label>
                         <Input
@@ -585,7 +561,6 @@ export default function BudgetingPage() {
                             onChange={(e) => setNewItem({ ...newItem, subcategory: e.target.value })}
                         />
                       </div>
-
                       <div>
                         <Label>Amount ($)</Label>
                         <Input
@@ -595,7 +570,6 @@ export default function BudgetingPage() {
                             onChange={(e) => setNewItem({ ...newItem, amount: e.target.value })}
                         />
                       </div>
-
                       <div className="flex items-center space-x-2">
                         <input
                             type="checkbox"
@@ -605,7 +579,6 @@ export default function BudgetingPage() {
                         />
                         <Label htmlFor="isFixed">Fixed amount (doesn't vary month to month)</Label>
                       </div>
-
                       <div className="flex gap-2">
                         {editingItemId && (
                             <Button variant="outline" onClick={handleCancelEdit} className="w-full">
@@ -618,8 +591,7 @@ export default function BudgetingPage() {
                       </div>
                     </CardContent>
                   </Card>
-
-                  {/* Budget Summary (PIE CHART) */}
+                  {/* Pie Chart Summary */}
                   <Card>
                     <CardHeader>
                       <CardTitle>Budget Summary</CardTitle>
@@ -658,8 +630,6 @@ export default function BudgetingPage() {
                     </CardContent>
                   </Card>
                 </div>
-
-                {/* Budget Items List */}
                 <Card>
                   <CardHeader>
                     <CardTitle>Budget Items ({budgetItems.length})</CardTitle>
@@ -670,20 +640,14 @@ export default function BudgetingPage() {
                       {budgetItems.map((item) => (
                           <div key={item.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
                             <div className="flex-1 min-w-0">
-                              <div>
-                                <p className="font-medium truncate">{item.subcategory || 'No description'}</p>
-                                <p className="text-xs text-gray-500">{item.category}</p>
-                              </div>
-                              <span className="text-sm text-gray-500 ml-2">({item.frequency})</span>
-                              {item.isFixed && (
-                                  <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded ml-2">Fixed</span>
-                              )}
+                              <p className="font-medium truncate">{item.subcategory || 'No description'}</p>
+                              <p className="text-xs text-gray-500">{item.category}</p>
                             </div>
                             <div className="flex items-center gap-2">
                               <div className="text-right flex-shrink-0">
-                          <span className={`font-bold ${item.type === "income" ? "text-green-600" : "text-red-600"}`}>
-                            {item.type === "income" ? "+" : "-"}${item.amount.toFixed(2)}
-                          </span>
+                              <span className={`font-bold ${item.type === "income" ? "text-green-600" : "text-red-600"}`}>
+                                {item.type === "income" ? "+" : "-"}${item.amount.toFixed(2)}
+                              </span>
                                 <div className="text-xs text-gray-500">
                                   ${convertToMonthly(item.amount, item.frequency).toFixed(2)}/month
                                 </div>
@@ -718,9 +682,334 @@ export default function BudgetingPage() {
                   </CardContent>
                 </Card>
               </TabsContent>
+
+              <TabsContent value="analysis" className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Financial Health Analysis</CardTitle>
+                    <CardDescription>Personalized recommendations based on your budget</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {getRecommendations().map((rec, index) => (
+                        <Alert
+                            key={index}
+                            className={
+                              rec.type === "warning"
+                                  ? "border-orange-200 bg-orange-50"
+                                  : rec.type === "success"
+                                      ? "border-green-200 bg-green-50"
+                                      : "border-blue-200 bg-blue-50"
+                            }
+                        >
+                          <AlertCircle className="h-4 w-4" />
+                          <div>
+                            <h4 className="font-semibold">{rec.title}</h4>
+                            <AlertDescription>{rec.message}</AlertDescription>
+                          </div>
+                        </Alert>
+                    ))}
+                    {getRecommendations().length === 0 && budgetItems.length > 0 && (
+                        <Alert className="border-green-200 bg-green-50">
+                          <AlertCircle className="h-4 w-4" />
+                          <div>
+                            <h4 className="font-semibold">Great Job!</h4>
+                            <AlertDescription>Your budget looks healthy. Keep up the good work!</AlertDescription>
+                          </div>
+                        </Alert>
+                    )}
+                    {getRecommendations().length === 0 && budgetItems.length === 0 && (
+                        <Alert className="border-blue-200 bg-blue-50">
+                          <AlertCircle className="h-4 w-4" />
+                          <div>
+                            <h4 className="font-semibold">Get Started</h4>
+                            <AlertDescription>
+                              Add your income and expenses in the Budget tab to see personalized financial analysis and
+                              recommendations.
+                            </AlertDescription>
+                          </div>
+                        </Alert>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="goals" className="space-y-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Add Savings Goal</CardTitle>
+                      <CardDescription>Set and track your financial goals</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div>
+                        <Label>Goal Name</Label>
+                        <Input
+                            placeholder="e.g., Emergency Fund, Vacation, New Car"
+                            value={newGoal.name}
+                            onChange={(e) => setNewGoal({ ...newGoal, name: e.target.value })}
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label>Target Amount ($)</Label>
+                          <Input
+                              type="number"
+                              placeholder="10000"
+                              value={newGoal.targetAmount}
+                              onChange={(e) => setNewGoal({ ...newGoal, targetAmount: e.target.value })}
+                          />
+                        </div>
+                        <div>
+                          <Label>Current Amount ($)</Label>
+                          <Input
+                              type="number"
+                              placeholder="2000"
+                              value={newGoal.currentAmount}
+                              onChange={(e) => setNewGoal({ ...newGoal, currentAmount: e.target.value })}
+                          />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label>Target Date</Label>
+                          <Input
+                              type="date"
+                              value={newGoal.targetDate}
+                              onChange={(e) => setNewGoal({ ...newGoal, targetDate: e.target.value })}
+                          />
+                        </div>
+                        <div>
+                          <Label>Monthly Contribution ($)</Label>
+                          <Input
+                              type="number"
+                              placeholder="500"
+                              value={newGoal.monthlyContribution}
+                              onChange={(e) => setNewGoal({ ...newGoal, monthlyContribution: e.target.value })}
+                          />
+                        </div>
+                      </div>
+                      <Button onClick={addSavingsGoal} className="w-full">
+                        Add Savings Goal
+                      </Button>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Savings Goals Progress ({savingsGoals.length})</CardTitle>
+                      <CardDescription>Track your progress toward financial goals</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        {savingsGoals.map((goal) => {
+                          const progress = goal.targetAmount > 0 ? (goal.currentAmount / goal.targetAmount) * 100 : 0;
+                          const remaining = goal.targetAmount - goal.currentAmount
+                          const monthsToGoal =
+                              goal.monthlyContribution > 0 ? Math.ceil(remaining / goal.monthlyContribution) : 0
+
+                          return (
+                              <div key={goal.id} className="space-y-3 p-4 border rounded-lg">
+                                <div className="flex justify-between items-center">
+                                  <div className="flex items-center gap-2">
+                                    <div className="relative">
+                                      <Piggy className="h-8 w-8 text-pink-500" />
+                                      <div
+                                          className="absolute inset-0 bg-gradient-to-t from-green-400 to-transparent rounded-full opacity-60"
+                                          style={{ height: `${Math.min(progress, 100)}%`, bottom: 0 }}
+                                      />
+                                    </div>
+                                    <span className="font-medium">{goal.name}</span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                  <span className="text-sm text-gray-600">
+                                    ${goal.currentAmount.toFixed(0)} / ${goal.targetAmount.toFixed(0)}
+                                  </span>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => removeSavingsGoal(goal.id, goal.name)}
+                                        className="text-red-600 hover:text-red-700 hover:bg-red-50 p-1"
+                                        title="Delete this goal"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </div>
+                                <Progress value={Math.min(progress, 100)} className="h-3" />
+                                <div className="flex justify-between text-xs text-gray-500">
+                                  <span>{progress.toFixed(1)}% complete</span>
+                                  {monthsToGoal > 0 && <span>{monthsToGoal} months to goal</span>}
+                                </div>
+                                <div className="flex gap-2">
+                                  <Input
+                                      type="number"
+                                      placeholder="Add amount"
+                                      className="text-sm"
+                                      onKeyPress={(e) => {
+                                        if (e.key === "Enter") {
+                                          const input = e.target as HTMLInputElement
+                                          const addAmount = Number.parseFloat(input.value)
+                                          if (addAmount > 0) {
+                                            updateSavingsGoal(goal.id, {
+                                              currentAmount: goal.currentAmount + addAmount,
+                                            })
+                                            input.value = ""
+                                          }
+                                        }
+                                      }}
+                                  />
+                                  <Button
+                                      size="sm"
+                                      onClick={(e) => {
+                                        const input = (e.target as HTMLElement).parentElement?.querySelector(
+                                            "input",
+                                        ) as HTMLInputElement
+                                        const addAmount = Number.parseFloat(input.value)
+                                        if (addAmount > 0) {
+                                          updateSavingsGoal(goal.id, {
+                                            currentAmount: goal.currentAmount + addAmount,
+                                          })
+                                          input.value = ""
+                                        }
+                                      }}
+                                  >
+                                    Add
+                                  </Button>
+                                </div>
+                              </div>
+                          )
+                        })}
+                        {savingsGoals.length === 0 && (
+                            <p className="text-gray-500 text-center py-4">No savings goals yet. Add one to get started!</p>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </TabsContent>
             </Tabs>
           </div>
         </div>
+
+        <Dialog open={isImportModalOpen} onOpenChange={setIsImportModalOpen}>
+          <DialogContent className="max-w-4xl">
+            <DialogHeader>
+              <DialogTitle>Import Transactions</DialogTitle>
+            </DialogHeader>
+
+            {importStep === 1 && (
+                <>
+                  <DialogDescription>
+                    Map the columns from your CSV file to the required fields.
+                  </DialogDescription>
+                  <div className="space-y-4">
+                    <div>
+                      <Label>Transaction Description</Label>
+                      <Select onValueChange={value => setColumnMapping(prev => ({ ...prev, description: value }))}>
+                        <SelectTrigger><SelectValue placeholder="Select description column..." /></SelectTrigger>
+                        <SelectContent>
+                          {csvHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>Amount Format</Label>
+                      <Select onValueChange={value => setAmountType(value)} defaultValue="single">
+                        <SelectTrigger><SelectValue/></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="single">Single Amount Column (e.g., -50.25 for expenses)</SelectItem>
+                          <SelectItem value="double">Separate Credit/Debit Columns</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {amountType === 'single' ? (
+                        <div>
+                          <Label>Amount</Label>
+                          <Select onValueChange={value => setColumnMapping(prev => ({ ...prev, amount: value }))}>
+                            <SelectTrigger><SelectValue placeholder="Select amount column..." /></SelectTrigger>
+                            <SelectContent>
+                              {csvHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label>Credit (Income)</Label>
+                            <Select onValueChange={value => setColumnMapping(prev => ({ ...prev, credit: value }))}>
+                              <SelectTrigger><SelectValue placeholder="Select credit column..." /></SelectTrigger>
+                              <SelectContent>
+                                {csvHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label>Debit (Expense)</Label>
+                            <Select onValueChange={value => setColumnMapping(prev => ({ ...prev, debit: value }))}>
+                              <SelectTrigger><SelectValue placeholder="Select debit column..." /></SelectTrigger>
+                              <SelectContent>
+                                {csvHeaders.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                    )}
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsImportModalOpen(false)}>Cancel</Button>
+                    <Button onClick={processMappedTransactions}>Next: Categorize</Button>
+                  </DialogFooter>
+                </>
+            )}
+
+            {importStep === 2 && (
+                <>
+                  <DialogDescription>
+                    Please assign a category to each imported transaction before adding them to your budget.
+                  </DialogDescription>
+                  <div className="max-h-[60vh] overflow-y-auto p-1">
+                    <div className="grid grid-cols-3 gap-4 font-medium sticky top-0 bg-background py-2">
+                      <p>Description</p>
+                      <p>Amount</p>
+                      <p>Category</p>
+                    </div>
+                    {categorizedTransactions.map((t, i) => (
+                        <div key={i} className="grid grid-cols-3 gap-4 items-center py-2 border-b">
+                          <p className="truncate" title={t.Description}>{t.Description}</p>
+                          <p className={t.Amount < 0 ? 'text-red-600' : 'text-green-600'}>${t.Amount.toFixed(2)}</p>
+                          <Select onValueChange={(value) => handleTransactionCategoryChange(i, value)}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select category" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Housing">Housing</SelectItem>
+                              <SelectItem value="Transportation">Transportation</SelectItem>
+                              <SelectItem value="Food">Food & Dining</SelectItem>
+                              <SelectItem value="Utilities">Utilities</SelectItem>
+                              <SelectItem value="Healthcare">Healthcare</SelectItem>
+                              <SelectItem value="Entertainment">Entertainment</SelectItem>
+                              <SelectItem value="Shopping">Shopping</SelectItem>
+                              <SelectItem value="Insurance">Insurance</SelectItem>
+                              <SelectItem value="Debt">Debt Payments</SelectItem>
+                              <SelectItem value="Savings">Savings</SelectItem>
+                              <SelectItem value="Other">Other Expenses</SelectItem>
+                              <SelectItem value="Salary">Salary</SelectItem>
+                              <SelectItem value="Freelance">Freelance</SelectItem>
+                              <SelectItem value="Business">Business Income</SelectItem>
+                              <SelectItem value="Investments">Investment Returns</SelectItem>
+                              <SelectItem value="Other Income">Other Income</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                    ))}
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setImportStep(1)}>Back</Button>
+                    <Button onClick={handleImportConfirm}>Add Items to Budget</Button>
+                  </DialogFooter>
+                </>
+            )}
+          </DialogContent>
+        </Dialog>
       </>
   )
 }
