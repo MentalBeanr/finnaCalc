@@ -118,7 +118,7 @@ export default function HomePage() {
                   </Link>
                 </SignedOut>
                 <SignedIn>
-                  <UserButton afterSignOutUrl="/"/>
+                  <UserButton afterSignOutUrl="/" />
                 </SignedIn>
               </div>
 
