@@ -108,9 +108,6 @@ export default function HomePage() {
                 <Link href="/advising" className="text-gray-700 hover:text-blue-600 font-bold">
                   Advising
                 </Link>
-                <Link href="/about" className="text-gray-700 hover:text-blue-600 font-bold">
-                  About
-                </Link>
               </nav>
 
               {/* Desktop Auth Buttons */}
@@ -166,13 +163,6 @@ export default function HomePage() {
                         onClick={() => setMobileMenuOpen(false)}
                     >
                       Advising
-                    </Link>
-                    <Link
-                        href="/about"
-                        className="block px-3 py-2 text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-md font-bold"
-                        onClick={() => setMobileMenuOpen(false)}
-                    >
-                      About
                     </Link>
                     <div className="px-3 py-2">
                       <SignedOut>
@@ -366,11 +356,6 @@ export default function HomePage() {
               <div>
                 <h3 className="font-semibold mb-4">Company</h3>
                 <ul className="space-y-2 text-gray-400">
-                  <li>
-                    <Link href="/about" className="hover:text-white">
-                      About
-                    </Link>
-                  </li>
                   <li>
                     <Link href="/contact" className="hover:text-white">
                       Contact
