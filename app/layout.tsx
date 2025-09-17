@@ -1,10 +1,9 @@
 import { type Metadata } from 'next'
-import { Analytics } from "@vercel/analytics/next"
-import { SpeedInsights } from "@vercel/speed-insights/next"
 import { ClerkProvider } from '@clerk/nextjs'
 import { Geist, Geist_Mono } from 'next/font/google'
 import './globals.css'
-import ChatBot from '@/components/Chatbot' // 1. Import the ChatBot component
+import ChatBot from '@/components/Chatbot'
+import Header from '@/components/Header' // 1. Import the Header component
 
 const geistSans = Geist({
     variable: '--font-geist-sans',
@@ -30,8 +29,9 @@ export default function RootLayout({
         <ClerkProvider>
             <html lang="en">
             <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+            <Header /> {/* 2. Add the Header component here */}
             {children}
-            <ChatBot /> {/* 2. Add the ChatBot component here */}
+            <ChatBot />
             </body>
             </html>
         </ClerkProvider>

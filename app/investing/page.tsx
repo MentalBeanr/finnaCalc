@@ -1,92 +1,131 @@
-import { Calculator, TrendingUp } from "lucide-react"
+"use client"
+
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import Link from "next/link"
+import { TrendingUp, Shield, GraduationCap, AlertTriangle } from "lucide-react"
+import SafeInvestmentOptions from "@/components/safe-investment-options"
+import StockResearchTools from "@/components/stock-research-tools"
+import InvestmentEducation from "@/components/investment-education"
 
 export default function InvestingPage() {
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="border-b border-gray-200 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <Link href="/" className="flex items-center">
-                <Calculator className="h-8 w-8 text-blue-600" />
-                <span className="ml-2 text-xl font-bold text-gray-900">FinnaCalc</span>
-              </Link>
-            </div>
-            <Link href="/">
-              <Button variant="outline">Back to Home</Button>
-            </Link>
+  const [activeSection, setActiveSection] = useState("")
+
+  const handleSectionClick = (section: string) => {
+    setActiveSection(section)
+  }
+
+  const handleBackToTab = () => {
+    setActiveSection("")
+  }
+
+  const renderContent = () => {
+    if (activeSection === "safe-investments") {
+      return <SafeInvestmentOptions onBack={handleBackToTab} />
+    }
+    if (activeSection === "stock-research") {
+      return <StockResearchTools onBack={handleBackToTab} />
+    }
+    if (activeSection === "investment-education") {
+      return <InvestmentEducation onBack={handleBackToTab} />
+    }
+    return (
+        <section className="space-y-8">
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold text-gray-900 mb-4">Smart Investing Made Simple</h1>
+            <p className="text-gray-600 max-w-2xl mx-auto">
+              Professional investment tools to help individuals and businesses make better financial decisions.
+            </p>
           </div>
-        </div>
-      </header>
-
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
-        <div className="text-center">
-          <TrendingUp className="h-12 w-12 sm:h-16 sm:w-16 text-blue-600 mx-auto mb-6" />
-          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">Advanced Investing Tools</h1>
-          <p className="text-lg sm:text-xl text-gray-600 mb-8">Coming Soon to Premium Version</p>
-
-          <Card className="max-w-2xl mx-auto">
-            <CardHeader>
-              <CardTitle>What's Coming to Premium</CardTitle>
-              <CardDescription>Revolutionary investing tools and portfolio management features</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="text-left space-y-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                  <span>Portfolio Analysis & Optimization</span>
+          <div className="grid md:grid-cols-3 gap-6 mb-8">
+            <Card
+                className="bg-white hover:shadow-lg transition-shadow cursor-pointer border border-gray-200"
+                onClick={() => handleSectionClick("safe-investments")}
+            >
+              <CardHeader className="text-center pb-4">
+                <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center mx-auto mb-3">
+                  <Shield className="h-6 w-6 text-white" />
                 </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                  <span>Investment Risk Assessment Tools</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                  <span>Retirement Planning Calculators</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                  <span>Compound Interest Projections</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                  <span>Asset Allocation Recommendations</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                  <span>Tax-Efficient Investment Strategies</span>
-                </div>
-              </div>
-
-              <div className="pt-4 border-t">
+                <CardTitle className="text-lg text-gray-900">Safe Investment Options</CardTitle>
+                <CardDescription className="text-sm text-gray-600">
+                  Top 20 safest investments with consistent returns
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="text-center">
                 <p className="text-sm text-gray-600 mb-4">
-                  Be the first to know when our premium investing tools launch!
+                  Explore curated safe investment options including index funds, ETFs, and bonds.
                 </p>
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <Input placeholder="Enter your email" className="flex-1" />
-                  <Button className="bg-blue-600 hover:bg-blue-700">Notify Me</Button>
+                <Button className="w-full bg-blue-600 hover:bg-blue-700">View Safe Options</Button>
+              </CardContent>
+            </Card>
+            <Card
+                className="bg-white hover:shadow-lg transition-shadow cursor-pointer border border-gray-200"
+                onClick={() => handleSectionClick("stock-research")}
+            >
+              <CardHeader className="text-center pb-4">
+                <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center mx-auto mb-3">
+                  <TrendingUp className="h-6 w-6 text-white" />
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+                <CardTitle className="text-lg text-gray-900">Stock Research Tools</CardTitle>
+                <CardDescription className="text-sm text-gray-600">
+                  Simple tools to research investments
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="text-center">
+                <p className="text-sm text-gray-600 mb-4">
+                  Basic stock screener and analysis tools designed for beginners.
+                </p>
+                <Button
+                    variant="outline"
+                    className="w-full border-blue-600 text-blue-600 hover:bg-blue-50 bg-transparent"
+                >
+                  Explore Tools
+                </Button>
+              </CardContent>
+            </Card>
+            <Card
+                className="bg-white hover:shadow-lg transition-shadow cursor-pointer border border-gray-200"
+                onClick={() => handleSectionClick("investment-education")}
+            >
+              <CardHeader className="text-center pb-4">
+                <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center mx-auto mb-3">
+                  <GraduationCap className="h-6 w-6 text-white" />
+                </div>
+                <CardTitle className="text-lg text-gray-900">Learn Investing Basics</CardTitle>
+                <CardDescription className="text-sm text-gray-600">Master investing fundamentals</CardDescription>
+              </CardHeader>
+              <CardContent className="text-center">
+                <p className="text-sm text-gray-600 mb-4">
+                  Educational content about stocks, bonds, and building a portfolio.
+                </p>
+                <Button
+                    variant="outline"
+                    className="w-full border-blue-600 text-blue-600 hover:bg-blue-50 bg-transparent"
+                >
+                  Start Learning
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </section>
+    )
+  }
 
-          <div className="mt-8">
-            <p className="text-gray-600 mb-4">In the meantime, check out our current financial calculators:</p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/">
-                <Button variant="outline">View All Calculators</Button>
-              </Link>
-              <Link href="/roi-calculator">
-                <Button className="bg-blue-600 hover:bg-blue-700">Try ROI Calculator</Button>
-              </Link>
+  return (
+      <div className="min-h-screen bg-gray-50">
+        <main className="container mx-auto px-4 py-8 max-w-6xl">
+          <div className="mb-8 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <div className="flex items-center gap-2 text-yellow-800">
+              <AlertTriangle className="h-5 w-5" />
+              <p className="text-sm font-medium">
+                <strong>Investment Risk Disclaimer:</strong> All investments carry risk and you may lose money. Past
+                performance does not guarantee future results. Invest at your own risk and consider consulting a
+                financial advisor.
+              </p>
             </div>
           </div>
-        </div>
+          {renderContent()}
+        </main>
       </div>
-    </div>
   )
 }
