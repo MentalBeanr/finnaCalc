@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ArrowLeft, TrendingUp, Shield, ExternalLink, ChevronRight } from "lucide-react"
-
 interface SafeInvestmentOptionsProps {
     onBack: () => void
 }

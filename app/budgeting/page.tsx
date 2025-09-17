@@ -395,39 +395,7 @@ export default function BudgetingPage() {
   return (
       <>
         <div className="min-h-screen bg-gray-50">
-          <header className="border-b border-gray-200 bg-white">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="flex justify-between items-center h-16">
-                <div className="flex items-center">
-                  <Link href="/" className="flex items-center">
-                    <Calculator className="h-8 w-8 text-blue-600" />
-                    <span className="ml-2 text-xl font-bold text-gray-900">FinnaCalc</span>
-                  </Link>
-                </div>
-                <div className="flex items-center gap-2 sm:gap-4">
-                  <SaveIndicator lastSaved={lastSaved} hasUnsavedChanges={hasUnsavedChanges} />
-                  <input
-                      type="file"
-                      ref={fileInputRef}
-                      onChange={handleFileUpload}
-                      className="hidden"
-                      accept=".csv,.pdf"
-                  />
-                  <Button
-                      variant="outline"
-                      className="hidden sm:flex items-center gap-2"
-                      onClick={() => fileInputRef.current?.click()}
-                  >
-                    <Upload className="h-4 w-4" />
-                    <span className="hidden md:inline">Import Bank Statement</span>
-                  </Button>
-                  <Link href="/">
-                    <Button variant="outline">Back to Home</Button>
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </header>
+
 
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div className="mb-8">

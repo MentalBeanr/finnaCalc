@@ -3,6 +3,7 @@ import { ClerkProvider } from '@clerk/nextjs'
 import { Geist, Geist_Mono } from 'next/font/google'
 import './globals.css'
 import ChatBot from '@/components/Chatbot'
+import Header from "@/components/header";
 
 const geistSans = Geist({
     variable: '--font-geist-sans',
@@ -28,8 +29,13 @@ export default function RootLayout({
         <ClerkProvider>
             <html lang="en">
             <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-            {children}
-            <ChatBot />
+                <div className="flex flex-col min-h-screen">
+                    <Header />
+                    <main className="flex-grow">
+                    {children}
+                    </main>
+                    <ChatBot />
+                </div>
             </body>
             </html>
         </ClerkProvider>
