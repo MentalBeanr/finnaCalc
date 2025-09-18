@@ -286,8 +286,7 @@ export default function HomePage() {
             </div>
             <div className="border-t border-gray-800 mt-6 sm:mt-8 pt-6 sm:pt-8 text-center text-gray-400">
               <p>
-                &copy; 2024 FinnaCalc. All rights reserved. Professional Financial Calculators and Planning Tools for
-                Business Success.
+                &copy; 2024 FinnaCalc. All rights reserved. Professional Financial Calculators and Personal Finance Tools
               </p>
             </div>
           </div>
