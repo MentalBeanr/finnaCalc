@@ -239,6 +239,31 @@ export default function HomePage() {
                 </ul>
               </div>
               <div>
+                <h3 className="font-semibold mb-4">Resources</h3>
+                <ul className="space-y-2 text-gray-400">
+                  <li>
+                    <Link href="/blog" className="hover:text-white">
+                      Blog
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/guides" className="hover:text-white">
+                      Financial Guides
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/templates" className="hover:text-white">
+                      Templates
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/premium" className="hover:text-white">
+                      Premium Tools
+                    </Link>
+                  </li>
+                </ul>
+              </div>
+              <div>
                 <h3 className="font-semibold mb-4">Company</h3>
                 <ul className="space-y-2 text-gray-400">
                   <li>
@@ -261,7 +286,8 @@ export default function HomePage() {
             </div>
             <div className="border-t border-gray-800 mt-6 sm:mt-8 pt-6 sm:pt-8 text-center text-gray-400">
               <p>
-                &copy; 2024 FinnaCalc. All rights reserved. Professional Financial Calculators and Personal Finance Tools
+                &copy; 2024 FinnaCalc. All rights reserved. Professional Financial Calculators and Planning Tools for
+                Business Success.
               </p>
             </div>
           </div>

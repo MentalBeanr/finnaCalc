@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Calculator, ArrowLeft, Share2, Download } from "lucide-react"
+import { Calculator, Share2, Download } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -62,17 +62,17 @@ export default function LoanCalculator() {
       return
     }
 
-    let basePayment = 0;
+    let basePayment = 0
     if (rate === 0) {
       if (term > 0) {
-        basePayment = principal / term;
+        basePayment = principal / term
       }
     } else {
       basePayment = (principal * rate * Math.pow(1 + rate, term)) / (Math.pow(1 + rate, term) - 1)
     }
 
     if (!isFinite(basePayment)) {
-      basePayment = 0;
+      basePayment = 0
     }
 
     const totalPayment = basePayment * term
@@ -89,7 +89,6 @@ export default function LoanCalculator() {
     })
   }
 
-  // ... (rest of the calculator functions remain the same)
   const calculateAPR = () => {
     const principal = Number.parseFloat(loanAmountAPR) || 0
     const interest = Number.parseFloat(totalInterest) || 0
@@ -159,9 +158,8 @@ export default function LoanCalculator() {
     })
   }
 
-
   const handleCalculate = () => {
-    setResult(null);
+    setResult(null)
     switch (calculationType) {
       case "payment":
         calculatePayment()
@@ -179,28 +177,7 @@ export default function LoanCalculator() {
   }
 
   return (
-      // ... (rest of the JSX remains the same)
       <div className="min-h-screen bg-gray-50">
-        {/* Header */}
-        <header className="border-b border-gray-200 bg-white">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between items-center h-16">
-              <div className="flex items-center">
-                <Link href="/" className="flex items-center">
-                  <Calculator className="h-8 w-8 text-blue-600" />
-                  <span className="ml-2 text-xl font-bold text-gray-900">FinnaCalc</span>
-                </Link>
-              </div>
-              <Link href="/">
-                <Button variant="outline" className="flex items-center gap-2">
-                  <ArrowLeft className="h-4 w-4" />
-                  Back to Home
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </header>
-
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <nav className="mb-8">
             <ol className="flex items-center space-x-2 text-sm text-gray-500">
@@ -214,8 +191,8 @@ export default function LoanCalculator() {
             </ol>
           </nav>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2">
+          <div className="grid grid-cols-1 gap-8">
+            <div>
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -461,7 +438,9 @@ export default function LoanCalculator() {
                   {result && (
                       <div className="calculator-result space-y-4 mt-6">
                         {result.error ? (
-                            <div className="text-red-600 font-semibold p-4 bg-red-50 border border-red-200 rounded-lg">{result.error}</div>
+                            <div className="text-red-600 font-semibold p-4 bg-red-50 border border-red-200 rounded-lg">
+                              {result.error}
+                            </div>
                         ) : (
                             <>
                               <h3 className="text-lg font-semibold text-blue-800">
@@ -485,13 +464,21 @@ export default function LoanCalculator() {
                                     <div>
                                       <p className="text-sm text-gray-600">Total Payment</p>
                                       <p className="text-2xl font-bold text-blue-600">
-                                        ${result.totalPayment.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                                        $
+                                        {result.totalPayment.toLocaleString(undefined, {
+                                          minimumFractionDigits: 2,
+                                          maximumFractionDigits: 2,
+                                        })}
                                       </p>
                                     </div>
                                     <div>
                                       <p className="text-sm text-gray-600">Total Interest</p>
                                       <p className="text-2xl font-bold text-red-600">
-                                        ${result.totalInterest.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                                        $
+                                        {result.totalInterest.toLocaleString(undefined, {
+                                          minimumFractionDigits: 2,
+                                          maximumFractionDigits: 2,
+                                        })}
                                       </p>
                                     </div>
                                     <div>
@@ -553,11 +540,11 @@ export default function LoanCalculator() {
                               )}
 
                               <div className="flex gap-2 pt-4">
-                                <Button variant="outline" className="flex items-center gap-2">
+                                <Button variant="outline" className="flex items-center gap-2 bg-transparent">
                                   <Share2 className="h-4 w-4" />
                                   Share Results
                                 </Button>
-                                <Button variant="outline" className="flex items-center gap-2">
+                                <Button variant="outline" className="flex items-center gap-2 bg-transparent">
                                   <Download className="h-4 w-4" />
                                   Download Report
                                 </Button>
@@ -566,46 +553,6 @@ export default function LoanCalculator() {
                         )}
                       </div>
                   )}
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Sidebar */}
-            <div className="space-y-6">
-              <div className="ad-space">
-                <p>Advertisement</p>
-                <p className="text-sm">Best Loan Rates - Compare Now</p>
-              </div>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Find Better Rates</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-gray-600 mb-3">Compare loan offers from top lenders</p>
-                  <Button className="w-full bg-green-600 hover:bg-green-700">Compare Loan Rates</Button>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Related Calculators</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <Link href="/mortgage-calculator" className="block p-2 hover:bg-gray-50 rounded">
-                      <p className="font-medium">Mortgage Calculator</p>
-                      <p className="text-sm text-gray-600">Calculate home loan payments</p>
-                    </Link>
-                    <Link href="/auto-loan-calculator" className="block p-2 hover:bg-gray-50 rounded">
-                      <p className="font-medium">Auto Loan Calculator</p>
-                      <p className="text-sm text-gray-600">Calculate car loan payments</p>
-                    </Link>
-                    <Link href="/debt-consolidation-calculator" className="block p-2 hover:bg-gray-50 rounded">
-                      <p className="font-medium">Debt Consolidation</p>
-                      <p className="text-sm text-gray-600">Compare consolidation options</p>
-                    </Link>
-                  </div>
                 </CardContent>
               </Card>
             </div>
