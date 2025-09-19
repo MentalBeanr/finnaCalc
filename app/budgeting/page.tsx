@@ -15,6 +15,7 @@ import {
   Trash2,
   Edit,
   History,
+  PlusCircle,
 } from "lucide-react"
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from "recharts"
 import { Button } from "@/components/ui/button"
@@ -97,6 +98,11 @@ export default function BudgetingPage() {
     targetDate: "",
     monthlyContribution: "",
   })
+
+  // State for the new "Add Funds" modal
+  const [isAddFundsModalOpen, setIsAddFundsModalOpen] = useState(false);
+  const [selectedGoal, setSelectedGoal] = useState<SavingsGoal | null>(null);
+  const [amountToAdd, setAmountToAdd] = useState("");
 
   const autoSave = useCallback(() => {
     setHasUnsavedChanges(true)
@@ -318,6 +324,17 @@ export default function BudgetingPage() {
     setSavingsGoals(savingsGoals.map((goal) => (goal.id === id ? { ...goal, ...updates } : goal)))
   }
 
+  // Function to handle adding funds to a goal
+  const handleAddFunds = () => {
+    if (selectedGoal && amountToAdd) {
+      const newAmount = selectedGoal.currentAmount + Number.parseFloat(amountToAdd);
+      updateSavingsGoal(selectedGoal.id, { currentAmount: newAmount });
+      setIsAddFundsModalOpen(false);
+      setAmountToAdd("");
+      setSelectedGoal(null);
+    }
+  };
+
   const clearAllData = () => {
     if (confirm("Are you sure you want to clear all your budget data? This cannot be undone.")) {
       clearBudgetItems()
@@ -342,6 +359,24 @@ export default function BudgetingPage() {
     name: key,
     value: expenseCategories[key],
   }))
+
+  const incomeCategories = budgetItems
+      .filter((item) => item.type === "income")
+      .reduce(
+          (acc, item) => {
+            const monthly = convertToMonthly(item.amount, item.frequency)
+            acc[item.category] = (acc[item.category] || 0) + monthly
+            return acc
+          },
+          {} as Record<string, number>,
+      )
+
+  const incomePieChartData = Object.keys(incomeCategories).map((key) => ({
+    name: key,
+    value: incomeCategories[key],
+  }))
+
+  const [chartView, setChartView] = useState<'expense' | 'income'>('expense');
 
   const getRecommendations = () => {
     const recommendations = []
@@ -612,39 +647,142 @@ export default function BudgetingPage() {
                   </Card>
                   <Card>
                     <CardHeader>
-                      <CardTitle>Budget Summary</CardTitle>
-                      <CardDescription>A visual breakdown of your monthly expenses</CardDescription>
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <CardTitle>{chartView === 'expense' ? 'Expense Summary' : 'Income Summary'}</CardTitle>
+                          <CardDescription>
+                            A visual breakdown of your monthly {chartView}s
+                          </CardDescription>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button variant={chartView === 'expense' ? 'default' : 'outline'} size="sm" onClick={() => setChartView('expense')}>Expenses</Button>
+                          <Button variant={chartView === 'income' ? 'default' : 'outline'} size="sm" onClick={() => setChartView('income')}>Income</Button>
+                        </div>
+                      </div>
                     </CardHeader>
                     <CardContent>
-                      {pieChartData.length > 0 ? (
-                          <div style={{ width: "100%", height: 250 }}>
-                            <ResponsiveContainer>
-                              <PieChart>
-                                <Pie
-                                    data={pieChartData}
-                                    cx="50%"
-                                    cy="50%"
-                                    labelLine={false}
-                                    outerRadius={80}
-                                    fill="#8884d8"
-                                    dataKey="value"
-                                    nameKey="name"
-                                    label={({ name, percent }) => `${(percent * 100).toFixed(0)}%`}
-                                >
-                                  {pieChartData.map((entry, index) => (
-                                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                  ))}
-                                </Pie>
-                                <Tooltip formatter={(value: number) => `$${value.toFixed(2)}`} />
-                                <Legend />
-                              </PieChart>
-                            </ResponsiveContainer>
-                          </div>
+                      {chartView === 'expense' ? (
+                          pieChartData.length > 0 ? (
+                              <div style={{ width: "100%", height: 250 }}>
+                                <ResponsiveContainer>
+                                  <PieChart>
+                                    <Pie
+                                        data={pieChartData}
+                                        cx="50%"
+                                        cy="50%"
+                                        labelLine={false}
+                                        outerRadius={80}
+                                        fill="#8884d8"
+                                        dataKey="value"
+                                        nameKey="name"
+                                        label={({ name, percent }) => `${(percent * 100).toFixed(0)}%`}
+                                    >
+                                      {pieChartData.map((entry, index) => (
+                                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                      ))}
+                                    </Pie>
+                                    <Tooltip formatter={(value: number) => `$${value.toFixed(2)}`} />
+                                    <Legend />
+                                  </PieChart>
+                                </ResponsiveContainer>
+                              </div>
+                          ) : (
+                              <div className="flex items-center justify-center h-full min-h-[250px]">
+                                <p className="text-gray-500 text-sm text-center">Your expense summary chart will appear here.</p>
+                              </div>
+                          )
                       ) : (
-                          <div className="flex items-center justify-center h-full min-h-[250px]">
-                            <p className="text-gray-500 text-sm text-center">Your expense summary chart will appear here.</p>
-                          </div>
+                          incomePieChartData.length > 0 ? (
+                              <div style={{ width: "100%", height: 250 }}>
+                                <ResponsiveContainer>
+                                  <PieChart>
+                                    <Pie
+                                        data={incomePieChartData}
+                                        cx="50%"
+                                        cy="50%"
+                                        labelLine={false}
+                                        outerRadius={80}
+                                        fill="#82ca9d"
+                                        dataKey="value"
+                                        nameKey="name"
+                                        label={({ name, percent }) => `${(percent * 100).toFixed(0)}%`}
+                                    >
+                                      {incomePieChartData.map((entry, index) => (
+                                          <Cell key={`cell-${index}`} fill={COLORS.slice().reverse()[index % COLORS.length]} />
+                                      ))}
+                                    </Pie>
+                                    <Tooltip formatter={(value: number) => `$${value.toFixed(2)}`} />
+                                    <Legend />
+                                  </PieChart>
+                                </ResponsiveContainer>
+                              </div>
+                          ) : (
+                              <div className="flex items-center justify-center h-full min-h-[250px]">
+                                <p className="text-gray-500 text-sm text-center">Your income summary chart will appear here.</p>
+                              </div>
+                          )
                       )}
+                    </CardContent>
+                  </Card>
+                </div>
+                <div className="mt-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Budget Items ({budgetItems.length})</CardTitle>
+                      <CardDescription>All your income and expenses</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2 max-h-96 overflow-y-auto">
+                        {budgetItems.map((item) => (
+                            <div key={item.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium truncate">{item.subcategory || "No description"}</p>
+                                <p className="text-xs text-gray-500">{item.category}</p>
+                                <p className="text-xs text-gray-500 capitalize">{item.frequency}</p>
+                                {item.isFixed && (
+                                    <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded mt-1 inline-block">Fixed</span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <div className="text-right flex-shrink-0">
+                          <span
+                              className={`font-bold ${
+                                  item.type === "income" ? "text-green-600" : "text-red-600"
+                              }`}
+                          >
+                            {item.type === "income" ? "+" : "-"}${item.amount.toFixed(2)}
+                          </span>
+                                  <div className="text-xs text-gray-500">
+                                    ${convertToMonthly(item.amount, item.frequency).toFixed(2)}/month
+                                  </div>
+                                </div>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleEditClick(item)}
+                                    className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 p-2"
+                                    title="Edit this item"
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => removeBudgetItem(item.id, item.subcategory || item.category)}
+                                    className="text-red-600 hover:text-red-700 hover:bg-red-50 p-2"
+                                    title="Delete this item"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                        ))}
+                        {budgetItems.length === 0 && (
+                            <p className="text-gray-500 text-center py-8">
+                              No budget items yet. Add your first income or expense above!
+                            </p>
+                        )}
+                      </div>
                     </CardContent>
                   </Card>
                 </div>
@@ -779,15 +917,29 @@ export default function BudgetingPage() {
                           <div key={goal.id} className="p-3 bg-gray-50 rounded-lg">
                             <div className="flex justify-between items-center mb-2">
                               <p className="font-medium">{goal.name}</p>
-                              <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => removeSavingsGoal(goal.id, goal.name)}
-                                  className="text-red-600 hover:text-red-700 hover:bg-red-50 p-2"
-                                  title="Delete this goal"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
+                              <div className="flex items-center">
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                      setSelectedGoal(goal);
+                                      setIsAddFundsModalOpen(true);
+                                    }}
+                                    className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 p-2"
+                                    title="Add funds to this goal"
+                                >
+                                  <PlusCircle className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => removeSavingsGoal(goal.id, goal.name)}
+                                    className="text-red-600 hover:text-red-700 hover:bg-red-50 p-2"
+                                    title="Delete this goal"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
                             </div>
                             <Progress
                                 value={(goal.currentAmount / goal.targetAmount) * 100}
@@ -809,71 +961,32 @@ export default function BudgetingPage() {
                 </div>
               </TabsContent>
             </Tabs>
-            <div className="mt-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Budget Items ({budgetItems.length})</CardTitle>
-                  <CardDescription>All your income and expenses</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2 max-h-96 overflow-y-auto">
-                    {budgetItems.map((item) => (
-                        <div key={item.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                          <div className="flex-1 min-w-0">
-                            <div>
-                              <p className="font-medium truncate">{item.subcategory || "No description"}</p>
-                              <p className="text-xs text-gray-500">{item.category}</p>
-                            </div>
-                            <span className="text-sm text-gray-500 ml-2">({item.frequency})</span>
-                            {item.isFixed && (
-                                <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded ml-2">Fixed</span>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <div className="text-right flex-shrink-0">
-                          <span
-                              className={`font-bold ${
-                                  item.type === "income" ? "text-green-600" : "text-red-600"
-                              }`}
-                          >
-                            {item.type === "income" ? "+" : "-"}${item.amount.toFixed(2)}
-                          </span>
-                              <div className="text-xs text-gray-500">
-                                ${convertToMonthly(item.amount, item.frequency).toFixed(2)}/month
-                              </div>
-                            </div>
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleEditClick(item)}
-                                className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 p-2"
-                                title="Edit this item"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => removeBudgetItem(item.id, item.subcategory || item.category)}
-                                className="text-red-600 hover:text-red-700 hover:bg-red-50 p-2"
-                                title="Delete this item"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                    ))}
-                    {budgetItems.length === 0 && (
-                        <p className="text-gray-500 text-center py-8">
-                          No budget items yet. Add your first income or expense above!
-                        </p>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
           </div>
         </div>
+        <Dialog open={isAddFundsModalOpen} onOpenChange={setIsAddFundsModalOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Add Funds to "{selectedGoal?.name}"</DialogTitle>
+              <DialogDescription>
+                Current balance: ${selectedGoal?.currentAmount.toLocaleString()}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <Label htmlFor="amountToAdd">Amount to Add ($)</Label>
+              <Input
+                  id="amountToAdd"
+                  type="number"
+                  placeholder="0.00"
+                  value={amountToAdd}
+                  onChange={(e) => setAmountToAdd(e.target.value)}
+              />
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsAddFundsModalOpen(false)}>Cancel</Button>
+              <Button onClick={handleAddFunds}>Add Funds</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </>
   )
 }

@@ -40,18 +40,18 @@ export default function TaxesPage() {
 
                 <div className="grid md:grid-cols-3 gap-6 mb-8">
                     <Card
-                        className="hover:shadow-lg transition-shadow cursor-pointer"
+                        className="bg-white hover:shadow-lg transition-shadow cursor-pointer border border-gray-200"
                         onClick={() => handleSectionClick("tax-filing")}
                     >
-                        <CardHeader className="text-center pb-3">
-                            <div className="w-16 h-16 bg-primary rounded-lg flex items-center justify-center mx-auto mb-3">
-                                <FileText className="h-8 w-8 text-primary-foreground" />
+                        <CardHeader className="text-center pb-4">
+                            <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center mx-auto mb-3">
+                                <FileText className="h-6 w-6 text-primary-foreground" />
                             </div>
                             <CardTitle className="text-lg">Easy Tax Filing</CardTitle>
-                            <CardDescription className="text-sm">Simple, step-by-step tax preparation</CardDescription>
+                            <CardDescription className="text-sm text-gray-600">Simple, step-by-step tax preparation</CardDescription>
                         </CardHeader>
                         <CardContent className="text-center">
-                            <p className="text-sm text-muted-foreground mb-4">
+                            <p className="text-sm text-gray-600 mb-4">
                                 File your taxes easily with our guided interface. Supports personal, business, and rental
                                 properties.
                             </p>
@@ -59,42 +59,42 @@ export default function TaxesPage() {
                         </CardContent>
                     </Card>
                     <Card
-                        className="hover:shadow-lg transition-shadow cursor-pointer"
+                        className="bg-white hover:shadow-lg transition-shadow cursor-pointer border border-gray-200"
                         onClick={() => handleSectionClick("tax-calculators")}
                     >
-                        <CardHeader className="text-center pb-3">
-                            <div className="w-16 h-16 bg-primary rounded-lg flex items-center justify-center mx-auto mb-3">
-                                <Calculator className="h-8 w-8 text-primary-foreground" />
+                        <CardHeader className="text-center pb-4">
+                            <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center mx-auto mb-3">
+                                <Calculator className="h-6 w-6 text-primary-foreground" />
                             </div>
                             <CardTitle className="text-lg">Tax Calculators & Tools</CardTitle>
-                            <CardDescription className="text-sm">Calculators to maximize your refund</CardDescription>
+                            <CardDescription className="text-sm text-gray-600">Calculators to maximize your refund</CardDescription>
                         </CardHeader>
                         <CardContent className="text-center">
-                            <p className="text-sm text-muted-foreground mb-4">
+                            <p className="text-sm text-gray-600 mb-4">
                                 Tax calculator, deduction finder, refund estimator, and withholding calculator to optimize your
                                 taxes.
                             </p>
-                            <Button variant="outline" className="w-full bg-transparent">
+                            <Button variant="outline" className="w-full border-primary text-primary hover:bg-primary/5 bg-transparent">
                                 Explore Tools
                             </Button>
                         </CardContent>
                     </Card>
                     <Card
-                        className="hover:shadow-lg transition-shadow cursor-pointer"
+                        className="bg-white hover:shadow-lg transition-shadow cursor-pointer border border-gray-200"
                         onClick={() => handleSectionClick("tax-education")}
                     >
-                        <CardHeader className="text-center pb-3">
-                            <div className="w-16 h-16 bg-primary rounded-lg flex items-center justify-center mx-auto mb-3">
-                                <BookOpen className="h-8 w-8 text-primary-foreground" />
+                        <CardHeader className="text-center pb-4">
+                            <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center mx-auto mb-3">
+                                <BookOpen className="h-6 w-6 text-primary-foreground" />
                             </div>
                             <CardTitle className="text-lg">Tax Education</CardTitle>
-                            <CardDescription className="text-sm">Learn tax strategies and planning</CardDescription>
+                            <CardDescription className="text-sm text-gray-600">Learn tax strategies and planning</CardDescription>
                         </CardHeader>
                         <CardContent className="text-center">
-                            <p className="text-sm text-muted-foreground mb-4">
+                            <p className="text-sm text-gray-600 mb-4">
                                 Understand tax brackets, deductions, business vs personal taxes, and planning strategies.
                             </p>
-                            <Button variant="outline" className="w-full bg-transparent">
+                            <Button variant="outline" className="w-full border-primary text-primary hover:bg-primary/5 bg-transparent">
                                 Start Learning
                             </Button>
                         </CardContent>

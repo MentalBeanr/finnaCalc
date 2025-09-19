@@ -4,10 +4,20 @@ import Link from "next/link"
 import { Calculator, TrendingUp, FileText, GraduationCap } from "lucide-react"
 import { SignedIn, SignedOut, UserButton } from "@clerk/nextjs"
 import { Button } from "@/components/ui/button"
-import { useState } from "react" // Make sure to import useState
+import { useState } from "react"
+import { usePathname } from 'next/navigation'
 
 export default function Header() {
-    const [mobileMenuOpen, setMobileMenuOpen] = useState(false) // Add state for mobile menu
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+    const pathname = usePathname()
+
+    const navLinks = [
+        { href: "/", label: "Home" },
+        { href: "/budgeting", label: "Budgeting" },
+        { href: "/investing", label: "Investing" },
+        { href: "/taxes", label: "Taxes" },
+        { href: "/education", label: "Education" },
+    ]
 
     return (
         <header className="border-b border-gray-200 bg-white sticky top-0 z-50">
@@ -22,21 +32,19 @@ export default function Header() {
 
                     {/* Desktop Navigation */}
                     <nav className="hidden md:flex space-x-8">
-                        <Link href="/" className="text-gray-700 hover:text-blue-600 font-bold">
-                            Home
-                        </Link>
-                        <Link href="/budgeting" className="text-gray-700 hover:text-blue-600 font-bold">
-                            Budgeting
-                        </Link>
-                        <Link href="/investing" className="text-gray-700 hover:text-blue-600 font-bold">
-                            Investing
-                        </Link>
-                        <Link href="/taxes" className="text-gray-700 hover:text-blue-600 font-bold">
-                            Taxes
-                        </Link>
-                        <Link href="/education" className="text-gray-700 hover:text-blue-600 font-bold">
-                            Education
-                        </Link>
+                        {navLinks.map((link) => (
+                            <Link
+                                key={link.href}
+                                href={link.href}
+                                className={`font-bold ${
+                                    pathname === link.href
+                                        ? 'text-blue-600'
+                                        : 'text-gray-700 hover:text-blue-600'
+                                }`}
+                            >
+                                {link.label}
+                            </Link>
+                        ))}
                     </nav>
 
                     {/* Auth and Mobile Menu Button */}
@@ -66,11 +74,20 @@ export default function Header() {
                 {mobileMenuOpen && (
                     <div className="md:hidden border-t border-gray-200 bg-white">
                         <div className="px-2 pt-2 pb-3 space-y-1">
-                            <Link href="/" className="block px-3 py-2 text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-md font-bold" onClick={() => setMobileMenuOpen(false)}>Home</Link>
-                            <Link href="/budgeting" className="block px-3 py-2 text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-md font-bold" onClick={() => setMobileMenuOpen(false)}>Budgeting</Link>
-                            <Link href="/investing" className="block px-3 py-2 text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-md font-bold" onClick={() => setMobileMenuOpen(false)}>Investing</Link>
-                            <Link href="/taxes" className="block px-3 py-2 text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-md font-bold" onClick={() => setMobileMenuOpen(false)}>Taxes</Link>
-                            <Link href="/education" className="block px-3 py-2 text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-md font-bold" onClick={() => setMobileMenuOpen(false)}>Education</Link>
+                            {navLinks.map((link) => (
+                                <Link
+                                    key={link.href}
+                                    href={link.href}
+                                    className={`block px-3 py-2 rounded-md font-bold ${
+                                        pathname === link.href
+                                            ? 'bg-blue-50 text-blue-600'
+                                            : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50'
+                                    }`}
+                                    onClick={() => setMobileMenuOpen(false)}
+                                >
+                                    {link.label}
+                                </Link>
+                            ))}
                             <div className="px-3 py-2">
                                 <SignedOut>
                                     <Link href="/sign-in" onClick={() => setMobileMenuOpen(false)}>

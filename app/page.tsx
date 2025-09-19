@@ -239,31 +239,6 @@ export default function HomePage() {
                 </ul>
               </div>
               <div>
-                <h3 className="font-semibold mb-4">Resources</h3>
-                <ul className="space-y-2 text-gray-400">
-                  <li>
-                    <Link href="/blog" className="hover:text-white">
-                      Blog
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="/guides" className="hover:text-white">
-                      Financial Guides
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="/templates" className="hover:text-white">
-                      Templates
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="/premium" className="hover:text-white">
-                      Premium Tools
-                    </Link>
-                  </li>
-                </ul>
-              </div>
-              <div>
                 <h3 className="font-semibold mb-4">Company</h3>
                 <ul className="space-y-2 text-gray-400">
                   <li>
