@@ -3,10 +3,10 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { TrendingUp, Shield, GraduationCap, AlertTriangle } from "lucide-react"
+import { TrendingUp, Shield, GraduationCap } from "lucide-react"
 import SafeInvestmentOptions from "@/components/safe-investment-options"
 import StockResearchTools from "@/components/stock-research-tools"
-import InvestmentEducation from "@/components/investment-education"
+import Link from "next/link" // Import Link
 
 export default function InvestingPage() {
   const [activeSection, setActiveSection] = useState("")
@@ -26,9 +26,7 @@ export default function InvestingPage() {
     if (activeSection === "stock-research") {
       return <StockResearchTools onBack={handleBackToTab} />
     }
-    if (activeSection === "investment-education") {
-      return <InvestmentEducation onBack={handleBackToTab} />
-    }
+    // "investment-education" is now handled by a direct link
     return (
         <section className="space-y-8">
           <div className="text-center mb-8">
@@ -83,29 +81,30 @@ export default function InvestingPage() {
                 </Button>
               </CardContent>
             </Card>
-            <Card
-                className="bg-white hover:shadow-lg transition-shadow cursor-pointer border border-gray-200"
-                onClick={() => handleSectionClick("investment-education")}
-            >
-              <CardHeader className="text-center pb-4">
-                <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center mx-auto mb-3">
-                  <GraduationCap className="h-6 w-6 text-white" />
-                </div>
-                <CardTitle className="text-lg text-gray-900">Learn Investing Basics</CardTitle>
-                <CardDescription className="text-sm text-gray-600">Master investing fundamentals</CardDescription>
-              </CardHeader>
-              <CardContent className="text-center">
-                <p className="text-sm text-gray-600 mb-4">
-                  Educational content about stocks, bonds, and building a portfolio.
-                </p>
-                <Button
-                    variant="outline"
-                    className="w-full border-blue-600 text-blue-600 hover:bg-blue-50 bg-transparent"
-                >
-                  Start Learning
-                </Button>
-              </CardContent>
-            </Card>
+            <Link href="/education">
+              <Card
+                  className="bg-white hover:shadow-lg transition-shadow cursor-pointer border border-gray-200 h-full"
+              >
+                <CardHeader className="text-center pb-4">
+                  <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center mx-auto mb-3">
+                    <GraduationCap className="h-6 w-6 text-white" />
+                  </div>
+                  <CardTitle className="text-lg text-gray-900">Learn Investing Basics</CardTitle>
+                  <CardDescription className="text-sm text-gray-600">Master investing fundamentals</CardDescription>
+                </CardHeader>
+                <CardContent className="text-center">
+                  <p className="text-sm text-gray-600 mb-4">
+                    Educational content about stocks, bonds, and building a portfolio.
+                  </p>
+                  <Button
+                      variant="outline"
+                      className="w-full border-blue-600 text-blue-600 hover:bg-blue-50 bg-transparent"
+                  >
+                    Start Learning
+                  </Button>
+                </CardContent>
+              </Card>
+            </Link>
           </div>
         </section>
     )
@@ -114,16 +113,6 @@ export default function InvestingPage() {
   return (
       <div className="min-h-screen bg-gray-50">
         <main className="container mx-auto px-4 py-8 max-w-6xl">
-          <div className="mb-8 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <div className="flex items-center gap-2 text-yellow-800">
-              <AlertTriangle className="h-5 w-5" />
-              <p className="text-sm font-medium">
-                <strong>Investment Risk Disclaimer:</strong> All investments carry risk and you may lose money. Past
-                performance does not guarantee future results. Invest at your own risk and consider consulting a
-                financial advisor.
-              </p>
-            </div>
-          </div>
           {renderContent()}
         </main>
       </div>

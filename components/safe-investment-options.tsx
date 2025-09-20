@@ -105,6 +105,21 @@ export default function SafeInvestmentOptions({ onBack }: SafeInvestmentOptionsP
                 </div>
             </div>
 
+            <Card className="bg-yellow-50 border-yellow-200">
+                <CardContent className="p-4">
+                    <div className="flex items-start gap-3">
+                        <Shield className="h-5 w-5 text-yellow-600 mt-0.5" />
+                        <div className="text-sm">
+                            <h4 className="font-semibold text-yellow-900 mb-1">Investment Risk Disclaimer</h4>
+                            <p className="text-yellow-800">
+                                All investments carry risk and may lose value. Past performance does not guarantee future results.
+                                Please invest responsibly and consider your financial situation.
+                            </p>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+
             <Card className="bg-blue-50 border-blue-200">
                 <CardContent className="p-4">
                     <div className="flex items-center justify-between">
@@ -156,21 +171,6 @@ export default function SafeInvestmentOptions({ onBack }: SafeInvestmentOptionsP
                                 </div>
                             </div>
                         ))}
-                    </div>
-                </CardContent>
-            </Card>
-
-            <Card className="bg-yellow-50 border-yellow-200">
-                <CardContent className="p-4">
-                    <div className="flex items-start gap-3">
-                        <Shield className="h-5 w-5 text-yellow-600 mt-0.5" />
-                        <div className="text-sm">
-                            <h4 className="font-semibold text-yellow-900 mb-1">Investment Risk Disclaimer</h4>
-                            <p className="text-yellow-800">
-                                All investments carry risk and may lose value. Past performance does not guarantee future results.
-                                Please invest responsibly and consider your financial situation.
-                            </p>
-                        </div>
                     </div>
                 </CardContent>
             </Card>

@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { FileText, Calculator, BookOpen } from "lucide-react"
 import TaxFilingInterface from "@/components/tax-filing-interface"
 import TaxCalculators from "@/components/tax-calculators"
-import TaxEducation from "@/components/tax-education"
+import Link from "next/link" // Import Link
 
 export default function TaxesPage() {
     const [activeSection, setActiveSection] = useState("")
@@ -26,9 +26,7 @@ export default function TaxesPage() {
         if (activeSection === "tax-calculators") {
             return <TaxCalculators onBack={handleBackToTab} />
         }
-        if (activeSection === "tax-education") {
-            return <TaxEducation onBack={handleBackToTab} />
-        }
+        // "tax-education" is now handled by a direct link
         return (
             <section className="space-y-8">
                 <div className="text-center mb-8">
@@ -79,26 +77,27 @@ export default function TaxesPage() {
                             </Button>
                         </CardContent>
                     </Card>
-                    <Card
-                        className="bg-white hover:shadow-lg transition-shadow cursor-pointer border border-gray-200"
-                        onClick={() => handleSectionClick("tax-education")}
-                    >
-                        <CardHeader className="text-center pb-4">
-                            <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center mx-auto mb-3">
-                                <BookOpen className="h-6 w-6 text-primary-foreground" />
-                            </div>
-                            <CardTitle className="text-lg">Tax Education</CardTitle>
-                            <CardDescription className="text-sm text-gray-600">Learn tax strategies and planning</CardDescription>
-                        </CardHeader>
-                        <CardContent className="text-center">
-                            <p className="text-sm text-gray-600 mb-4">
-                                Understand tax brackets, deductions, business vs personal taxes, and planning strategies.
-                            </p>
-                            <Button variant="outline" className="w-full border-primary text-primary hover:bg-primary/5 bg-transparent">
-                                Start Learning
-                            </Button>
-                        </CardContent>
-                    </Card>
+                    <Link href="/education">
+                        <Card
+                            className="bg-white hover:shadow-lg transition-shadow cursor-pointer border border-gray-200 h-full"
+                        >
+                            <CardHeader className="text-center pb-4">
+                                <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center mx-auto mb-3">
+                                    <BookOpen className="h-6 w-6 text-primary-foreground" />
+                                </div>
+                                <CardTitle className="text-lg">Tax Education</CardTitle>
+                                <CardDescription className="text-sm text-gray-600">Learn tax strategies and planning</CardDescription>
+                            </CardHeader>
+                            <CardContent className="text-center">
+                                <p className="text-sm text-gray-600 mb-4">
+                                    Understand tax brackets, deductions, business vs personal taxes, and planning strategies.
+                                </p>
+                                <Button variant="outline" className="w-full border-primary text-primary hover:bg-primary/5 bg-transparent">
+                                    Start Learning
+                                </Button>
+                            </CardContent>
+                        </Card>
+                    </Link>
                 </div>
             </section>
         )
