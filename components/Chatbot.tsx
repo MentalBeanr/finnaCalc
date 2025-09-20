@@ -15,6 +15,7 @@ export default function ChatBot() {
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
 
     const toggleChat = () => setIsOpen(!isOpen);
 
@@ -25,6 +26,7 @@ export default function ChatBot() {
         const userMessage: Message = { role: 'user', parts: [{ text: input }] };
         setMessages(prev => [...prev, userMessage]);
         setInput('');
+        setIsLoading(true);
 
         try {
             const response = await fetch('/api/chat', {
@@ -45,6 +47,8 @@ export default function ChatBot() {
             }
         } catch (error) {
             console.error('Failed to fetch from API:', error);
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -63,7 +67,14 @@ export default function ChatBot() {
         <div className="fixed bottom-4 right-4 z-50">
             <Card className="w-80 h-[28rem] flex flex-col shadow-lg">
                 <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle>FinnaBot</CardTitle>
+                    <div>
+                        <CardTitle>
+                            Finna<span className="text-blue-600">Bot</span>
+                        </CardTitle>
+                        <p className="text-xs text-gray-500 mt-1">
+                            Personal Finance and Business Assistance AI Chatbot
+                        </p>
+                    </div>
                     <Button variant="ghost" size="sm" onClick={toggleChat}><X className="h-4 w-4" /></Button>
                 </CardHeader>
                 <CardContent className="flex-1 overflow-y-auto">
@@ -79,6 +90,15 @@ export default function ChatBot() {
                                 </div>
                             </div>
                         ))}
+                        {isLoading && (
+                            <div className="flex justify-start">
+                                <div className="p-2 rounded-lg bg-gray-200 flex items-center space-x-1.5">
+                                    <span className="w-2 h-2 bg-gray-400 rounded-full animate-pulse [animation-delay:-0.3s]"></span>
+                                    <span className="w-2 h-2 bg-gray-400 rounded-full animate-pulse [animation-delay:-0.15s]"></span>
+                                    <span className="w-2 h-2 bg-gray-400 rounded-full animate-pulse"></span>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </CardContent>
                 <CardFooter>
