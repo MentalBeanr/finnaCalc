@@ -92,11 +92,10 @@ export default function HomePage() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center">
               <h1 className="text-3xl sm:text-4xl md:text-6xl font-bold text-gray-900 mb-4 sm:mb-6">
-                Professional <span className="text-blue-600">Financial Calculators</span> and Planning Tools
+                Professional <span className="text-blue-600">Financial Calculators</span> and Personal Finance Tools
               </h1>
               <p className="text-lg sm:text-xl text-gray-600 mb-6 sm:mb-8 max-w-3xl mx-auto px-4">
-                Free, accurate, and easy-to-use financial calculators and planning tools for individuals, small business
-                owners, entrepreneurs, and anyone looking to make informed financial decisions with professional tools.
+                Free, professional-grade financial calculators for personal finance, business planning, loans, investments, and tax savings. Make informed financial decisions with accurate, easy-to-use tools.
               </p>
             </div>
           </div>
@@ -210,7 +209,7 @@ export default function HomePage() {
                   <span className="ml-2 text-lg font-bold">FinnaCalc</span>
                 </div>
                 <p className="text-gray-400">
-                  Professional financial calculators and planning tools for smart business decisions.
+                  Professional financial calculators and planning tools for smart financial decisions.
                 </p>
               </div>
               <div>

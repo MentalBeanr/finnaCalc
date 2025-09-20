@@ -1,11 +1,23 @@
-import { Users, Calculator, Shield, Award, Target, Heart } from "lucide-react"
+"use client"
+
+import { useRouter } from "next/navigation"
+import { Users, Calculator, Shield, Award, Target, Heart, ArrowLeft } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
+import { Button } from "@/components/ui/button"
 
 export default function AboutUs() {
+    const router = useRouter()
+
     return (
         <div className="min-h-screen bg-gray-50">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                <div className="mb-4">
+                    <Button variant="outline" onClick={() => router.back()} className="flex items-center gap-2">
+                        <ArrowLeft className="h-4 w-4" />
+                        Back
+                    </Button>
+                </div>
                 <nav className="mb-8">
                     <ol className="flex items-center space-x-2 text-sm text-gray-500">
                         <li>

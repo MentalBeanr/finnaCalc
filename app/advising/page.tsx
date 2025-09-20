@@ -1,13 +1,24 @@
-import { Calculator, Users } from "lucide-react"
+"use client"
+
+import { useRouter } from "next/navigation"
+import { Calculator, Users, ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import Link from "next/link"
 
 export default function AdvisingPage() {
+  const router = useRouter()
+
   return (
       <div className="min-h-screen bg-gray-50">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="mb-4">
+            <Button variant="outline" onClick={() => router.back()} className="flex items-center gap-2">
+              <ArrowLeft className="h-4 w-4" />
+              Back
+            </Button>
+          </div>
           <div className="text-center">
             <Users className="h-12 w-12 sm:h-16 sm:w-16 text-blue-600 mx-auto mb-6" />
             <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">Personal Financial Advising</h1>
