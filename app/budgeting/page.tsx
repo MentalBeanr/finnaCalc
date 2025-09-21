@@ -378,6 +378,15 @@ export default function BudgetingPage() {
 
   const [chartView, setChartView] = useState<'expense' | 'income'>('expense');
 
+  const groupedBudgetItems = budgetItems.reduce((acc, item) => {
+    const { category } = item;
+    if (!acc[category]) {
+      acc[category] = [];
+    }
+    acc[category].push(item);
+    return acc;
+  }, {} as Record<string, BudgetItem[]>);
+
   const getRecommendations = () => {
     const recommendations = []
 
@@ -601,6 +610,7 @@ export default function BudgetingPage() {
                                   <SelectItem value="Insurance">Insurance</SelectItem>
                                   <SelectItem value="Debt">Debt Payments</SelectItem>
                                   <SelectItem value="Savings">Savings</SelectItem>
+                                  <SelectItem value="Investment">Investment</SelectItem>
                                   <SelectItem value="Other">Other Expenses</SelectItem>
                                 </>
                             )}
@@ -732,48 +742,56 @@ export default function BudgetingPage() {
                       <CardDescription>All your income and expenses</CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <div className="space-y-2 max-h-96 overflow-y-auto">
-                        {budgetItems.map((item) => (
-                            <div key={item.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                              <div className="flex-1 min-w-0">
-                                <p className="font-medium truncate">{item.subcategory || "No description"}</p>
-                                <p className="text-xs text-gray-500">{item.category}</p>
-                                <p className="text-xs text-gray-500 capitalize">{item.frequency}</p>
-                                {item.isFixed && (
-                                    <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded mt-1 inline-block">Fixed</span>
-                                )}
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <div className="text-right flex-shrink-0">
-                          <span
-                              className={`font-bold ${
-                                  item.type === "income" ? "text-green-600" : "text-red-600"
-                              }`}
-                          >
-                            {item.type === "income" ? "+" : "-"}${item.amount.toFixed(2)}
-                          </span>
-                                  <div className="text-xs text-gray-500">
-                                    ${convertToMonthly(item.amount, item.frequency).toFixed(2)}/month
-                                  </div>
-                                </div>
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => handleEditClick(item)}
-                                    className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 p-2"
-                                    title="Edit this item"
-                                >
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => removeBudgetItem(item.id, item.subcategory || item.category)}
-                                    className="text-red-600 hover:text-red-700 hover:bg-red-50 p-2"
-                                    title="Delete this item"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
+                      <div className="space-y-4 max-h-96 overflow-y-auto">
+                        {Object.entries(groupedBudgetItems).map(([category, items]) => (
+                            <div key={category}>
+                              <h3 className="font-semibold text-blue-600 mb-2 px-3 text-lg">{category}</h3>
+                              <div className="space-y-2">
+                                {items.map((item) => (
+                                    <div key={item.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                                      <div className="flex-1 min-w-0">
+                                        <p className="font-medium truncate">{item.subcategory || "No description"}</p>
+                                        <div className="flex items-center gap-2">
+                                          <p className="text-xs text-gray-500 capitalize">{item.frequency}</p>
+                                          {item.isFixed && (
+                                              <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">Fixed</span>
+                                          )}
+                                        </div>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        <div className="text-right flex-shrink-0">
+                                                <span
+                                                    className={`font-bold ${
+                                                        item.type === "income" ? "text-green-600" : "text-red-600"
+                                                    }`}
+                                                >
+                                                    {item.type === "income" ? "+" : "-"}${item.amount.toFixed(2)}
+                                                </span>
+                                          <div className="text-xs text-gray-500">
+                                            ${convertToMonthly(item.amount, item.frequency).toFixed(2)}/month
+                                          </div>
+                                        </div>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => handleEditClick(item)}
+                                            className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 p-2"
+                                            title="Edit this item"
+                                        >
+                                          <Edit className="h-4 w-4" />
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => removeBudgetItem(item.id, item.subcategory || item.category)}
+                                            className="text-red-600 hover:text-red-700 hover:bg-red-50 p-2"
+                                            title="Delete this item"
+                                        >
+                                          <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                      </div>
+                                    </div>
+                                ))}
                               </div>
                             </div>
                         ))}
@@ -946,8 +964,8 @@ export default function BudgetingPage() {
                                 className="w-full"
                             />
                             <div className="flex justify-between text-sm text-gray-600 mt-1">
-                              <span>${goal.currentAmount.toLocaleString()}</span>
-                              <span>${goal.targetAmount.toLocaleString()}</span>
+                              <span>${goal.currentAmount.toLocaleString()} of ${goal.targetAmount.toLocaleString()}</span>
+                              <span className="font-medium">${(goal.targetAmount - goal.currentAmount).toLocaleString()} remaining</span>
                             </div>
                           </div>
                       ))}

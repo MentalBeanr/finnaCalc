@@ -92,10 +92,11 @@ export default function HomePage() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center">
               <h1 className="text-3xl sm:text-4xl md:text-6xl font-bold text-gray-900 mb-4 sm:mb-6">
-                Professional <span className="text-blue-600">Financial Calculators</span> and Personal Finance Tools
+                Professional <span className="text-blue-600">Financial Calculators</span> and Planning Tools
               </h1>
               <p className="text-lg sm:text-xl text-gray-600 mb-6 sm:mb-8 max-w-3xl mx-auto px-4">
-                Free, professional-grade financial calculators for personal finance, business planning, loans, investments, and tax savings. Make informed financial decisions with accurate, easy-to-use tools.
+                Free, accurate, and easy-to-use financial calculators and planning tools for individuals, small business
+                owners, entrepreneurs, and anyone looking to make informed financial decisions with professional tools.
               </p>
             </div>
           </div>
@@ -209,7 +210,7 @@ export default function HomePage() {
                   <span className="ml-2 text-lg font-bold">FinnaCalc</span>
                 </div>
                 <p className="text-gray-400">
-                  Professional financial calculators and planning tools for smart financial decisions.
+                  Professional financial calculators and planning tools for smart business decisions.
                 </p>
               </div>
               <div>
@@ -238,36 +239,11 @@ export default function HomePage() {
                 </ul>
               </div>
               <div>
-                <h3 className="font-semibold mb-4">Resources</h3>
-                <ul className="space-y-2 text-gray-400">
-                  <li>
-                    <Link href="/blog" className="hover:text-white">
-                      Blog
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="/guides" className="hover:text-white">
-                      Financial Guides
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="/templates" className="hover:text-white">
-                      Templates
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="/premium" className="hover:text-white">
-                      Premium Tools
-                    </Link>
-                  </li>
-                </ul>
-              </div>
-              <div>
                 <h3 className="font-semibold mb-4">Company</h3>
                 <ul className="space-y-2 text-gray-400">
                   <li>
-                    <Link href="/about" className="hover:text-white">
-                      About Us
+                    <Link href="/contact" className="hover:text-white">
+                      Contact
                     </Link>
                   </li>
                   <li>
