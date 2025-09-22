@@ -5,78 +5,130 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { ArrowLeft, Search, TrendingUp, TrendingDown, DollarSign, BarChart3, ExternalLink } from "lucide-react"
+import {
+    ArrowLeft,
+    Search,
+    TrendingUp,
+    TrendingDown,
+    DollarSign,
+    BarChart3,
+    ExternalLink,
+    ChevronRight,
+} from "lucide-react"
+import {
+    LineChart,
+    Line,
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    Tooltip,
+    ResponsiveContainer,
+} from "recharts"
 
 interface StockResearchToolsProps {
     onBack: () => void
 }
 
+interface StockData {
+    symbol: string
+    name: string
+    price: string
+    change: string
+    changePercent: string
+    peRatio: string
+    marketCap: string
+    description: string
+}
+
+interface ChartDataPoint {
+    date: string
+    price: number
+}
+
+interface SearchResult {
+    "1. symbol": string
+    "2. name": string
+    "4. region": string
+}
+
 export default function StockResearchTools({ onBack }: StockResearchToolsProps) {
     const [searchTerm, setSearchTerm] = useState("")
     const [activeTab, setActiveTab] = useState("screener")
+    const [searchResults, setSearchResults] = useState<SearchResult[]>([])
+    const [isSearching, setIsSearching] = useState(false)
+    const [stockData, setStockData] = useState<StockData | null>(null)
+    const [chartData, setChartData] = useState<ChartDataPoint[]>([])
+    const [isLoadingDetails, setIsLoadingDetails] = useState(false)
+    const [error, setError] = useState<string | null>(null)
 
-    const popularStocks = [
-        {
-            symbol: "AAPL",
-            name: "Apple Inc.",
-            price: "$175.43",
-            change: "+2.34%",
-            peRatio: "28.5",
-            marketCap: "$2.8T",
-            description: "Technology company known for iPhone, iPad, and Mac computers.",
-        },
-        {
-            symbol: "MSFT",
-            name: "Microsoft Corporation",
-            price: "$378.85",
-            change: "+1.87%",
-            peRatio: "32.1",
-            marketCap: "$2.8T",
-            description: "Software company behind Windows, Office, and Azure cloud services.",
-        },
-        {
-            symbol: "GOOGL",
-            name: "Alphabet Inc.",
-            price: "$138.21",
-            change: "-0.45%",
-            peRatio: "25.8",
-            marketCap: "$1.7T",
-            description: "Parent company of Google, YouTube, and other internet services.",
-        },
-        {
-            symbol: "AMZN",
-            name: "Amazon.com Inc.",
-            price: "$145.86",
-            change: "+3.21%",
-            peRatio: "45.2",
-            marketCap: "$1.5T",
-            description: "E-commerce and cloud computing giant with AWS services.",
-        },
-        {
-            symbol: "TSLA",
-            name: "Tesla Inc.",
-            price: "$248.50",
-            change: "-1.23%",
-            peRatio: "65.4",
-            marketCap: "$790B",
-            description: "Electric vehicle and clean energy company led by Elon Musk.",
-        },
-        {
-            symbol: "NVDA",
-            name: "NVIDIA Corporation",
-            price: "$875.28",
-            change: "+4.56%",
-            peRatio: "71.2",
-            marketCap: "$2.2T",
-            description: "Semiconductor company specializing in graphics and AI chips.",
-        },
-    ]
+    const formatMarketCap = (marketCap: string) => {
+        const num = parseInt(marketCap)
+        if (isNaN(num) || num === 0) return "N/A"
+        if (num >= 1_000_000_000_000) return `$${(num / 1_000_000_000_000).toFixed(2)}T`
+        if (num >= 1_000_000_000) return `$${(num / 1_000_000_000).toFixed(2)}B`
+        return `$${(num / 1_000_000).toFixed(2)}M`
+    }
 
-    const filteredStocks = popularStocks.filter(
-        (stock) =>
-            stock.symbol.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            stock.name.toLowerCase().includes(searchTerm.toLowerCase()),
-    )
+    const findSymbols = async () => {
+        if (!searchTerm.trim()) return
+        setIsSearching(true)
+        setError(null)
+        setStockData(null)
+        setChartData([])
+        setSearchResults([])
+        try {
+            const response = await fetch(`/api/stock-search?keywords=${searchTerm}`)
+            const data = await response.json()
+            if (!response.ok) throw new Error(data.error || "An error occurred during search.")
+            setSearchResults(data)
+        } catch (err: any) {
+            setError(err.message)
+        } finally {
+            setIsSearching(false)
+        }
+    }
+
+    const fetchStockDetails = async (symbol: string) => {
+        setIsLoadingDetails(true)
+        setError(null)
+        setStockData(null)
+        setChartData([])
+        setSearchResults([])
+        try {
+            const response = await fetch(`/api/stock?symbol=${symbol}`)
+            const data = await response.json()
+            if (!response.ok)
+                throw new Error(data.error || "An error occurred fetching stock data.")
+            const { quote, overview, timeSeries } = data
+            if (!quote || !overview || !overview.Name || !timeSeries)
+                throw new Error(`Incomplete data found for symbol "${symbol}".`)
+            setStockData({
+                symbol: quote["01. symbol"],
+                name: overview.Name,
+                price: `$${parseFloat(quote["05. price"]).toFixed(2)}`,
+                change: parseFloat(quote["09. change"]).toFixed(2),
+                changePercent: parseFloat(quote["10. change percent"].replace("%", "")).toFixed(2),
+                peRatio: overview.PERatio || "N/A",
+                marketCap: formatMarketCap(overview.MarketCapitalization),
+                description: overview.Description || "No description available.",
+            })
+            const formattedChartData = Object.entries(timeSeries)
+                .map(([date, values]: [string, any]) => ({
+                    date: new Date(date).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                    }),
+                    price: parseFloat(values["4. close"]),
+                }))
+                .reverse()
+                .slice(-30)
+            setChartData(formattedChartData)
+        } catch (err: any) {
+            setError(err.message)
+        } finally {
+            setIsLoadingDetails(false)
+        }
+    }
 
     return (
         <div className="space-y-6">
@@ -88,7 +140,9 @@ export default function StockResearchTools({ onBack }: StockResearchToolsProps) 
                 </Button>
                 <div>
                     <h1 className="text-3xl font-bold">Stock Research Tools</h1>
-                    <p className="text-muted-foreground">Simple tools to research and understand investments</p>
+                    <p className="text-muted-foreground">
+                        Simple tools to research and understand investments
+                    </p>
                 </div>
             </div>
 
@@ -100,7 +154,9 @@ export default function StockResearchTools({ onBack }: StockResearchToolsProps) 
                             <BarChart3 className="h-8 w-8 text-purple-600" />
                             <div>
                                 <h3 className="font-semibold">Advanced Analytics</h3>
-                                <p className="text-sm text-muted-foreground">Professional-grade research tools</p>
+                                <p className="text-sm text-muted-foreground">
+                                    Professional-grade research tools
+                                </p>
                             </div>
                         </div>
                         <Button size="sm" variant="outline">
@@ -150,69 +206,170 @@ export default function StockResearchTools({ onBack }: StockResearchToolsProps) 
                     <Card>
                         <CardHeader>
                             <CardTitle>Find Stocks</CardTitle>
-                            <CardDescription>Search and filter stocks based on your criteria</CardDescription>
+                            <CardDescription>
+                                Search for stocks by company name or ticker symbol.
+                            </CardDescription>
                         </CardHeader>
                         <CardContent>
                             <div className="flex gap-4 mb-6">
                                 <div className="flex-1">
                                     <Input
-                                        placeholder="Search by company name or symbol (e.g., AAPL, Apple)"
+                                        placeholder="Search by company name or symbol (e.g., Apple, MSFT)"
                                         value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        onChange={e => setSearchTerm(e.target.value)}
                                         className="w-full"
+                                        onKeyDown={e => {
+                                            if (e.key === "Enter") findSymbols()
+                                        }}
                                     />
                                 </div>
-                                <Button>
-                                    <Search className="h-4 w-4 mr-2" />
-                                    Search
+                                <Button onClick={findSymbols} disabled={isSearching}>
+                                    {isSearching ? (
+                                        "Searching..."
+                                    ) : (
+                                        <>
+                                            <Search className="h-4 w-4 mr-2" />
+                                            Search
+                                        </>
+                                    )}
                                 </Button>
                             </div>
 
+                            {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
+
                             <div className="grid gap-4">
-                                {filteredStocks.map((stock, index) => (
-                                    <Card key={index} className="hover:shadow-md transition-shadow">
-                                        <CardContent className="p-4">
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center gap-4">
+                                {/* Search Results */}
+                                {searchResults.length > 0 && (
+                                    <div className="space-y-2">
+                                        <h4 className="font-semibold">Search Results</h4>
+                                        {searchResults.map(result => (
+                                            <Card
+                                                key={result["1. symbol"]}
+                                                className="hover:shadow-md transition-shadow cursor-pointer"
+                                                onClick={() => fetchStockDetails(result["1. symbol"])}
+                                            >
+                                                <CardContent className="p-3 flex justify-between items-center">
                                                     <div>
+                                                        <span className="font-bold">{result["1. symbol"]}</span>
+                                                        <p className="text-sm text-muted-foreground">
+                                                            {result["2. name"]}
+                                                        </p>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <Badge variant="outline">{result["4. region"]}</Badge>
+                                                        <ChevronRight className="h-5 w-5 text-gray-400" />
+                                                    </div>
+                                                </CardContent>
+                                            </Card>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {/* Loading and Final Data Display */}
+                                {isLoadingDetails && (
+                                    <p className="text-sm text-muted-foreground">Loading details...</p>
+                                )}
+                                {stockData && (
+                                    <>
+                                        <Card className="shadow-md transition-shadow">
+                                            <CardContent className="p-4">
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex-1 min-w-0">
                                                         <div className="flex items-center gap-2">
-                                                            <h3 className="font-bold text-lg">{stock.symbol}</h3>
-                                                            <Badge variant={stock.change.startsWith("+") ? "default" : "destructive"}>
-                                                                {stock.change.startsWith("+") ? (
+                                                            <h3 className="font-bold text-lg">
+                                                                {stockData.symbol}
+                                                            </h3>
+                                                            <Badge
+                                                                variant={
+                                                                    parseFloat(stockData.change) >= 0
+                                                                        ? "default"
+                                                                        : "destructive"
+                                                                }
+                                                            >
+                                                                {parseFloat(stockData.change) >= 0 ? (
                                                                     <TrendingUp className="h-3 w-3 mr-1" />
                                                                 ) : (
                                                                     <TrendingDown className="h-3 w-3 mr-1" />
                                                                 )}
-                                                                {stock.change}
+                                                                {stockData.changePercent}%
                                                             </Badge>
                                                         </div>
-                                                        <p className="text-sm text-muted-foreground">{stock.name}</p>
-                                                        <p className="text-xs text-muted-foreground mt-1">{stock.description}</p>
+                                                        <p className="text-sm text-muted-foreground truncate">
+                                                            {stockData.name}
+                                                        </p>
+                                                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                                                            {stockData.description}
+                                                        </p>
+                                                    </div>
+                                                    <div className="text-right flex-shrink-0 pl-4">
+                                                        <div className="text-2xl font-bold">
+                                                            {stockData.price}
+                                                        </div>
+                                                        <div className="text-xs text-muted-foreground">
+                                                            P/E: {stockData.peRatio} • Cap: {stockData.marketCap}
+                                                        </div>
                                                     </div>
                                                 </div>
-                                                <div className="text-right">
-                                                    <div className="text-2xl font-bold">{stock.price}</div>
-                                                    <div className="text-xs text-muted-foreground">
-                                                        P/E: {stock.peRatio} • Cap: {stock.marketCap}
+                                            </CardContent>
+                                        </Card>
+                                        {chartData.length > 0 && (
+                                            <Card>
+                                                <CardHeader>
+                                                    <CardTitle>30-Day Price History</CardTitle>
+                                                </CardHeader>
+                                                <CardContent>
+                                                    <div style={{ width: "100%", height: 300 }}>
+                                                        <ResponsiveContainer>
+                                                            <LineChart data={chartData}>
+                                                                <CartesianGrid strokeDasharray="3 3" />
+                                                                <XAxis
+                                                                    dataKey="date"
+                                                                    fontSize={12}
+                                                                    tickLine={false}
+                                                                    axisLine={false}
+                                                                />
+                                                                <YAxis
+                                                                    domain={["auto", "auto"]}
+                                                                    fontSize={12}
+                                                                    tickLine={false}
+                                                                    axisLine={false}
+                                                                    tickFormatter={value => `$${value}`}
+                                                                />
+                                                                <Tooltip
+                                                                    formatter={(value: number) => [
+                                                                        `$${value.toFixed(2)}`,
+                                                                        "Price",
+                                                                    ]}
+                                                                />
+                                                                <Line
+                                                                    type="monotone"
+                                                                    dataKey="price"
+                                                                    stroke="#3B82F6"
+                                                                    strokeWidth={2}
+                                                                    dot={false}
+                                                                />
+                                                            </LineChart>
+                                                        </ResponsiveContainer>
                                                     </div>
-                                                </div>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                ))}
+                                                </CardContent>
+                                            </Card>
+                                        )}
+                                    </>
+                                )}
                             </div>
                         </CardContent>
                     </Card>
                 </div>
             )}
-
-            {/* Company Analysis Tab */}
+            {/* Other tabs remain unchanged */}
             {activeTab === "analysis" && (
                 <div className="space-y-6">
                     <Card>
                         <CardHeader>
                             <CardTitle>Company Analysis</CardTitle>
-                            <CardDescription>Understand key financial metrics in simple terms</CardDescription>
+                            <CardDescription>
+                                Understand key financial metrics in simple terms
+                            </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-6">
                             <div className="grid md:grid-cols-2 gap-6">
@@ -223,9 +380,12 @@ export default function StockResearchTools({ onBack }: StockResearchToolsProps) 
                                     <CardContent className="space-y-4">
                                         <div className="space-y-3">
                                             <div className="p-3 border rounded-lg">
-                                                <h4 className="font-medium">P/E Ratio (Price-to-Earnings)</h4>
+                                                <h4 className="font-medium">
+                                                    P/E Ratio (Price-to-Earnings)
+                                                </h4>
                                                 <p className="text-sm text-muted-foreground">
-                                                    How much you pay for each dollar of earnings. Lower is often better.
+                                                    How much you pay for each dollar of earnings. Lower is
+                                                    often better.
                                                 </p>
                                             </div>
                                             <div className="p-3 border rounded-lg">
@@ -262,7 +422,9 @@ export default function StockResearchTools({ onBack }: StockResearchToolsProps) 
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 <input type="checkbox" className="rounded" />
-                                                <span className="text-sm">P/E ratio is reasonable (under 30)</span>
+                                                <span className="text-sm">
+													P/E ratio is reasonable (under 30)
+												</span>
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 <input type="checkbox" className="rounded" />
@@ -288,21 +450,24 @@ export default function StockResearchTools({ onBack }: StockResearchToolsProps) 
                     </Card>
                 </div>
             )}
-
-            {/* Portfolio Tracker Tab */}
             {activeTab === "portfolio" && (
                 <div className="space-y-6">
                     <Card>
                         <CardHeader>
                             <CardTitle>Portfolio Tracker</CardTitle>
-                            <CardDescription>Monitor your investments simply and clearly</CardDescription>
+                            <CardDescription>
+                                Monitor your investments simply and clearly
+                            </CardDescription>
                         </CardHeader>
                         <CardContent>
                             <div className="text-center py-12">
                                 <DollarSign className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                                <h3 className="text-xl font-semibold mb-2">Start Tracking Your Portfolio</h3>
+                                <h3 className="text-xl font-semibold mb-2">
+                                    Start Tracking Your Portfolio
+                                </h3>
                                 <p className="text-muted-foreground mb-6">
-                                    Add your investments to see performance, allocation, and get personalized insights.
+                                    Add your investments to see performance, allocation, and get
+                                    personalized insights.
                                 </p>
                                 <Button>Add Your First Investment</Button>
                             </div>
