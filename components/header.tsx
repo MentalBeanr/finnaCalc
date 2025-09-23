@@ -6,6 +6,7 @@ import { SignedIn, SignedOut, UserButton } from "@clerk/nextjs"
 import { Button } from "@/components/ui/button"
 import { useState } from "react"
 import { usePathname } from 'next/navigation'
+import { ThemeToggle } from "@/components/theme-toggle"
 
 export default function Header() {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -49,6 +50,7 @@ export default function Header() {
 
                     {/* Auth and Mobile Menu Button */}
                     <div className="flex items-center gap-4">
+                        <ThemeToggle />
                         <div className="hidden md:flex">
                             <SignedOut>
                                 <Link href="/sign-in">

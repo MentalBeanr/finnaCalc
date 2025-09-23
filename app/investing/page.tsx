@@ -4,7 +4,10 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { TrendingUp, Shield, GraduationCap } from "lucide-react"
-import SafeInvestmentOptions from "@/components/safe-investment-options"
+import InvestingOptions from "@/components/investing-options"
+import StocksPage from "@/components/stocks-page"
+import BondsPage from "@/components/bonds-page"
+import SafeInvestmentsPage from "@/components/safe-investments-page"
 import StockResearchTools from "@/components/stock-research-tools"
 import Link from "next/link" // Import Link
 
@@ -20,8 +23,17 @@ export default function InvestingPage() {
   }
 
   const renderContent = () => {
+    if (activeSection === "investing-options") {
+      return <InvestingOptions onBack={handleBackToTab} onSelect={handleSectionClick} />
+    }
+    if (activeSection === "stocks") {
+      return <StocksPage onBack={() => setActiveSection("investing-options")} />
+    }
+    if (activeSection === "bonds") {
+      return <BondsPage onBack={() => setActiveSection("investing-options")} />
+    }
     if (activeSection === "safe-investments") {
-      return <SafeInvestmentOptions onBack={handleBackToTab} />
+      return <SafeInvestmentsPage onBack={() => setActiveSection("investing-options")} />
     }
     if (activeSection === "stock-research") {
       return <StockResearchTools onBack={handleBackToTab} />
@@ -38,16 +50,13 @@ export default function InvestingPage() {
           <div className="grid md:grid-cols-3 gap-6 mb-8">
             <Card
                 className="bg-white hover:shadow-lg transition-shadow cursor-pointer border border-gray-200"
-                onClick={() => handleSectionClick("safe-investments")}
+                onClick={() => handleSectionClick("investing-options")}
             >
               <CardHeader className="text-center pb-4">
                 <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center mx-auto mb-3">
                   <Shield className="h-6 w-6 text-white" />
                 </div>
-                <CardTitle className="text-lg text-gray-900">Safe Investment Options</CardTitle>
-                <CardDescription className="text-sm text-gray-600">
-                  Top 20 safest investments with consistent returns
-                </CardDescription>
+                <CardTitle className="text-lg text-gray-900">Investing</CardTitle>
               </CardHeader>
               <CardContent className="text-center">
                 <p className="text-sm text-gray-600 mb-4">
@@ -111,7 +120,7 @@ export default function InvestingPage() {
   }
 
   return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
         <main className="container mx-auto px-4 py-8 max-w-6xl">
           {renderContent()}
         </main>

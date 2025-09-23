@@ -4,6 +4,7 @@ import { Geist, Geist_Mono } from 'next/font/google'
 import './globals.css'
 import ChatBot from '@/components/Chatbot'
 import Header from "@/components/header";
+import { ThemeProvider } from '@/components/theme-provider'
 
 const geistSans = Geist({
     variable: '--font-geist-sans',
@@ -27,15 +28,17 @@ export default function RootLayout({
 }>) {
     return (
         <ClerkProvider>
-            <html lang="en">
+            <html lang="en" suppressHydrationWarning>
             <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+            <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
                 <div className="flex flex-col min-h-screen">
                     <Header />
                     <main className="flex-grow">
-                    {children}
+                        {children}
                     </main>
                     <ChatBot />
                 </div>
+            </ThemeProvider>
             </body>
             </html>
         </ClerkProvider>
