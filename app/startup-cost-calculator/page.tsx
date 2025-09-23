@@ -1,7 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { Share2, Download, Building2, PieChart, Calculator } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { Share2, Download, Building2, PieChart, Calculator, ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -9,9 +10,9 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Progress } from "@/components/ui/progress"
-import Link from "next/link"
 
 export default function StartupCostCalculator() {
+  const router = useRouter()
   const [businessType, setBusinessType] = useState("")
   const [equipment, setEquipment] = useState("")
   const [inventory, setInventory] = useState("")
@@ -34,7 +35,7 @@ export default function StartupCostCalculator() {
 
   const [result, setResult] = useState<any>(null)
 
-  const businessTemplates = {
+  const businessTemplates: { [key: string]: any } = {
     retail: {
       equipment: 25000,
       inventory: 15000,
@@ -224,17 +225,12 @@ export default function StartupCostCalculator() {
   return (
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <nav className="mb-8">
-            <ol className="flex items-center space-x-2 text-sm text-gray-500">
-              <li>
-                <Link href="/" className="hover:text-blue-600">
-                  Home
-                </Link>
-              </li>
-              <li>/</li>
-              <li className="text-gray-900">Startup Cost Calculator</li>
-            </ol>
-          </nav>
+          <div className="mb-8">
+            <Button variant="outline" onClick={() => router.back()} className="flex items-center gap-2">
+              <ArrowLeft className="h-4 w-4" />
+              Back
+            </Button>
+          </div>
 
           <div className="grid grid-cols-1 gap-8">
             <div>
@@ -509,7 +505,7 @@ export default function StartupCostCalculator() {
                             Detailed Cost Breakdown:
                           </h4>
                           <div className="space-y-3">
-                            {result.costCategories.map((category, index) => (
+                            {result.costCategories.map((category : any, index : number) => (
                                 <div key={index} className="flex items-center justify-between">
                                   <div className="flex items-center gap-2">
                                     <div className="w-3 h-3 rounded-full" style={{ backgroundColor: category.color }} />

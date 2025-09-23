@@ -1,15 +1,16 @@
 "use client"
 
 import { useState } from "react"
-import { Calculator, Share2, Download } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { Calculator, Share2, Download, ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import Link from "next/link"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 export default function BreakEvenCalculator() {
+  const router = useRouter()
   const [fixedCosts, setFixedCosts] = useState("")
   const [variableCostPerUnit, setVariableCostPerUnit] = useState("")
   const [pricePerUnit, setPricePerUnit] = useState("")
@@ -62,17 +63,12 @@ export default function BreakEvenCalculator() {
   return (
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <nav className="mb-8">
-            <ol className="flex items-center space-x-2 text-sm text-gray-500">
-              <li>
-                <Link href="/" className="hover:text-blue-600">
-                  Home
-                </Link>
-              </li>
-              <li>/</li>
-              <li className="text-gray-900">Break-Even Calculator</li>
-            </ol>
-          </nav>
+          <div className="mb-8">
+            <Button variant="outline" onClick={() => router.back()} className="flex items-center gap-2">
+              <ArrowLeft className="h-4 w-4" />
+              Back
+            </Button>
+          </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-1 gap-8">
             <div>

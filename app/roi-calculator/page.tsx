@@ -1,15 +1,16 @@
 "use client"
 
 import { useState } from "react"
-import { Share2, Download, TrendingUp } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { Share2, Download, TrendingUp, ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import Link from "next/link"
 
 export default function ROICalculator() {
+  const router = useRouter()
   const [initialInvestment, setInitialInvestment] = useState("")
   const [finalValue, setFinalValue] = useState("")
   const [timeHorizon, setTimeHorizon] = useState("")
@@ -71,17 +72,12 @@ export default function ROICalculator() {
   return (
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <nav className="mb-8">
-            <ol className="flex items-center space-x-2 text-sm text-gray-500">
-              <li>
-                <Link href="/" className="hover:text-blue-600">
-                  Home
-                </Link>
-              </li>
-              <li>/</li>
-              <li className="text-gray-900">ROI Calculator</li>
-            </ol>
-          </nav>
+          <div className="mb-8">
+            <Button variant="outline" onClick={() => router.back()} className="flex items-center gap-2">
+              <ArrowLeft className="h-4 w-4" />
+              Back
+            </Button>
+          </div>
 
           <div className="grid grid-cols-1 gap-8">
             <div>

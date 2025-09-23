@@ -92,10 +92,10 @@ export default function HomePage() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center">
               <h1 className="text-3xl sm:text-4xl md:text-6xl font-bold text-gray-900 mb-4 sm:mb-6">
-                Professional <span className="text-blue-600">Financial Calculators</span> and Planning Tools
+                Professional <span className="text-blue-600">Financial Calculators</span> and <span className="text-blue-600"> Personal Finance</span> Tools
               </h1>
               <p className="text-lg sm:text-xl text-gray-600 mb-6 sm:mb-8 max-w-3xl mx-auto px-4">
-                Free, accurate, and easy-to-use financial calculators and planning tools for individuals, small business
+                Free, accurate, and easy-to-use financial calculators and personal finance planning tools for individuals, small business
                 owners, entrepreneurs, and anyone looking to make informed financial decisions with professional tools.
               </p>
             </div>
@@ -149,8 +149,8 @@ export default function HomePage() {
                       <span className="text-white text-sm">✓</span>
                     </div>
                     <div>
-                      <h3 className="font-semibold text-gray-900">100% Free to Use</h3>
-                      <p className="text-gray-600">All basic calculators are completely free with no hidden fees</p>
+                      <h3 className="font-semibold text-gray-900">All basic calculations and free personal finance tools are free</h3>
+                      <p className="text-gray-600">No hidden fees or premium requirements for essential financial calculations</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
@@ -175,7 +175,7 @@ export default function HomePage() {
                   </div>
                 </div>
               </div>
-              <div className="ad-space h-48 sm:h-64">
+              <div className="ad-space h-48 sm:h-64 hidden">
                 <p>Advertisement Space - Affiliate Products</p>
                 <p className="text-sm mt-2">Business Credit Cards, Accounting Software, etc.</p>
               </div>
@@ -188,7 +188,7 @@ export default function HomePage() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4">Ready to Take Control of Your Finances?</h2>
             <p className="text-lg sm:text-xl text-blue-100 mb-6 sm:mb-8 px-4">
-              Join thousands of business owners who trust FinnaCalc for their financial planning
+              Join thousands of business owners who can trust FinnaCalc for their financial planning
             </p>
             <div className="flex justify-center">
               <Link href="#calculators">
@@ -210,7 +210,7 @@ export default function HomePage() {
                   <span className="ml-2 text-lg font-bold">FinnaCalc</span>
                 </div>
                 <p className="text-gray-400">
-                  Professional financial calculators and planning tools for smart business decisions.
+                  Professional financial calculators and personal finance planning tools for smart business decisions.
                 </p>
               </div>
               <div>

@@ -1,16 +1,17 @@
 "use client"
 
 import { useState } from "react"
-import { Calculator, Share2, Download } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { Calculator, Share2, Download, ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import Link from "next/link"
 
 export default function LoanCalculator() {
+  const router = useRouter()
   const [calculationType, setCalculationType] = useState("payment")
 
   // Payment Calculator States
@@ -53,7 +54,7 @@ export default function LoanCalculator() {
       annually: { periods: 1, termPeriods: termMonths / 12 },
     }
 
-    const freq = frequencies[paymentFrequency]
+    const freq = frequencies[paymentFrequency as keyof typeof frequencies]
     const rate = annualRate / freq.periods
     const term = freq.termPeriods
 
@@ -144,17 +145,17 @@ export default function LoanCalculator() {
       return
     }
 
-    const monthlyPayment = (principal * rate * Math.pow(1 + rate, term)) / (Math.pow(1 + rate, term) - 1)
+    const monthlyPaymentVal = (principal * rate * Math.pow(1 + rate, term)) / (Math.pow(1 + rate, term) - 1)
     const remainingBalance =
-        principal * Math.pow(1 + rate, payments) - monthlyPayment * ((Math.pow(1 + rate, payments) - 1) / rate)
+        principal * Math.pow(1 + rate, payments) - monthlyPaymentVal * ((Math.pow(1 + rate, payments) - 1) / rate)
     const remainingPayments = term - payments
 
     setResult({
       type: "remaining",
       remainingBalance: Math.max(0, remainingBalance),
       remainingPayments: Math.max(0, remainingPayments),
-      monthlyPayment,
-      totalPaid: monthlyPayment * payments,
+      monthlyPayment: monthlyPaymentVal,
+      totalPaid: monthlyPaymentVal * payments,
     })
   }
 
@@ -179,17 +180,12 @@ export default function LoanCalculator() {
   return (
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <nav className="mb-8">
-            <ol className="flex items-center space-x-2 text-sm text-gray-500">
-              <li>
-                <Link href="/" className="hover:text-blue-600">
-                  Home
-                </Link>
-              </li>
-              <li>/</li>
-              <li className="text-gray-900">Loan Calculator</li>
-            </ol>
-          </nav>
+          <div className="mb-8">
+            <Button variant="outline" onClick={() => router.back()} className="flex items-center gap-2">
+              <ArrowLeft className="h-4 w-4" />
+              Back
+            </Button>
+          </div>
 
           <div className="grid grid-cols-1 gap-8">
             <div>

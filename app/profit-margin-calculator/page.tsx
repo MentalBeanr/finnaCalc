@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { Calculator, ArrowLeft, Share2, Download, TrendingUp } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -9,6 +10,7 @@ import { Label } from "@/components/ui/label"
 import Link from "next/link"
 
 export default function ProfitMarginCalculator() {
+  const router = useRouter()
   const [revenue, setRevenue] = useState("")
   const [costOfGoodsSold, setCostOfGoodsSold] = useState("")
   const [operatingExpenses, setOperatingExpenses] = useState("")
@@ -45,20 +47,13 @@ export default function ProfitMarginCalculator() {
 
   return (
       <div className="min-h-screen bg-gray-50">
-
-
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <nav className="mb-8">
-            <ol className="flex items-center space-x-2 text-sm text-gray-500">
-              <li>
-                <Link href="/" className="hover:text-blue-600">
-                  Home
-                </Link>
-              </li>
-              <li>/</li>
-              <li className="text-gray-900">Profit Margin Calculator</li>
-            </ol>
-          </nav>
+          <div className="mb-8">
+            <Button variant="outline" onClick={() => router.back()} className="flex items-center gap-2">
+              <ArrowLeft className="h-4 w-4" />
+              Back
+            </Button>
+          </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2">
@@ -210,13 +205,7 @@ export default function ProfitMarginCalculator() {
               </Card>
             </div>
 
-            {/* Sidebar */}
-            <div className="space-y-6">
-              <div className="ad-space">
-                <p>Advertisement</p>
-                <p className="text-sm">Accounting Software for Small Business</p>
-              </div>
-
+            <div className="lg:col-span-1">
               <Card>
                 <CardHeader>
                   <CardTitle className="text-lg">Improve Your Margins</CardTitle>
@@ -238,32 +227,9 @@ export default function ProfitMarginCalculator() {
                   </div>
                 </CardContent>
               </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Related Calculators</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <Link href="/break-even-calculator" className="block p-2 hover:bg-gray-50 rounded">
-                      <p className="font-medium">Break-Even Calculator</p>
-                      <p className="text-sm text-gray-600">Find break-even point</p>
-                    </Link>
-                    <Link href="/pricing-calculator" className="block p-2 hover:bg-gray-50 rounded">
-                      <p className="font-medium">Pricing Calculator</p>
-                      <p className="text-sm text-gray-600">Set optimal prices</p>
-                    </Link>
-                    <Link href="/cash-flow-calculator" className="block p-2 hover:bg-gray-50 rounded">
-                      <p className="font-medium">Cash Flow Calculator</p>
-                      <p className="text-sm text-gray-600">Project cash flow</p>
-                    </Link>
-                  </div>
-                </CardContent>
-              </Card>
             </div>
           </div>
 
-          {/* SEO Content */}
           <div className="mt-12 prose max-w-none">
             <h2>Understanding Profit Margins</h2>
             <p>

@@ -1,15 +1,16 @@
 "use client"
 
 import { useState } from "react"
-import { Calculator, ArrowLeft, Share2, Download, Users } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { Calculator, Share2, Download, Users, ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import Link from "next/link"
 
 export default function EmployeeContractorCalculator() {
+  const router = useRouter()
   const [salary, setSalary] = useState("")
   const [contractorRate, setContractorRate] = useState("")
   const [hoursPerWeek, setHoursPerWeek] = useState("40")
@@ -22,18 +23,15 @@ export default function EmployeeContractorCalculator() {
     const hours = Number.parseFloat(hoursPerWeek) || 40
     const weeks = Number.parseFloat(weeksPerYear) || 50
 
-    // Employee costs
-    const employeeBenefits = annualSalary * 0.25 // 25% for benefits
-    const payrollTaxes = annualSalary * 0.0765 // 7.65% employer portion
-    const workersComp = annualSalary * 0.02 // 2% workers comp
-    const unemployment = Math.min(annualSalary * 0.006, 420) // FUTA tax
+    const employeeBenefits = annualSalary * 0.25
+    const payrollTaxes = annualSalary * 0.0765
+    const workersComp = annualSalary * 0.02
+    const unemployment = Math.min(annualSalary * 0.006, 420)
     const totalEmployeeCost = annualSalary + employeeBenefits + payrollTaxes + workersComp + unemployment
 
-    // Contractor costs
     const contractorAnnualCost = hourlyRate * hours * weeks
     const contractorHourlyEquivalent = totalEmployeeCost / (hours * weeks)
 
-    // Savings calculation
     const savings = totalEmployeeCost - contractorAnnualCost
     const savingsPercentage = (savings / totalEmployeeCost) * 100
 
@@ -61,23 +59,16 @@ export default function EmployeeContractorCalculator() {
 
   return (
       <div className="min-h-screen bg-gray-50">
-
-
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <nav className="mb-8">
-            <ol className="flex items-center space-x-2 text-sm text-gray-500">
-              <li>
-                <Link href="/" className="hover:text-blue-600">
-                  Home
-                </Link>
-              </li>
-              <li>/</li>
-              <li className="text-gray-900">Employee vs Contractor Calculator</li>
-            </ol>
-          </nav>
+          <div className="mb-8">
+            <Button variant="outline" onClick={() => router.back()} className="flex items-center gap-2">
+              <ArrowLeft className="h-4 w-4" />
+              Back
+            </Button>
+          </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2">
+          <div className="grid grid-cols-1 gap-8">
+            <div>
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -254,23 +245,6 @@ export default function EmployeeContractorCalculator() {
                         </div>
                       </div>
                   )}
-                </CardContent>
-              </Card>
-            </div>
-
-            <div className="space-y-6">
-              <div className="ad-space">
-                <p>Advertisement</p>
-                <p className="text-sm">HR & Payroll Services</p>
-              </div>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">HR Solutions</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-gray-600 mb-3">Simplify payroll and HR management</p>
-                  <Button className="w-full bg-green-600 hover:bg-green-700">Get HR Software</Button>
                 </CardContent>
               </Card>
             </div>

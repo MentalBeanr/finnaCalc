@@ -18,24 +18,13 @@ export default function AboutUs() {
                         Back
                     </Button>
                 </div>
-                <nav className="mb-8">
-                    <ol className="flex items-center space-x-2 text-sm text-gray-500">
-                        <li>
-                            <Link href="/" className="hover:text-blue-600">
-                                Home
-                            </Link>
-                        </li>
-                        <li>/</li>
-                        <li className="text-gray-900">About Us</li>
-                    </ol>
-                </nav>
 
                 <div className="space-y-12">
                     {/* Hero Section */}
                     <div className="text-center space-y-4">
                         <h1 className="text-4xl font-bold text-gray-900 text-balance">Empowering Smart Financial Decisions</h1>
                         <p className="text-xl text-gray-600 max-w-3xl mx-auto text-pretty">
-                            FinnaCalc is your trusted partner in financial planning, providing professional-grade calculators and
+                            FinnaCalc is your trusted partner in financial planning, providing professional-grade calculators and planning
                             tools to help individuals and businesses make informed financial decisions.
                         </p>
                     </div>
@@ -51,7 +40,7 @@ export default function AboutUs() {
                             </CardHeader>
                             <CardContent>
                                 <p className="text-gray-600">
-                                    To democratize financial planning by providing free, accurate, and easy-to-use financial calculators
+                                    To democratize financial planning by providing free, accurate, and easy-to-use financial calculators and personal finance tools
                                     that empower everyone to make better financial decisions, regardless of their background or experience
                                     level.
                                 </p>
@@ -67,7 +56,7 @@ export default function AboutUs() {
                             </CardHeader>
                             <CardContent>
                                 <p className="text-gray-600">
-                                    To become the world's most trusted platform for financial calculations and planning tools, helping
+                                    To become the world's most trusted platform for financial calculations and personal finance planning tools, helping
                                     millions of people achieve their financial goals through informed decision-making.
                                 </p>
                             </CardContent>
@@ -233,10 +222,10 @@ export default function AboutUs() {
                         </p>
                         <div className="space-y-2">
                             <p className="text-gray-600">
-                                <strong>Email:</strong> support@finnacalc.com
+                                <strong>Help & Assistance:</strong> helpfinnacalc@gmail.com
                             </p>
                             <p className="text-gray-600">
-                                <strong>Business Inquiries:</strong> business@finnacalc.com
+                                <strong>Business Inquiries:</strong> finnacalc@gmail.com
                             </p>
                         </div>
                     </div>

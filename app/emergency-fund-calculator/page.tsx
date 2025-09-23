@@ -1,15 +1,16 @@
 "use client"
 
 import { useState } from "react"
-import { Calculator, Share2, Download } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { Calculator, Share2, Download, ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import Link from "next/link"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 export default function EmergencyFundCalculator() {
+  const router = useRouter()
   const [monthlyExpenses, setMonthlyExpenses] = useState("")
   const [currentSavings, setCurrentSavings] = useState("")
   const [targetType, setTargetType] = useState("months")
@@ -63,18 +64,13 @@ export default function EmergencyFundCalculator() {
   return (
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Breadcrumb */}
-          <nav className="mb-8">
-            <ol className="flex items-center space-x-2 text-sm text-gray-500">
-              <li>
-                <Link href="/" className="hover:text-blue-600">
-                  Home
-                </Link>
-              </li>
-              <li>/</li>
-              <li className="text-gray-900">Emergency Fund Calculator</li>
-            </ol>
-          </nav>
+          {/* Back Button */}
+          <div className="mb-8">
+            <Button variant="outline" onClick={() => router.back()} className="flex items-center gap-2">
+              <ArrowLeft className="h-4 w-4" />
+              Back
+            </Button>
+          </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Calculator */}
@@ -243,29 +239,6 @@ export default function EmergencyFundCalculator() {
 
             {/* Sidebar */}
             <div className="space-y-6">
-              {/* Related Calculators */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Related Calculators</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <Link href="/startup-cost-calculator" className="block p-2 hover:bg-gray-50 rounded">
-                      <p className="font-medium">Startup Cost Calculator</p>
-                      <p className="text-sm text-gray-600">Calculate business startup costs</p>
-                    </Link>
-                    <Link href="/tax-calculator" className="block p-2 hover:bg-gray-50 rounded">
-                      <p className="font-medium">Tax Calculator</p>
-                      <p className="text-sm text-gray-600">Calculate your taxes</p>
-                    </Link>
-                    <Link href="/loan-calculator" className="block p-2 hover:bg-gray-50 rounded">
-                      <p className="font-medium">Loan Calculator</p>
-                      <p className="text-sm text-gray-600">Calculate loan payments</p>
-                    </Link>
-                  </div>
-                </CardContent>
-              </Card>
-
               {/* Tips */}
               <Card>
                 <CardHeader>

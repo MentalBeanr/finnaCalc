@@ -1,7 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { Share2, Download, Receipt, Calculator, Users, Building2 } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { Share2, Download, Receipt, Calculator, Users, Building2, ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -9,9 +10,9 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Checkbox } from "@/components/ui/checkbox"
-import Link from "next/link"
 
 export default function TaxCalculator() {
+  const router = useRouter()
   const [taxType, setTaxType] = useState("individual")
   const [filingStatus, setFilingStatus] = useState("single")
   const [income, setIncome] = useState("")
@@ -164,17 +165,12 @@ export default function TaxCalculator() {
   return (
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <nav className="mb-8">
-            <ol className="flex items-center space-x-2 text-sm text-gray-500">
-              <li>
-                <Link href="/" className="hover:text-blue-600">
-                  Home
-                </Link>
-              </li>
-              <li>/</li>
-              <li className="text-gray-900">Tax Calculator</li>
-            </ol>
-          </nav>
+          <div className="mb-8">
+            <Button variant="outline" onClick={() => router.back()} className="flex items-center gap-2">
+              <ArrowLeft className="h-4 w-4" />
+              Back
+            </Button>
+          </div>
 
           <div className="grid grid-cols-1 gap-8">
             <div>
@@ -299,14 +295,14 @@ export default function TaxCalculator() {
                         <h4 className="font-semibold">Tax Credits</h4>
                         <div className="space-y-2">
                           <div className="flex items-center space-x-2">
-                            <Checkbox id="childTaxCredit" checked={childTaxCredit} onCheckedChange={setChildTaxCredit} />
+                            <Checkbox id="childTaxCredit" checked={childTaxCredit} onCheckedChange={(checked) => setChildTaxCredit(Boolean(checked))} />
                             <Label htmlFor="childTaxCredit">Child Tax Credit ($2,000 per child)</Label>
                           </div>
                           <div className="flex items-center space-x-2">
                             <Checkbox
                                 id="earnedIncomeCredit"
                                 checked={earnedIncomeCredit}
-                                onCheckedChange={setEarnedIncomeCredit}
+                                onCheckedChange={(checked) => setEarnedIncomeCredit(Boolean(checked))}
                             />
                             <Label htmlFor="earnedIncomeCredit">Earned Income Tax Credit</Label>
                           </div>
