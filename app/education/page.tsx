@@ -8,9 +8,14 @@ import FinancialEducationHub from "@/components/financial-education-hub"
 
 export default function EducationPage() {
     const [activeSection, setActiveSection] = useState("")
+    const [selectedTopic, setSelectedTopic] = useState("credit");
 
-    const handleSectionClick = (section: string) => {
-        setActiveSection(section)
+
+    const handleSectionClick = (section: string, topic?: string) => {
+        setActiveSection(section);
+        if (topic) {
+            setSelectedTopic(topic);
+        }
     }
 
     const handleBackToTab = () => {
@@ -19,7 +24,7 @@ export default function EducationPage() {
 
     const renderContent = () => {
         if (activeSection === "financial-education") {
-            return <FinancialEducationHub onBack={handleBackToTab} />
+            return <FinancialEducationHub onBack={handleBackToTab} initialTopic={selectedTopic} />
         }
         return (
             <section className="space-y-8">
@@ -30,7 +35,7 @@ export default function EducationPage() {
                     </p>
                 </div>
 
-                <Card className="bg-gradient-to-r from-blue-50 to-green-50 border-blue-200 mb-8">
+                {/* <Card className="bg-gradient-to-r from-blue-50 to-green-50 border-blue-200 mb-8">
                     <CardHeader className="pb-3">
                         <div className="flex items-center gap-2">
                             <Users className="h-5 w-5 text-primary" />
@@ -50,12 +55,12 @@ export default function EducationPage() {
                             </Button>
                         </div>
                     </CardContent>
-                </Card>
+                </Card> */}
 
                 <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                     <Card
                         className="hover:shadow-lg transition-shadow cursor-pointer"
-                        onClick={() => handleSectionClick("financial-education")}
+                        onClick={() => handleSectionClick("financial-education", "credit")}
                     >
                         <CardHeader className="text-center pb-2">
                             <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center mx-auto mb-2">
@@ -76,13 +81,13 @@ export default function EducationPage() {
                     </Card>
                     <Card
                         className="hover:shadow-lg transition-shadow cursor-pointer"
-                        onClick={() => handleSectionClick("financial-education")}
+                        onClick={() => handleSectionClick("financial-education", "investing")}
                     >
                         <CardHeader className="text-center pb-2">
                             <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center mx-auto mb-2">
                                 <TrendingUp className="h-6 w-6 text-primary-foreground" />
                             </div>
-                            <CardTitle className="text-base">Investing 101</CardTitle>
+                            <CardTitle className="text-base">Investing</CardTitle>
                         </CardHeader>
                         <CardContent className="text-center">
                             <div className="space-y-1 text-sm mb-3">
@@ -97,7 +102,7 @@ export default function EducationPage() {
                     </Card>
                     <Card
                         className="hover:shadow-lg transition-shadow cursor-pointer"
-                        onClick={() => handleSectionClick("financial-education")}
+                        onClick={() => handleSectionClick("financial-education", "budgeting")}
                     >
                         <CardHeader className="text-center pb-2">
                             <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center mx-auto mb-2">
@@ -118,7 +123,7 @@ export default function EducationPage() {
                     </Card>
                     <Card
                         className="hover:shadow-lg transition-shadow cursor-pointer"
-                        onClick={() => handleSectionClick("financial-education")}
+                        onClick={() => handleSectionClick("financial-education", "retirement")}
                     >
                         <CardHeader className="text-center pb-2">
                             <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center mx-auto mb-2">
@@ -139,7 +144,7 @@ export default function EducationPage() {
                     </Card>
                     <Card
                         className="hover:shadow-lg transition-shadow cursor-pointer"
-                        onClick={() => handleSectionClick("financial-education")}
+                        onClick={() => handleSectionClick("financial-education", "taxes")}
                     >
                         <CardHeader className="text-center pb-2">
                             <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center mx-auto mb-2">

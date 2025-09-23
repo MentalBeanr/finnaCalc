@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -26,14 +26,21 @@ import {
 } from "lucide-react"
 
 interface FinancialEducationHubProps {
-    onBack: () => void
+    onBack: () => void;
+    initialTopic?: string;
 }
 
-export default function FinancialEducationHub({ onBack }: FinancialEducationHubProps) {
-    const [activeTopic, setActiveTopic] = useState("credit")
+export default function FinancialEducationHub({ onBack, initialTopic = "credit" }: FinancialEducationHubProps) {
+    const [activeTopic, setActiveTopic] = useState(initialTopic)
     const [modalContent, setModalContent] = useState<{ title: string; description: string } | null>(null);
     const [videoIndex, setVideoIndex] = useState(0);
     const [articleIndex, setArticleIndex] = useState(0);
+
+    useEffect(() => {
+        if (initialTopic) {
+            setActiveTopic(initialTopic);
+        }
+    }, [initialTopic]);
 
 
     const topics = [
@@ -170,6 +177,7 @@ export default function FinancialEducationHub({ onBack }: FinancialEducationHubP
                             <ChevronLeft className="h-4 w-4" />
                         </Button>
                         <div className="flex-1">
+                            <h3 className="font-semibold mb-2 text-center">{videoLessons[activeTopic as keyof typeof videoLessons][videoIndex].title}</h3>
                             <iframe
                                 className="w-full h-64 rounded-lg"
                                 src={`https://www.youtube.com/embed/${getYouTubeId(videoLessons[activeTopic as keyof typeof videoLessons][videoIndex].url)}`}
@@ -177,7 +185,9 @@ export default function FinancialEducationHub({ onBack }: FinancialEducationHubP
                                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                 allowFullScreen
                             ></iframe>
-                            <h3 className="font-semibold mt-2">{videoLessons[activeTopic as keyof typeof videoLessons][videoIndex].title}</h3>
+                            <div className="text-right text-sm text-muted-foreground mt-2">
+                                {videoIndex + 1} / {videoLessons[activeTopic as keyof typeof videoLessons].length}
+                            </div>
                         </div>
                         <Button variant="ghost" size="icon" onClick={() => setVideoIndex(prev => Math.min(videoLessons[activeTopic as keyof typeof videoLessons].length - 1, prev + 1))} disabled={videoIndex === videoLessons[activeTopic as keyof typeof videoLessons].length - 1}>
                             <ChevronRight className="h-4 w-4" />
@@ -196,14 +206,17 @@ export default function FinancialEducationHub({ onBack }: FinancialEducationHubP
                             <ChevronLeft className="h-4 w-4" />
                         </Button>
                         <div className="flex-1">
+                            <h3 className="font-semibold mb-2 text-center">{readingResources[activeTopic as keyof typeof readingResources][articleIndex].title}</h3>
                             <a href={readingResources[activeTopic as keyof typeof readingResources][articleIndex].url} target="_blank" rel="noopener noreferrer">
                                 <Card className="hover:shadow-lg transition-shadow cursor-pointer">
                                     <CardContent className="p-4">
-                                        <h3 className="font-semibold mb-1">{readingResources[activeTopic as keyof typeof readingResources][articleIndex].title}</h3>
                                         <p className="text-sm text-muted-foreground">Click to read more</p>
                                     </CardContent>
                                 </Card>
                             </a>
+                            <div className="text-right text-sm text-muted-foreground mt-2">
+                                {articleIndex + 1} / {readingResources[activeTopic as keyof typeof readingResources].length}
+                            </div>
                         </div>
                         <Button variant="ghost" size="icon" onClick={() => setArticleIndex(prev => Math.min(readingResources[activeTopic as keyof typeof readingResources].length - 1, prev + 1))} disabled={articleIndex === readingResources[activeTopic as keyof typeof readingResources].length - 1}>
                             <ChevronRight className="h-4 w-4" />
