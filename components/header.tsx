@@ -1,16 +1,21 @@
 "use client"
 
 import Link from "next/link"
-import { Calculator, TrendingUp, FileText, GraduationCap } from "lucide-react"
+import Image from "next/image"
 import { SignedIn, SignedOut, UserButton } from "@clerk/nextjs"
 import { Button } from "@/components/ui/button"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { usePathname } from 'next/navigation'
 import { ThemeToggle } from "@/components/theme-toggle"
 
 export default function Header() {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+    const [mounted, setMounted] = useState(false)
     const pathname = usePathname()
+
+    useEffect(() => {
+        setMounted(true)
+    }, [])
 
     const navLinks = [
         { href: "/", label: "Home" },
@@ -26,8 +31,16 @@ export default function Header() {
                 <div className="flex justify-between items-center h-16">
                     <div className="flex items-center">
                         <Link href="/" className="flex items-center">
-                            <Calculator className="h-8 w-8 text-blue-600" />
-                            <span className="ml-2 text-xl font-bold text-gray-900">FinnaCalc</span>
+                            <Image
+                                src="/fc new right white logo.png"
+                                alt="FinnaCalc Logo"
+                                width={32}
+                                height={32}
+                                className="flex-shrink-0"
+                            />
+                            <span className="ml-2 text-xl font-bold text-gray-900">
+                                Finna<span className="text-blue-600">Calc</span>
+                            </span>
                         </Link>
                     </div>
 
@@ -50,7 +63,7 @@ export default function Header() {
 
                     {/* Auth and Mobile Menu Button */}
                     <div className="flex items-center gap-4">
-                        <ThemeToggle />
+                        {mounted ? <ThemeToggle /> : <div className="h-10 w-10" />}
                         <div className="hidden md:flex">
                             <SignedOut>
                                 <Link href="/sign-in">

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -71,16 +72,24 @@ export default function ChatBot() {
             <Card className="w-80 h-[28rem] flex flex-col shadow-lg">
                 <CardHeader className="flex flex-col items-start justify-between p-4 pb-0">
                     <div className="flex w-full items-center justify-between mb-2">
-                        <div>
-                            <CardTitle>
-                                Finna<span className="text-blue-600">Bot</span>
-                            </CardTitle>
-                            <p className="text-xs text-gray-500 mt-1">
-                                Personal Finance and Business Assistance AI Chatbot
-                            </p>
+                        <div className="flex items-center space-x-2">
+                            <Image
+                                src="/finnabot-logo.png"
+                                alt="FinnaBot Logo"
+                                width={24}
+                                height={24}
+                            />
+                            <div>
+                                <CardTitle>
+                                    Finna<span className="text-blue-600">Bot</span>
+                                </CardTitle>
+                            </div>
                         </div>
                         <Button variant="ghost" size="sm" onClick={toggleChat} className="p-2 -mr-2"><X className="h-4 w-4" /></Button>
                     </div>
+                    <p className="text-xs text-gray-500 mt-1 pl-8">
+                        Personal Finance and Business Assistance AI Chatbot
+                    </p>
                     <div className="w-full h-px bg-gray-200 mt-2"></div>
                 </CardHeader>
                 <CardContent className="flex-1 overflow-y-auto p-4 pt-4">

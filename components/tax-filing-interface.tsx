@@ -20,6 +20,7 @@ import {
     CheckCircle,
     ExternalLink,
     Shield,
+    Banknote,
 } from "lucide-react"
 
 interface TaxFilingInterfaceProps {
@@ -48,28 +49,20 @@ export default function TaxFilingInterface({ onBack }: TaxFilingInterfaceProps) 
 
     const filingTypes = [
         {
-            id: "personal",
-            title: "Personal Tax Return",
-            description: "Individual or joint filing for personal income",
+            id: "simple",
+            title: "Simple File",
+            description: "For W-2 employees with standard deductions.",
             icon: <Users className="h-8 w-8" />,
-            price: "Free",
-            features: ["W-2 and 1099 forms", "Standard deduction", "Basic credits", "Direct deposit"],
+            price: "$1",
+            features: ["W-2 and 1099-INT/DIV", "Standard deduction", "Basic credits (EITC)", "Direct deposit"],
         },
         {
-            id: "business",
-            title: "Business Tax Return",
-            description: "Self-employed, LLC, or small business filing",
+            id: "complex",
+            title: "Complex File",
+            description: "For self-employed, investors, and homeowners.",
             icon: <Briefcase className="h-8 w-8" />,
-            price: "$49",
-            features: ["Schedule C", "Business expenses", "Quarterly payments", "Professional review"],
-        },
-        {
-            id: "rental",
-            title: "Rental Property",
-            description: "Income from rental properties or real estate",
-            icon: <Home className="h-8 w-8" />,
-            price: "$29",
-            features: ["Schedule E", "Rental income", "Property expenses", "Depreciation"],
+            price: "$10",
+            features: ["All simple features", "Self-employment (Schedule C)", "Investments & rental property", "Itemized deductions"],
         },
     ]
 
@@ -102,7 +95,7 @@ export default function TaxFilingInterface({ onBack }: TaxFilingInterfaceProps) 
             </div>
 
             {/* Advertisement Space */}
-            <Card className="bg-gradient-to-r from-green-50 to-blue-50 border-green-200">
+            <Card className="bg-gradient-to-r from-green-50 to-blue-50 border-green-200 hidden">
                 <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
@@ -152,7 +145,7 @@ export default function TaxFilingInterface({ onBack }: TaxFilingInterfaceProps) 
                                 <p className="text-muted-foreground">Select the option that best describes your tax situation</p>
                             </div>
 
-                            <div className="grid md:grid-cols-3 gap-4">
+                            <div className="grid md:grid-cols-2 gap-4">
                                 {filingTypes.map((type) => (
                                     <Card
                                         key={type.id}
@@ -165,7 +158,7 @@ export default function TaxFilingInterface({ onBack }: TaxFilingInterfaceProps) 
                                             <div className="flex justify-center mb-2 text-primary">{type.icon}</div>
                                             <CardTitle className="text-lg">{type.title}</CardTitle>
                                             <CardDescription>{type.description}</CardDescription>
-                                            <div className="text-2xl font-bold text-accent">{type.price}</div>
+                                            <div className="text-2xl font-bold">{type.price}</div>
                                         </CardHeader>
                                         <CardContent>
                                             <ul className="space-y-2 text-sm">
@@ -406,6 +399,21 @@ export default function TaxFilingInterface({ onBack }: TaxFilingInterfaceProps) 
                                                 <span className="text-2xl font-bold text-green-600">$1,200</span>
                                             </div>
                                         </div>
+                                    </CardContent>
+                                </Card>
+
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle>Payment & Refund</CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="space-y-4">
+                                        <p className="text-sm text-muted-foreground">
+                                            Securely connect your bank account to receive your refund or pay your taxes due. We use Plaid to protect your financial data.
+                                        </p>
+                                        <Button className="w-full">
+                                            <Banknote className="h-4 w-4 mr-2" />
+                                            Connect Bank Account with Plaid
+                                        </Button>
                                     </CardContent>
                                 </Card>
 

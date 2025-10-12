@@ -142,7 +142,7 @@ export default function TaxCalculators({ onBack }: TaxCalculatorsProps) {
             </div>
 
             {/* Advertisement Space */}
-            <Card className="bg-gradient-to-r from-blue-50 to-green-50 border-blue-200">
+            <Card className="bg-gradient-to-r from-blue-50 to-green-50 border-blue-200 hidden">
                 <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
