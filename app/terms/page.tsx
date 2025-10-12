@@ -21,15 +21,8 @@ export default function TermsOfService() {
 
                 <div className="space-y-8">
                     {/* Header */}
-                    <div className="text-center space-y-4">
+                    <div className="text-center space-y-2">
                         <h1 className="text-4xl font-bold text-gray-900">Terms of Service</h1>
-                        <p className="text-lg text-gray-600 invisible">
-                            Last updated: {new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}
-                        </p>
-                        <div className="flex items-center justify-center gap-2 text-blue-600">
-                            <Scale className="h-5 w-5" />
-                            <span className="text-sm font-medium">Please read these terms carefully</span>
-                        </div>
                     </div>
 
                     {/* Agreement */}
