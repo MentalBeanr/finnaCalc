@@ -5,6 +5,7 @@ import './globals.css'
 import ChatBot from '@/components/Chatbot'
 import Header from "@/components/header";
 import { ThemeProvider } from '@/components/theme-provider'
+import { Toaster } from '@/components/ui/sonner' // Import the Toaster
 
 const geistSans = Geist({
     variable: '--font-geist-sans',
@@ -37,6 +38,7 @@ export default function RootLayout({
                         {children}
                     </main>
                     <ChatBot />
+                    <Toaster /> {/* Add the Toaster component here */}
                 </div>
             </ThemeProvider>
             </body>

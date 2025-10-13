@@ -1,21 +1,20 @@
 "use client"
 
-import { useState, useEffect, useCallback, useRef } from "react"
+import { useState, useEffect, useMemo } from "react"
 import {
-  Calculator,
   Download,
-  Upload,
   TrendingUp,
   TrendingDown,
   DollarSign,
-  PieChart as PieChartIcon,
   Target,
   AlertCircle,
-  PiggyBankIcon as Piggy,
   Trash2,
   Edit,
   History,
   PlusCircle,
+  Save,
+  CalendarDays,
+  XCircle,
 } from "lucide-react"
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from "recharts"
 import { Button } from "@/components/ui/button"
@@ -27,11 +26,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Progress } from "@/components/ui/progress"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Badge } from "@/components/ui/badge"
+import { Calendar } from "@/components/ui/calendar"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Skeleton } from "@/components/ui/skeleton"
 import { useLocalStorage } from "@/hooks/use-local-storage"
-import { SaveIndicator } from "@/components/save-indicator"
 import Link from "next/link"
-import Papa from "papaparse"
+import { format, parseISO, differenceInDays } from 'date-fns';
+import { toast } from "sonner"
+import { DateRange } from "react-day-picker"
+import { cn } from "@/lib/utils"
 
 interface BudgetItem {
   id: string
@@ -41,6 +45,7 @@ interface BudgetItem {
   frequency: "daily" | "weekly" | "monthly" | "yearly"
   type: "income" | "expense"
   isFixed: boolean
+  budgetType: "personal" | "business"
   importDate?: string
 }
 
@@ -53,32 +58,43 @@ interface SavingsGoal {
   monthlyContribution: number
 }
 
-interface ParsedTransaction {
-  Date?: string
-  Description: string
-  Amount: number
-  category?: string
+interface BudgetHistoryEntry {
+  id: string;
+  name: string;
+  startDate: string;
+  endDate: string;
+  budgetItems: BudgetItem[];
+  monthlyIncome: number;
+  monthlyExpenses: number;
+  monthlyNet: number;
+  budgetType: "personal" | "business";
 }
 
 const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#AF19FF", "#FF1943", "#19D7FF"]
 
+const personalCategories = {
+  income: ["Salary", "Freelance", "Investments", "Gift", "Other"],
+  expense: ["Housing", "Utilities", "Food", "Transportation", "Entertainment", "Healthcare", "Insurance", "Debt Payments", "Savings", "Other"],
+};
+
+const businessCategories = {
+  income: ["Sales Revenue", "Service Revenue", "Subscriptions", "Interest Earned", "Other Fees", "Total Revenue", "Other Revenue"],
+  expense: ["Cost of Goods Sold (COGS)", "Salaries/Wages", "Marketing & Advertising", "Rent/Lease", "Utilities", "Software & Subscriptions", "Supplies", "Repairs & Maintenance", "Insurance", "Professional Fees", "Taxes", "Travel", "Depreciation", "Loan Payments", "Other Operating Costs"],
+};
+
 export default function BudgetingPage() {
-  const [budgetItems, setBudgetItems, clearBudgetItems] = useLocalStorage<BudgetItem[]>("finnacalc-budget-items", [])
-  const [savingsGoals, setSavingsGoals, clearSavingsGoals] = useLocalStorage<SavingsGoal[]>(
+  const [budgetItems, setBudgetItems] = useLocalStorage<BudgetItem[]>("finnacalc-budget-items", [])
+  const [savingsGoals, setSavingsGoals] = useLocalStorage<SavingsGoal[]>(
       "finnacalc-savings-goals",
       [],
   )
-  const [budgetHistory, setBudgetHistory, clearBudgetHistory] = useLocalStorage<BudgetItem[]>(
+  const [budgetHistory, setBudgetHistory] = useLocalStorage<BudgetHistoryEntry[]>(
       "finnacalc-budget-history",
       [],
   )
-  const [lastSaved, setLastSaved] = useState<Date | undefined>()
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [editingItemId, setEditingItemId] = useState<string | null>(null)
-
-  const [isImportModalOpen, setIsImportModalOpen] = useState(false)
-  const [parsedTransactions, setParsedTransactions] = useState<ParsedTransaction[]>([])
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [budgetType, setBudgetType] = useState<'personal' | 'business'>('personal');
+  const [mounted, setMounted] = useState(false);
 
   const initialFormState = {
     category: "",
@@ -99,26 +115,25 @@ export default function BudgetingPage() {
     monthlyContribution: "",
   })
 
-  // State for the new "Add Funds" modal
   const [isAddFundsModalOpen, setIsAddFundsModalOpen] = useState(false);
   const [selectedGoal, setSelectedGoal] = useState<SavingsGoal | null>(null);
   const [amountToAdd, setAmountToAdd] = useState("");
 
-  const autoSave = useCallback(() => {
-    setHasUnsavedChanges(true)
-    const timer = setTimeout(() => {
-      setLastSaved(new Date())
-      setHasUnsavedChanges(false)
-    }, 1000)
-    return () => clearTimeout(timer)
-  }, [])
+  const [isSaveHistoryModalOpen, setIsSaveHistoryModalOpen] = useState(false);
+  const [customDate, setCustomDate] = useState<DateRange | undefined>();
+  const [historyError, setHistoryError] = useState<string | null>(null);
+  const [historyCustomName, setHistoryCustomName] = useState("");
+
+  const [viewingHistoryEntry, setViewingHistoryEntry] = useState<BudgetHistoryEntry | null>(null);
+  const [isHistoryDetailModalOpen, setIsHistoryDetailModalOpen] = useState(false);
 
   useEffect(() => {
-    if (budgetItems.length > 0 || savingsGoals.length > 0) {
-      const cleanup = autoSave()
-      return cleanup
-    }
-  }, [budgetItems, savingsGoals, autoSave])
+    setMounted(true);
+  }, []);
+
+  const categories = useMemo(() => {
+    return budgetType === 'personal' ? personalCategories : businessCategories;
+  }, [budgetType]);
 
   const convertToMonthly = (amount: number, frequency: string) => {
     const multipliers = { daily: 30, weekly: 4.33, monthly: 1, yearly: 1 / 12 }
@@ -126,11 +141,11 @@ export default function BudgetingPage() {
   }
 
   const monthlyIncome = budgetItems
-      .filter((item) => item.type === "income")
+      .filter((item) => item.type === "income" && item.budgetType === budgetType)
       .reduce((sum, item) => sum + convertToMonthly(item.amount, item.frequency), 0)
 
   const monthlyExpenses = budgetItems
-      .filter((item) => item.type === "expense")
+      .filter((item) => item.type === "expense" && item.budgetType === budgetType)
       .reduce((sum, item) => sum + convertToMonthly(item.amount, item.frequency), 0)
 
   const monthlyNet = monthlyIncome - monthlyExpenses
@@ -163,6 +178,7 @@ export default function BudgetingPage() {
           frequency: newItem.frequency,
           type: newItem.type,
           isFixed: newItem.isFixed,
+          budgetType: budgetType,
         }
         setBudgetItems([...budgetItems, itemToAdd])
       }
@@ -184,113 +200,18 @@ export default function BudgetingPage() {
   }
 
   const removeBudgetItem = (id: string, itemName: string) => {
-    if (confirm(`Are you sure you want to delete "${itemName}"? This cannot be undone.`)) {
-      setBudgetItems(budgetItems.filter((item) => item.id !== id))
-    }
-  }
-
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (file) {
-      if (file.type === "application/pdf") {
-        alert("PDF file processing is not yet supported. Please upload a CSV file.")
-        return
-      }
-
-      Papa.parse(file, {
-        header: true,
-        skipEmptyLines: true,
-        complete: (results) => {
-          const transactions = results.data
-              .map((row: any) => {
-                const dateKeys = ["Date", "date", "Transaction Date"]
-                const descriptionKeys = ["Description", "description", "Memo", "Transaction"]
-                const amountKeys = ["Amount", "amount", "Credit", "Debit"]
-
-                const rowData: ParsedTransaction = {
-                  Date: "",
-                  Description: "",
-                  Amount: 0,
-                }
-
-                for (const key of dateKeys) {
-                  if (row[key]) {
-                    rowData.Date = row[key]
-                    break
-                  }
-                }
-
-                for (const key of descriptionKeys) {
-                  if (row[key]) {
-                    rowData.Description = row[key]
-                    break
-                  }
-                }
-
-                for (const key of amountKeys) {
-                  if (row[key]) {
-                    rowData.Amount = parseFloat(row[key])
-                    break
-                  }
-                }
-
-                return rowData
-              })
-              .filter((t) => t.Description && !isNaN(t.Amount))
-
-          setParsedTransactions(transactions)
-          setIsImportModalOpen(true)
+    toast(`Are you sure you want to delete "${itemName}"?`, {
+      action: {
+        label: "Delete",
+        onClick: () => {
+          setBudgetItems(budgetItems.filter((item) => item.id !== id));
+          toast.success(`"${itemName}" has been deleted.`);
         },
-      })
-    }
-  }
-
-  const handleTransactionCategoryChange = (index: number, category: string) => {
-    const updated = [...parsedTransactions]
-    updated[index].category = category
-    setParsedTransactions(updated)
-  }
-
-  const handleImportConfirm = () => {
-    const newBudgetItems: BudgetItem[] = parsedTransactions
-        .filter((t) => t.category)
-        .map((t, i) => ({
-          id: `imported-${Date.now()}-${i}`,
-          category: t.category!,
-          subcategory: t.Description,
-          amount: Math.abs(t.Amount),
-          type: t.Amount < 0 ? "expense" : "income",
-          frequency: "monthly" as const,
-          isFixed: false,
-          importDate: t.Date || new Date().toLocaleDateString(),
-        }))
-
-    setBudgetItems([...budgetItems, ...newBudgetItems])
-    setBudgetHistory([...budgetHistory, ...newBudgetItems])
-    setIsImportModalOpen(false)
-    setParsedTransactions([])
-  }
-
-  const handleExportData = () => {
-    const budgetData = budgetItems.map(({ id, ...rest }) => ({ ...rest, item_type: "budget_item" }))
-    const savingsData = savingsGoals.map(({ id, ...rest }) => ({ ...rest, item_type: "savings_goal" }))
-
-    if (budgetData.length === 0 && savingsData.length === 0) {
-      alert("No data to export.")
-      return
-    }
-
-    const csv = Papa.unparse(budgetData.concat(savingsData as any))
-
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" })
-    const link = document.createElement("a")
-    const url = URL.createObjectURL(blob)
-    link.setAttribute("href", url)
-    link.setAttribute("download", "finnacalc_budget_export.csv")
-    link.style.visibility = "hidden"
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
+      },
+      cancel: {
+        label: "Cancel",
+      },
+    });
   }
 
   const addSavingsGoal = () => {
@@ -315,16 +236,24 @@ export default function BudgetingPage() {
   }
 
   const removeSavingsGoal = (id: string, goalName: string) => {
-    if (confirm(`Are you sure you want to delete the savings goal "${goalName}"? This cannot be undone.`)) {
-      setSavingsGoals(savingsGoals.filter((goal) => goal.id !== id))
-    }
+    toast(`Are you sure you want to delete the savings goal "${goalName}"?`, {
+      action: {
+        label: "Delete",
+        onClick: () => {
+          setSavingsGoals(savingsGoals.filter((goal) => goal.id !== id));
+          toast.success(`"${goalName}" has been deleted.`);
+        },
+      },
+      cancel: {
+        label: "Cancel",
+      },
+    });
   }
 
   const updateSavingsGoal = (id: string, updates: Partial<SavingsGoal>) => {
     setSavingsGoals(savingsGoals.map((goal) => (goal.id === id ? { ...goal, ...updates } : goal)))
   }
 
-  // Function to handle adding funds to a goal
   const handleAddFunds = () => {
     if (selectedGoal && amountToAdd) {
       const newAmount = selectedGoal.currentAmount + Number.parseFloat(amountToAdd);
@@ -335,138 +264,111 @@ export default function BudgetingPage() {
     }
   };
 
-  const clearAllData = () => {
-    if (confirm("Are you sure you want to clear all your budget data? This cannot be undone.")) {
-      clearBudgetItems()
-      clearSavingsGoals()
-      clearBudgetHistory()
-      setLastSaved(undefined)
+  const handleSaveBudgetHistory = () => {
+    setHistoryError(null);
+    let start: Date | undefined = customDate?.from;
+    let end: Date | undefined = customDate?.to;
+
+    if (!start) {
+      setHistoryError('Please select a start date.');
+      return;
     }
-  }
+    if (!end) end = start;
 
-  const expenseCategories = budgetItems
-      .filter((item) => item.type === "expense")
-      .reduce(
-          (acc, item) => {
-            const monthly = convertToMonthly(item.amount, item.frequency)
-            acc[item.category] = (acc[item.category] || 0) + monthly
-            return acc
-          },
-          {} as Record<string, number>,
-      )
+    if (start > end) {
+      setHistoryError('Start date cannot be after end date.');
+      return;
+    }
 
-  const pieChartData = Object.keys(expenseCategories).map((key) => ({
-    name: key,
-    value: expenseCategories[key],
-  }))
+    const duration = differenceInDays(end, start);
+    if (duration < 6) {
+      setHistoryError('The minimum timeframe is one week.');
+      return;
+    }
+    if (duration > 366) {
+      setHistoryError('The maximum timeframe is one year.');
+      return;
+    }
 
-  const incomeCategories = budgetItems
-      .filter((item) => item.type === "income")
-      .reduce(
-          (acc, item) => {
-            const monthly = convertToMonthly(item.amount, item.frequency)
-            acc[item.category] = (acc[item.category] || 0) + monthly
-            return acc
-          },
-          {} as Record<string, number>,
-      )
+    const defaultName = `Budget: ${format(start, 'MMM d, yyyy')} - ${format(end, 'MMM d, yyyy')}`;
+    const name = historyCustomName.trim() || defaultName;
 
-  const incomePieChartData = Object.keys(incomeCategories).map((key) => ({
-    name: key,
-    value: incomeCategories[key],
-  }))
+    const newHistoryEntry: BudgetHistoryEntry = {
+      id: Date.now().toString(),
+      name,
+      startDate: start.toISOString(),
+      endDate: end.toISOString(),
+      budgetItems: [...filteredBudgetItems],
+      monthlyIncome,
+      monthlyExpenses,
+      monthlyNet,
+      budgetType,
+    };
+
+    setBudgetHistory([...budgetHistory, newHistoryEntry]);
+    setIsSaveHistoryModalOpen(false);
+    setHistoryError(null);
+    setCustomDate(undefined);
+    setHistoryCustomName("");
+    toast.success("Budget snapshot saved to history!");
+  };
 
   const [chartView, setChartView] = useState<'expense' | 'income'>('expense');
 
-  const groupedBudgetItems = budgetItems.reduce((acc, item) => {
-    const { category } = item;
-    if (!acc[category]) {
-      acc[category] = [];
-    }
-    acc[category].push(item);
-    return acc;
-  }, {} as Record<string, BudgetItem[]>);
+  const filteredBudgetItems = budgetItems.filter(item => item.budgetType === budgetType);
 
-  const getRecommendations = () => {
-    const recommendations = []
+  const groupedBudgetItems = useMemo(() => {
+    return filteredBudgetItems.reduce((acc, item) => {
+      acc[item.category] = acc[item.category] || [];
+      acc[item.category].push(item);
+      return acc;
+    }, {} as Record<string, BudgetItem[]>);
+  }, [filteredBudgetItems]);
 
-    if (monthlyNet < 0) {
-      recommendations.push({
-        type: "warning",
-        title: "Budget Deficit Alert",
-        message: `You're spending $${Math.abs(monthlyNet).toFixed(
-            2,
-        )} more than you earn monthly. Consider reducing expenses or increasing income to avoid debt accumulation.`,
-      })
-    }
+  const groupedHistoryItems = useMemo(() => {
+    if (!viewingHistoryEntry) return { income: {}, expense: {} };
+    return viewingHistoryEntry.budgetItems
+        .filter(item => item.budgetType === viewingHistoryEntry.budgetType)
+        .reduce((acc, item) => {
+          const typeKey = item.type === 'income' ? 'income' : 'expense';
+          acc[typeKey] = acc[typeKey] || {};
+          acc[typeKey][item.category] = acc[typeKey][item.category] || [];
+          acc[typeKey][item.category].push(item);
+          return acc;
+        }, { income: {}, expense: {} } as { income: Record<string, BudgetItem[]>, expense: Record<string, BudgetItem[]> });
+  }, [viewingHistoryEntry]);
 
-    if (monthlyIncome > 0 && monthlyNet > 0 && monthlyNet < monthlyIncome * 0.2) {
-      recommendations.push({
-        type: "info",
-        title: "Low Savings Rate",
-        message: `Try to save at least 20% of your income for financial security. You're currently saving ${(
-            (monthlyNet / monthlyIncome) *
-            100
-        ).toFixed(1)}%. Consider reducing discretionary spending.`,
-      })
-    }
+  const pieChartData = useMemo(() => {
+    const categories = budgetItems
+        .filter((item) => item.type === "expense" && item.budgetType === budgetType)
+        .reduce((acc, item) => {
+          const monthly = convertToMonthly(item.amount, item.frequency);
+          acc[item.category] = (acc[item.category] || 0) + monthly;
+          return acc;
+        }, {} as Record<string, number>);
+    return Object.keys(categories).map((key) => ({ name: key, value: categories[key] }));
+  }, [budgetItems, budgetType]);
 
-    const housingCost = expenseCategories["Housing"] || 0
-    if (monthlyIncome > 0 && housingCost > monthlyIncome * 0.3) {
-      recommendations.push({
-        type: "warning",
-        title: "High Housing Costs",
-        message: `Housing costs should ideally be under 30% of income. Yours is ${(
-            (housingCost / monthlyIncome) *
-            100
-        ).toFixed(1)}%. Consider downsizing or finding additional income sources.`,
-      })
-    }
-
-    if (monthlyIncome > 0 && monthlyNet >= monthlyIncome * 0.2) {
-      recommendations.push({
-        type: "success",
-        title: "Excellent Savings Rate!",
-        message: `You're saving ${((monthlyNet / monthlyIncome) * 100).toFixed(
-            1,
-        )}% of your income. Consider investing this surplus in retirement accounts or building an emergency fund.`,
-      })
-    }
-
-    return recommendations
-  }
+  const incomePieChartData = useMemo(() => {
+    const categories = budgetItems
+        .filter((item) => item.type === "income" && item.budgetType === budgetType)
+        .reduce((acc, item) => {
+          const monthly = convertToMonthly(item.amount, item.frequency);
+          acc[item.category] = (acc[item.category] || 0) + monthly;
+          return acc;
+        }, {} as Record<string, number>);
+    return Object.keys(categories).map((key) => ({ name: key, value: categories[key] }));
+  }, [budgetItems, budgetType]);
 
   return (
       <>
         <div className="min-h-screen bg-gray-50">
-
-
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div className="mb-8">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                  <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Personal Budget Planner</h1>
+                  <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">{budgetType === 'personal' ? 'Personal' : 'Business'} Budget Planner</h1>
                   <p className="text-gray-600">Take control of your finances with our comprehensive budgeting tool</p>
-                </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" onClick={handleExportData} className="flex items-center gap-2">
-                    <Download className="h-4 w-4" />
-                    Export Data
-                  </Button>
-                  <Select
-                      onValueChange={(value) => {
-                        if (value === "all-data") {
-                          clearAllData()
-                        }
-                      }}
-                  >
-                    <SelectTrigger className="w-40">
-                      <SelectValue placeholder="Clear Data" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all-data">Clear All Data</SelectItem>
-                    </SelectContent>
-                  </Select>
                 </div>
               </div>
             </div>
@@ -529,18 +431,24 @@ export default function BudgetingPage() {
               </Card>
             </div>
 
-            <Tabs defaultValue="history" className="space-y-6">
+            <Tabs defaultValue="budget" className="space-y-6">
               <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4">
-                <TabsTrigger value="history">Budgeting History</TabsTrigger>
                 <TabsTrigger value="budget">Budget</TabsTrigger>
                 <TabsTrigger value="analysis">Analysis</TabsTrigger>
                 <TabsTrigger value="goals">Savings Goals</TabsTrigger>
+                <TabsTrigger value="history">History</TabsTrigger>
               </TabsList>
               <TabsContent value="budget" className="space-y-6">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <Card>
                     <CardHeader>
-                      <CardTitle>{editingItemId ? "Edit Item" : "Add Income or Expense"}</CardTitle>
+                      <div className="flex justify-between items-center">
+                        <CardTitle>{editingItemId ? "Edit Item" : "Add Income or Expense"}</CardTitle>
+                        <div className="flex gap-2">
+                          <Button variant={budgetType === 'personal' ? 'default' : 'outline'} size="sm" onClick={() => setBudgetType('personal')}>Personal</Button>
+                          <Button variant={budgetType === 'business' ? 'default' : 'outline'} size="sm" onClick={() => setBudgetType('business')}>Business</Button>
+                        </div>
+                      </div>
                       <CardDescription>
                         {editingItemId ? "Update the details of your item below." : "Track your financial inflows and outflows"}
                       </CardDescription>
@@ -551,7 +459,7 @@ export default function BudgetingPage() {
                           <Label>Type</Label>
                           <Select
                               value={newItem.type}
-                              onValueChange={(value: "income" | "expense") => setNewItem({ ...newItem, type: value })}
+                              onValueChange={(value: "income" | "expense") => setNewItem({ ...newItem, type: value, category: "" })}
                           >
                             <SelectTrigger>
                               <SelectValue />
@@ -590,30 +498,9 @@ export default function BudgetingPage() {
                             <SelectValue placeholder="Select category" />
                           </SelectTrigger>
                           <SelectContent>
-                            {newItem.type === "income" ? (
-                                <>
-                                  <SelectItem value="Salary">Salary</SelectItem>
-                                  <SelectItem value="Freelance">Freelance</SelectItem>
-                                  <SelectItem value="Business">Business Income</SelectItem>
-                                  <SelectItem value="Investments">Investment Returns</SelectItem>
-                                  <SelectItem value="Other Income">Other Income</SelectItem>
-                                </>
-                            ) : (
-                                <>
-                                  <SelectItem value="Housing">Housing</SelectItem>
-                                  <SelectItem value="Transportation">Transportation</SelectItem>
-                                  <SelectItem value="Food">Food & Dining</SelectItem>
-                                  <SelectItem value="Utilities">Utilities</SelectItem>
-                                  <SelectItem value="Healthcare">Healthcare</SelectItem>
-                                  <SelectItem value="Entertainment">Entertainment</SelectItem>
-                                  <SelectItem value="Shopping">Shopping</SelectItem>
-                                  <SelectItem value="Insurance">Insurance</SelectItem>
-                                  <SelectItem value="Debt">Debt Payments</SelectItem>
-                                  <SelectItem value="Savings">Savings</SelectItem>
-                                  <SelectItem value="Investment">Investment</SelectItem>
-                                  <SelectItem value="Other">Other Expenses</SelectItem>
-                                </>
-                            )}
+                            {categories[newItem.type].map(cat => (
+                                <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                       </div>
@@ -671,131 +558,133 @@ export default function BudgetingPage() {
                       </div>
                     </CardHeader>
                     <CardContent>
-                      {chartView === 'expense' ? (
-                          pieChartData.length > 0 ? (
-                              <div style={{ width: "100%", height: 250 }}>
-                                <ResponsiveContainer>
-                                  <PieChart>
-                                    <Pie
-                                        data={pieChartData}
-                                        cx="50%"
-                                        cy="50%"
-                                        labelLine={false}
-                                        outerRadius={80}
-                                        fill="#8884d8"
-                                        dataKey="value"
-                                        nameKey="name"
-                                        label={({ name, percent }) => `${(percent * 100).toFixed(0)}%`}
-                                    >
-                                      {pieChartData.map((entry, index) => (
-                                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                      ))}
-                                    </Pie>
-                                    <Tooltip formatter={(value: number) => `$${value.toFixed(2)}`} />
-                                    <Legend />
-                                  </PieChart>
-                                </ResponsiveContainer>
-                              </div>
-                          ) : (
-                              <div className="flex items-center justify-center h-full min-h-[250px]">
-                                <p className="text-gray-500 text-sm text-center">Your expense summary chart will appear here.</p>
-                              </div>
-                          )
+                      {!mounted ? (
+                          <div className="flex items-center justify-center h-[250px]">
+                            <Skeleton className="h-48 w-48 rounded-full" />
+                          </div>
                       ) : (
-                          incomePieChartData.length > 0 ? (
-                              <div style={{ width: "100%", height: 250 }}>
-                                <ResponsiveContainer>
-                                  <PieChart>
-                                    <Pie
-                                        data={incomePieChartData}
-                                        cx="50%"
-                                        cy="50%"
-                                        labelLine={false}
-                                        outerRadius={80}
-                                        fill="#82ca9d"
-                                        dataKey="value"
-                                        nameKey="name"
-                                        label={({ name, percent }) => `${(percent * 100).toFixed(0)}%`}
-                                    >
-                                      {incomePieChartData.map((entry, index) => (
-                                          <Cell key={`cell-${index}`} fill={COLORS.slice().reverse()[index % COLORS.length]} />
-                                      ))}
-                                    </Pie>
-                                    <Tooltip formatter={(value: number) => `$${value.toFixed(2)}`} />
-                                    <Legend />
-                                  </PieChart>
-                                </ResponsiveContainer>
-                              </div>
-                          ) : (
-                              <div className="flex items-center justify-center h-full min-h-[250px]">
-                                <p className="text-gray-500 text-sm text-center">Your income summary chart will appear here.</p>
-                              </div>
-                          )
+                          <>
+                            {chartView === 'expense' ? (
+                                pieChartData.length > 0 ? (
+                                    <div style={{ width: "100%", height: 250 }}>
+                                      <ResponsiveContainer>
+                                        <PieChart>
+                                          <Pie data={pieChartData} cx="50%" cy="50%" labelLine={false} outerRadius={80} fill="#8884d8" dataKey="value" nameKey="name" label={({ name, percent }) => `${(percent * 100).toFixed(0)}%`}>
+                                            {pieChartData.map((entry, index) => (
+                                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                            ))}
+                                          </Pie>
+                                          <Tooltip formatter={(value: number) => `$${value.toFixed(2)}`} />
+                                          <Legend />
+                                        </PieChart>
+                                      </ResponsiveContainer>
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center justify-center h-full min-h-[250px]">
+                                      <p className="text-gray-500 text-sm text-center">Your expense summary chart will appear here.</p>
+                                    </div>
+                                )
+                            ) : (
+                                incomePieChartData.length > 0 ? (
+                                    <div style={{ width: "100%", height: 250 }}>
+                                      <ResponsiveContainer>
+                                        <PieChart>
+                                          <Pie data={incomePieChartData} cx="50%" cy="50%" labelLine={false} outerRadius={80} fill="#82ca9d" dataKey="value" nameKey="name" label={({ name, percent }) => `${(percent * 100).toFixed(0)}%`}>
+                                            {incomePieChartData.map((entry, index) => (
+                                                <Cell key={`cell-${index}`} fill={COLORS.slice().reverse()[index % COLORS.length]} />
+                                            ))}
+                                          </Pie>
+                                          <Tooltip formatter={(value: number) => `$${value.toFixed(2)}`} />
+                                          <Legend />
+                                        </PieChart>
+                                      </ResponsiveContainer>
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center justify-center h-full min-h-[250px]">
+                                      <p className="text-gray-500 text-sm text-center">Your income summary chart will appear here.</p>
+                                    </div>
+                                )
+                            )}
+                          </>
                       )}
                     </CardContent>
                   </Card>
                 </div>
                 <div className="mt-6">
                   <Card>
-                    <CardHeader>
-                      <CardTitle>Budget Items ({budgetItems.length})</CardTitle>
-                      <CardDescription>All your income and expenses</CardDescription>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <div>
+                        <CardTitle>Budget Items ({filteredBudgetItems.length})</CardTitle>
+                        <CardDescription>All your income and expenses for your {budgetType} budget</CardDescription>
+                      </div>
+                      <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setIsSaveHistoryModalOpen(true)}
+                          className="flex items-center gap-1"
+                      >
+                        <Save className="h-4 w-4" /> Save to History
+                      </Button>
                     </CardHeader>
                     <CardContent>
-                      <div className="space-y-4 max-h-96 overflow-y-auto">
-                        {Object.entries(groupedBudgetItems).map(([category, items]) => (
-                            <div key={category}>
-                              <h3 className="font-semibold text-blue-600 mb-2 px-3 text-lg">{category}</h3>
-                              <div className="space-y-2">
-                                {items.map((item) => (
-                                    <div key={item.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                                      <div className="flex-1 min-w-0">
-                                        <p className="font-medium truncate">{item.subcategory || "No description"}</p>
-                                        <div className="flex items-center gap-2">
-                                          <p className="text-xs text-gray-500 capitalize">{item.frequency}</p>
-                                          {item.isFixed && (
-                                              <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">Fixed</span>
-                                          )}
-                                        </div>
-                                      </div>
-                                      <div className="flex items-center gap-2">
-                                        <div className="text-right flex-shrink-0">
-                                                <span
-                                                    className={`font-bold ${
-                                                        item.type === "income" ? "text-green-600" : "text-red-600"
-                                                    }`}
-                                                >
-                                                    {item.type === "income" ? "+" : "-"}${item.amount.toFixed(2)}
-                                                </span>
-                                          <div className="text-xs text-gray-500">
-                                            ${convertToMonthly(item.amount, item.frequency).toFixed(2)}/month
+                      <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
+                        {Object.keys(groupedBudgetItems).length > 0 ? (
+                            Object.keys(groupedBudgetItems).map(category => (
+                                <div key={category} className="border-b pb-2 last:border-b-0">
+                                  <h3 className="text-lg font-semibold text-gray-800 mb-2">{category}</h3> {/* Changed to gray-800 */}
+                                  <div className="space-y-2">
+                                    {groupedBudgetItems[category].map((item) => (
+                                        <div key={item.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                                          <div className="flex-1 min-w-0">
+                                            <p className="font-semibold text-blue-600 truncate">{item.subcategory || "No description"}</p> {/* Changed to blue-600 */}
+                                            <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
+                                              <span className="capitalize">{item.frequency}</span>
+                                              {item.isFixed && (
+                                                  <>
+                                                    <span>&bull;</span>
+                                                    <Badge variant="secondary" className="text-xs px-2 py-0.5">Fixed</Badge>
+                                                  </>
+                                              )}
+                                            </div>
+                                          </div>
+                                          <div className="flex items-center gap-2 flex-shrink-0">
+                                            <div className="text-right">
+                                                            <span
+                                                                className={`font-bold ${
+                                                                    item.type === "income" ? "text-green-600" : "text-red-600"
+                                                                }`}
+                                                            >
+                                                                {item.type === "income" ? "+" : "-"}${item.amount.toFixed(2)}
+                                                            </span>
+                                              <div className="text-xs text-gray-500">
+                                                ${convertToMonthly(item.amount, item.frequency).toFixed(2)}/month
+                                              </div>
+                                            </div>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => handleEditClick(item)}
+                                                className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 p-2"
+                                                title="Edit this item"
+                                            >
+                                              <Edit className="h-4 w-4" />
+                                            </Button>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => removeBudgetItem(item.id, item.subcategory || item.category)}
+                                                className="text-red-600 hover:text-red-700 hover:bg-red-50 p-2"
+                                                title="Delete this item"
+                                            >
+                                              <Trash2 className="h-4 w-4" />
+                                            </Button>
                                           </div>
                                         </div>
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => handleEditClick(item)}
-                                            className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 p-2"
-                                            title="Edit this item"
-                                        >
-                                          <Edit className="h-4 w-4" />
-                                        </Button>
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => removeBudgetItem(item.id, item.subcategory || item.category)}
-                                            className="text-red-600 hover:text-red-700 hover:bg-red-50 p-2"
-                                            title="Delete this item"
-                                        >
-                                          <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                      </div>
-                                    </div>
-                                ))}
-                              </div>
-                            </div>
-                        ))}
-                        {budgetItems.length === 0 && (
+                                    ))}
+                                  </div>
+                                </div>
+                            ))
+                        ) : (
                             <p className="text-gray-500 text-center py-8">
                               No budget items yet. Add your first income or expense above!
                             </p>
@@ -804,204 +693,624 @@ export default function BudgetingPage() {
                     </CardContent>
                   </Card>
                 </div>
-              </TabsContent>
-              <TabsContent value="history">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <History className="h-6 w-6 text-blue-600" />
-                      Budgeting History
-                    </CardTitle>
-                    <CardDescription>A log of your imported bank statement transactions.</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="max-h-96 overflow-y-auto">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Date</TableHead>
-                            <TableHead>Description</TableHead>
-                            <TableHead>Category</TableHead>
-                            <TableHead>Type</TableHead>
-                            <TableHead className="text-right">Amount</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {budgetHistory.length > 0 ? (
-                              budgetHistory.map((item) => (
-                                  <TableRow key={item.id}>
-                                    <TableCell>{item.importDate || "N/A"}</TableCell>
-                                    <TableCell className="font-medium">{item.subcategory}</TableCell>
-                                    <TableCell>{item.category}</TableCell>
-                                    <TableCell
-                                        className={item.type === "income" ? "text-green-600" : "text-red-600"}
-                                    >
-                                      {item.type}
-                                    </TableCell>
-                                    <TableCell className="text-right">${item.amount.toFixed(2)}</TableCell>
-                                  </TableRow>
-                              ))
-                          ) : (
-                              <TableRow>
-                                <TableCell colSpan={5} className="text-center text-gray-500 py-8">
-                                  Your imported transaction history will appear here.
-                                </TableCell>
-                              </TableRow>
-                          )}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  </CardContent>
-                </Card>
+                <div className="mt-6">
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle>Savings Goals</CardTitle>
+                      <Button size="sm" onClick={() => setNewGoal({ ...newGoal, targetDate: format(new Date(), 'yyyy-MM-dd') })} className="flex items-center gap-1">
+                        <PlusCircle className="h-4 w-4" /> Add Goal
+                      </Button>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        {newGoal.targetDate && ( // Only show form if adding a new goal
+                            <div className="space-y-4 border p-4 rounded-lg bg-gray-50">
+                              <h4 className="font-semibold text-lg">New Savings Goal</h4>
+                              <div>
+                                <Label htmlFor="goal-name">Goal Name</Label>
+                                <Input
+                                    id="goal-name"
+                                    placeholder="e.g., New Car Fund, Down Payment"
+                                    value={newGoal.name}
+                                    onChange={(e) => setNewGoal({ ...newGoal, name: e.target.value })}
+                                />
+                              </div>
+                              <div>
+                                <Label htmlFor="target-amount">Target Amount ($)</Label>
+                                <Input
+                                    id="target-amount"
+                                    type="number"
+                                    placeholder="0.00"
+                                    value={newGoal.targetAmount}
+                                    onChange={(e) => setNewGoal({ ...newGoal, targetAmount: e.target.value })}
+                                />
+                              </div>
+                              <div>
+                                <Label htmlFor="current-amount">Current Amount Saved ($)</Label>
+                                <Input
+                                    id="current-amount"
+                                    type="number"
+                                    placeholder="0.00"
+                                    value={newGoal.currentAmount}
+                                    onChange={(e) => setNewGoal({ ...newGoal, currentAmount: e.target.value })}
+                                />
+                              </div>
+                              <div>
+                                <Label htmlFor="monthly-contribution">Planned Monthly Contribution ($)</Label>
+                                <Input
+                                    id="monthly-contribution"
+                                    type="number"
+                                    placeholder="0.00"
+                                    value={newGoal.monthlyContribution}
+                                    onChange={(e) => setNewGoal({ ...newGoal, monthlyContribution: e.target.value })}
+                                />
+                              </div>
+                              <div>
+                                <Label htmlFor="target-date">Target Date</Label>
+                                <Input
+                                    id="target-date"
+                                    type="date"
+                                    value={newGoal.targetDate}
+                                    onChange={(e) => setNewGoal({ ...newGoal, targetDate: e.target.value })}
+                                />
+                              </div>
+                              <div className="flex gap-2">
+                                <Button variant="outline" onClick={() => setNewGoal({ ...newGoal, targetDate: "" })} className="w-full">
+                                  Cancel
+                                </Button>
+                                <Button onClick={addSavingsGoal} className="w-full">
+                                  Add Goal
+                                </Button>
+                              </div>
+                            </div>
+                        )}
+                        {savingsGoals.length === 0 ? (
+                            <p className="text-gray-500 text-center py-4">No savings goals yet. Add one to start tracking!</p>
+                        ) : (
+                            <div className="space-y-4">
+                              {savingsGoals.map((goal) => {
+                                const progress = (goal.currentAmount / goal.targetAmount) * 100
+                                const remaining = goal.targetAmount - goal.currentAmount
+                                const daysLeft = differenceInDays(parseISO(goal.targetDate), new Date())
+                                const monthsLeft = daysLeft > 0 ? Math.ceil(daysLeft / 30.44) : 0;
+                                const neededPerMonth = monthsLeft > 0 ? remaining / monthsLeft : remaining;
+
+                                return (
+                                    <div key={goal.id} className="border p-4 rounded-lg shadow-sm bg-white">
+                                      <div className="flex justify-between items-center mb-2">
+                                        <h3 className="text-lg font-semibold">{goal.name}</h3>
+                                        <div className="flex gap-2">
+                                          <Button
+                                              variant="outline"
+                                              size="sm"
+                                              onClick={() => {
+                                                setSelectedGoal(goal);
+                                                setIsAddFundsModalOpen(true);
+                                              }}
+                                          >
+                                            Add Funds
+                                          </Button>
+                                          <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              onClick={() => removeSavingsGoal(goal.id, goal.name)}
+                                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                          >
+                                            <Trash2 className="h-4 w-4" />
+                                          </Button>
+                                        </div>
+                                      </div>
+                                      <div className="flex justify-between text-sm text-gray-600 mb-1">
+                                        <span>Target: ${goal.targetAmount.toFixed(2)}</span>
+                                        <span>Saved: ${goal.currentAmount.toFixed(2)}</span>
+                                      </div>
+                                      <Progress value={progress} className="w-full mb-2" />
+                                      <div className="text-sm text-gray-600 mb-2">
+                                        {progress < 100 ? (
+                                            <span>
+                                                                Remaining: <span className="font-semibold text-red-600">${remaining.toFixed(2)}</span>
+                                                            </span>
+                                        ) : (
+                                            <span className="font-semibold text-green-600">Goal Reached!</span>
+                                        )}
+                                      </div>
+                                      {progress < 100 && (
+                                          <div className="text-xs text-gray-500 space-y-1">
+                                            {goal.targetDate && daysLeft > 0 && (
+                                                <p>Target Date: {format(parseISO(goal.targetDate), 'PPP')} ({daysLeft} days left)</p>
+                                            )}
+                                            {monthsLeft > 0 && remaining > 0 && (
+                                                <p>To reach target by date, need to save: <span className="font-semibold">${neededPerMonth.toFixed(2)}/month</span></p>
+                                            )}
+                                            {goal.monthlyContribution > 0 && (
+                                                <p>Your planned monthly contribution: <span className="font-semibold">${goal.monthlyContribution.toFixed(2)}</span></p>
+                                            )}
+                                            {goal.monthlyContribution > 0 && neededPerMonth > 0 && goal.monthlyContribution < neededPerMonth && (
+                                                <Alert variant="destructive">
+                                                  <AlertCircle className="h-4 w-4" />
+                                                  <AlertTitle>Warning</AlertTitle>
+                                                  <AlertDescription>
+                                                    Your planned monthly contribution is less than what's needed to reach your goal by the target date!
+                                                  </AlertDescription>
+                                                </Alert>
+                                            )}
+                                          </div>
+                                      )}
+                                    </div>
+                                )
+                              })}
+                            </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
               </TabsContent>
               <TabsContent value="analysis" className="space-y-6">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Financial Recommendations</CardTitle>
-                    <CardDescription>AI-powered insights based on your budget</CardDescription>
+                    <CardTitle>Budget Analysis & Feedback</CardTitle>
+                    <CardDescription>Get insights and recommendations for your budget</CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    {getRecommendations().map((rec, index) => (
-                        <Alert key={index} variant={rec.type === "warning" ? "destructive" : "default"}>
-                          <AlertCircle className="h-4 w-4" />
-                          <AlertTitle>{rec.title}</AlertTitle>
-                          <AlertDescription>{rec.message}</AlertDescription>
-                        </Alert>
-                    ))}
-                    {getRecommendations().length === 0 && (
-                        <p className="text-gray-500 text-center py-8">
-                          Add more budget items to get personalized recommendations.
-                        </p>
+                  <CardContent className="space-y-6">
+                    {filteredBudgetItems.length === 0 ? (
+                        <p className="text-gray-500 text-center py-8">Add some income and expenses to see your budget analysis here!</p>
+                    ) : (
+                        <>
+                          <Alert className="bg-blue-50 border-blue-200 text-blue-800">
+                            <AlertCircle className="h-4 w-4 text-blue-600" />
+                            <AlertTitle className="text-blue-800">Overview</AlertTitle>
+                            <AlertDescription className="text-blue-700">
+                              Your monthly income is <span className="font-semibold">${monthlyIncome.toFixed(2)}</span> and your monthly expenses are <span className="font-semibold">${monthlyExpenses.toFixed(2)}</span>, resulting in a net of <span className="font-semibold">${monthlyNet.toFixed(2)}</span>.
+                            </AlertDescription>
+                          </Alert>
+
+                          {monthlyNet < 0 && (
+                              <Alert variant="destructive">
+                                <AlertCircle className="h-4 w-4" />
+                                <AlertTitle>Spending Alert!</AlertTitle>
+                                <AlertDescription>
+                                  You are currently spending more than you earn. Consider reviewing your expenses to find areas for reduction.
+                                </AlertDescription>
+                              </Alert>
+                          )}
+
+                          {monthlyNet >= 0 && monthlyNet < monthlyIncome * 0.1 && (
+                              <Alert className="bg-yellow-50 border-yellow-200 text-yellow-800">
+                                <AlertCircle className="h-4 w-4 text-yellow-600" />
+                                <AlertTitle className="text-yellow-800">Savings Opportunity</AlertTitle>
+                                <AlertDescription className="text-yellow-700">
+                                  Your net income is positive, but there might be opportunities to increase your savings rate for future goals.
+                                </AlertDescription>
+                              </Alert>
+                          )}
+
+                          {monthlyIncome > 0 && (
+                              <Card className="bg-purple-50 border-purple-200">
+                                <CardHeader>
+                                  <CardTitle className="text-purple-800">Expense Breakdown</CardTitle>
+                                  <CardDescription className="text-purple-700">Where your money is going:</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                  <ul className="space-y-2">
+                                    {pieChartData.map((data, index) => (
+                                        <li key={data.name} className="flex justify-between items-center text-gray-700">
+                                                        <span className="font-medium flex items-center">
+                                                            <span className="inline-block w-3 h-3 rounded-full mr-2" style={{ backgroundColor: COLORS[index % COLORS.length] }}></span>
+                                                          {data.name}
+                                                        </span>
+                                          <span>${data.value.toFixed(2)} ({(data.value / monthlyExpenses * 100).toFixed(1)}%)</span>
+                                        </li>
+                                    ))}
+                                  </ul>
+                                </CardContent>
+                              </Card>
+                          )}
+
+                          {monthlyExpenses > 0 && (
+                              <Card className="bg-green-50 border-green-200">
+                                <CardHeader>
+                                  <CardTitle className="text-green-800">Recommendations</CardTitle>
+                                  <CardDescription className="text-green-700">Tips to optimize your budget:</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                  <ul className="list-disc list-inside space-y-2 text-gray-700">
+                                    {pieChartData
+                                        .sort((a, b) => b.value - a.value)
+                                        .slice(0, 2)
+                                        .map((data) => (
+                                            <li key={`rec-${data.name}`}>
+                                              **{data.name}** is a significant expense. Consider reviewing subscriptions, finding alternative transport, or planning meals to reduce costs in this area.
+                                            </li>
+                                        ))}
+                                    {monthlyNet < 0 && (
+                                        <li>
+                                          You are spending more than you earn. Focus on reducing variable expenses like "Entertainment" and "Other" first.
+                                        </li>
+                                    )}
+                                    {savingsGoals.length === 0 && (
+                                        <li>
+                                          Consider setting up some <Link href="#goals" className="text-blue-600 hover:underline">savings goals</Link>! Even small, consistent contributions can make a big difference over time.
+                                        </li>
+                                    )}
+                                    {monthlyIncome > 0 && monthlyExpenses > monthlyIncome * 0.7 && (
+                                        <li>
+                                          Aim for the <span className="font-semibold">50/30/20 rule</span>: 50% needs, 30% wants, 20% savings/debt. Compare your current percentages to this guideline.
+                                        </li>
+                                    )}
+                                  </ul>
+                                </CardContent>
+                              </Card>
+                          )}
+                        </>
                     )}
                   </CardContent>
                 </Card>
               </TabsContent>
               <TabsContent value="goals" className="space-y-6">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Add a Savings Goal</CardTitle>
-                      <CardDescription>Set a target and track your progress</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div>
-                        <Label>Goal Name</Label>
-                        <Input
-                            placeholder="e.g., New Car, Vacation"
-                            value={newGoal.name}
-                            onChange={(e) => setNewGoal({ ...newGoal, name: e.target.value })}
-                        />
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <Label>Target Amount ($)</Label>
-                          <Input
-                              type="number"
-                              placeholder="20000"
-                              value={newGoal.targetAmount}
-                              onChange={(e) => setNewGoal({ ...newGoal, targetAmount: e.target.value })}
-                          />
-                        </div>
-                        <div>
-                          <Label>Current Amount ($)</Label>
-                          <Input
-                              type="number"
-                              placeholder="5000"
-                              value={newGoal.currentAmount}
-                              onChange={(e) => setNewGoal({ ...newGoal, currentAmount: e.target.value })}
-                          />
-                        </div>
-                      </div>
-                      <div>
-                        <Label>Target Date</Label>
-                        <Input
-                            type="date"
-                            value={newGoal.targetDate}
-                            onChange={(e) => setNewGoal({ ...newGoal, targetDate: e.target.value })}
-                        />
-                      </div>
-                      <Button onClick={addSavingsGoal} className="w-full">
-                        Add Goal
-                      </Button>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Your Savings Goals</CardTitle>
-                      <CardDescription>Track your progress towards your financial goals</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4 max-h-96 overflow-y-auto">
-                      {savingsGoals.map((goal) => (
-                          <div key={goal.id} className="p-3 bg-gray-50 rounded-lg">
-                            <div className="flex justify-between items-center mb-2">
-                              <p className="font-medium">{goal.name}</p>
-                              <div className="flex items-center">
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => {
-                                      setSelectedGoal(goal);
-                                      setIsAddFundsModalOpen(true);
-                                    }}
-                                    className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 p-2"
-                                    title="Add funds to this goal"
-                                >
-                                  <PlusCircle className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => removeSavingsGoal(goal.id, goal.name)}
-                                    className="text-red-600 hover:text-red-700 hover:bg-red-50 p-2"
-                                    title="Delete this goal"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </div>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle>Savings Goals</CardTitle>
+                    <Button size="sm" onClick={() => setNewGoal({ ...newGoal, targetDate: format(new Date(), 'yyyy-MM-dd') })} className="flex items-center gap-1">
+                      <PlusCircle className="h-4 w-4" /> Add Goal
+                    </Button>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {newGoal.targetDate && ( // Only show form if adding a new goal
+                          <div className="space-y-4 border p-4 rounded-lg bg-gray-50">
+                            <h4 className="font-semibold text-lg">New Savings Goal</h4>
+                            <div>
+                              <Label htmlFor="goal-name">Goal Name</Label>
+                              <Input
+                                  id="goal-name"
+                                  placeholder="e.g., New Car Fund, Down Payment"
+                                  value={newGoal.name}
+                                  onChange={(e) => setNewGoal({ ...newGoal, name: e.target.value })}
+                              />
                             </div>
-                            <Progress
-                                value={(goal.currentAmount / goal.targetAmount) * 100}
-                                className="w-full"
-                            />
-                            <div className="flex justify-between text-sm text-gray-600 mt-1">
-                              <span>${goal.currentAmount.toLocaleString()} of ${goal.targetAmount.toLocaleString()}</span>
-                              <span className="font-medium">${(goal.targetAmount - goal.currentAmount).toLocaleString()} remaining</span>
+                            <div>
+                              <Label htmlFor="target-amount">Target Amount ($)</Label>
+                              <Input
+                                  id="target-amount"
+                                  type="number"
+                                  placeholder="0.00"
+                                  value={newGoal.targetAmount}
+                                  onChange={(e) => setNewGoal({ ...newGoal, targetAmount: e.target.value })}
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="current-amount">Current Amount Saved ($)</Label>
+                              <Input
+                                  id="current-amount"
+                                  type="number"
+                                  placeholder="0.00"
+                                  value={newGoal.currentAmount}
+                                  onChange={(e) => setNewGoal({ ...newGoal, currentAmount: e.target.value })}
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="monthly-contribution">Planned Monthly Contribution ($)</Label>
+                              <Input
+                                  id="monthly-contribution"
+                                  type="number"
+                                  placeholder="0.00"
+                                  value={newGoal.monthlyContribution}
+                                  onChange={(e) => setNewGoal({ ...newGoal, monthlyContribution: e.target.value })}
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="target-date">Target Date</Label>
+                              <Input
+                                  id="target-date"
+                                  type="date"
+                                  value={newGoal.targetDate}
+                                  onChange={(e) => setNewGoal({ ...newGoal, targetDate: e.target.value })}
+                              />
+                            </div>
+                            <div className="flex gap-2">
+                              <Button variant="outline" onClick={() => setNewGoal({ ...newGoal, targetDate: "" })} className="w-full">
+                                Cancel
+                              </Button>
+                              <Button onClick={addSavingsGoal} className="w-full">
+                                Add Goal
+                              </Button>
                             </div>
                           </div>
-                      ))}
-                      {savingsGoals.length === 0 && (
-                          <p className="text-gray-500 text-center py-8">
-                            No savings goals yet. Add your first goal to get started!
-                          </p>
                       )}
-                    </CardContent>
-                  </Card>
-                </div>
+                      {savingsGoals.length === 0 ? (
+                          <p className="text-gray-500 text-center py-4">No savings goals yet. Add one to start tracking!</p>
+                      ) : (
+                          <div className="space-y-4">
+                            {savingsGoals.map((goal) => {
+                              const progress = (goal.currentAmount / goal.targetAmount) * 100
+                              const remaining = goal.targetAmount - goal.currentAmount
+                              const daysLeft = differenceInDays(parseISO(goal.targetDate), new Date())
+                              const monthsLeft = daysLeft > 0 ? Math.ceil(daysLeft / 30.44) : 0;
+                              const neededPerMonth = monthsLeft > 0 ? remaining / monthsLeft : remaining;
+
+                              return (
+                                  <div key={goal.id} className="border p-4 rounded-lg shadow-sm bg-white">
+                                    <div className="flex justify-between items-center mb-2">
+                                      <h3 className="text-lg font-semibold">{goal.name}</h3>
+                                      <div className="flex gap-2">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => {
+                                              setSelectedGoal(goal);
+                                              setIsAddFundsModalOpen(true);
+                                            }}
+                                        >
+                                          Add Funds
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => removeSavingsGoal(goal.id, goal.name)}
+                                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                        >
+                                          <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                      </div>
+                                    </div>
+                                    <div className="flex justify-between text-sm text-gray-600 mb-1">
+                                      <span>Target: ${goal.targetAmount.toFixed(2)}</span>
+                                      <span>Saved: ${goal.currentAmount.toFixed(2)}</span>
+                                    </div>
+                                    <Progress value={progress} className="w-full mb-2" />
+                                    <div className="text-sm text-gray-600 mb-2">
+                                      {progress < 100 ? (
+                                          <span>
+                                                            Remaining: <span className="font-semibold text-red-600">${remaining.toFixed(2)}</span>
+                                                        </span>
+                                      ) : (
+                                          <span className="font-semibold text-green-600">Goal Reached!</span>
+                                      )}
+                                    </div>
+                                    {progress < 100 && (
+                                        <div className="text-xs text-gray-500 space-y-1">
+                                          {goal.targetDate && daysLeft > 0 && (
+                                              <p>Target Date: {format(parseISO(goal.targetDate), 'PPP')} ({daysLeft} days left)</p>
+                                          )}
+                                          {monthsLeft > 0 && remaining > 0 && (
+                                              <p>To reach target by date, need to save: <span className="font-semibold">${neededPerMonth.toFixed(2)}/month</span></p>
+                                          )}
+                                          {goal.monthlyContribution > 0 && (
+                                              <p>Your planned monthly contribution: <span className="font-semibold">${goal.monthlyContribution.toFixed(2)}</span></p>
+                                          )}
+                                          {goal.monthlyContribution > 0 && neededPerMonth > 0 && goal.monthlyContribution < neededPerMonth && (
+                                              <Alert variant="destructive">
+                                                <AlertCircle className="h-4 w-4" />
+                                                <AlertTitle>Warning</AlertTitle>
+                                                <AlertDescription>
+                                                  Your planned monthly contribution is less than what's needed to reach your goal by the target date!
+                                                </AlertDescription>
+                                              </Alert>
+                                          )}
+                                        </div>
+                                    )}
+                                  </div>
+                              )
+                            })}
+                          </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              <TabsContent value="history" className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Budget History</CardTitle>
+                    <CardDescription>Review your past budget snapshots.</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {budgetHistory.length === 0 ? (
+                        <p className="text-gray-500 text-center py-8">No budget history saved yet. Save a snapshot from the "Budget" tab!</p>
+                    ) : (
+                        <div className="space-y-4">
+                          {budgetHistory.map((entry) => (
+                              <div key={entry.id} className="border p-4 rounded-lg shadow-sm bg-white flex justify-between items-center">
+                                <div>
+                                  <h3 className="text-lg font-semibold">{entry.name}</h3>
+                                  <p className="text-sm text-gray-600">
+                                    {format(parseISO(entry.startDate), 'PPP')} - {format(parseISO(entry.endDate), 'PPP')}
+                                  </p>
+                                  <p className="text-xs text-gray-500 capitalize">{entry.budgetType} Budget</p>
+                                </div>
+                                <Button variant="outline" onClick={() => {
+                                  setViewingHistoryEntry(entry);
+                                  setIsHistoryDetailModalOpen(true);
+                                }}>
+                                  View Details
+                                </Button>
+                              </div>
+                          ))}
+                        </div>
+                    )}
+                  </CardContent>
+                </Card>
               </TabsContent>
             </Tabs>
           </div>
         </div>
+
+        {/* Add Funds Modal */}
         <Dialog open={isAddFundsModalOpen} onOpenChange={setIsAddFundsModalOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Add Funds to "{selectedGoal?.name}"</DialogTitle>
+              <DialogTitle>Add Funds to {selectedGoal?.name}</DialogTitle>
               <DialogDescription>
-                Current balance: ${selectedGoal?.currentAmount.toLocaleString()}
+                Enter the amount you want to add to this savings goal.
               </DialogDescription>
             </DialogHeader>
-            <div className="space-y-4">
-              <Label htmlFor="amountToAdd">Amount to Add ($)</Label>
-              <Input
-                  id="amountToAdd"
-                  type="number"
-                  placeholder="0.00"
-                  value={amountToAdd}
-                  onChange={(e) => setAmountToAdd(e.target.value)}
-              />
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="amount" className="text-right">
+                  Amount
+                </Label>
+                <Input
+                    id="amount"
+                    type="number"
+                    value={amountToAdd}
+                    onChange={(e) => setAmountToAdd(e.target.value)}
+                    className="col-span-3"
+                />
+              </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsAddFundsModalOpen(false)}>Cancel</Button>
               <Button onClick={handleAddFunds}>Add Funds</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Save History Modal */}
+        <Dialog open={isSaveHistoryModalOpen} onOpenChange={setIsSaveHistoryModalOpen}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Save Budget Snapshot</DialogTitle>
+              <DialogDescription>
+                Give your budget snapshot a name and select a date range.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div>
+                <Label htmlFor="history-name">Snapshot Name (Optional)</Label>
+                <Input
+                    id="history-name"
+                    placeholder={`e.g., Budget for ${format(new Date(), 'MMMM yyyy')}`}
+                    value={historyCustomName}
+                    onChange={(e) => setHistoryCustomName(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label>Select Date Range</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                        id="date"
+                        variant={"outline"}
+                        className={cn(
+                            "w-full justify-start text-left font-normal",
+                            !customDate && "text-muted-foreground"
+                        )}
+                    >
+                      <CalendarDays className="mr-2 h-4 w-4" />
+                      {customDate?.from ? (
+                          customDate.to ? (
+                              <>
+                                {format(customDate.from, "LLL dd, y")} -{" "}
+                                {format(customDate.to, "LLL dd, y")}
+                              </>
+                          ) : (
+                              format(customDate.from, "LLL dd, y")
+                          )
+                      ) : (
+                          <span>Pick a date range</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                        initialFocus
+                        mode="range"
+                        defaultMonth={customDate?.from}
+                        selected={customDate}
+                        onSelect={setCustomDate}
+                        numberOfMonths={2}
+                    />
+                  </PopoverContent>
+                </Popover>
+                {historyError && <p className="text-red-500 text-sm mt-2">{historyError}</p>}
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsSaveHistoryModalOpen(false)}>Cancel</Button>
+              <Button onClick={handleSaveBudgetHistory}>Save Snapshot</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* History Detail Modal */}
+        <Dialog open={isHistoryDetailModalOpen} onOpenChange={setIsHistoryDetailModalOpen}>
+          <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>{viewingHistoryEntry?.name}</DialogTitle>
+              <DialogDescription>
+                Details for the budget from {viewingHistoryEntry?.startDate && format(parseISO(viewingHistoryEntry.startDate), 'PPP')} to {viewingHistoryEntry?.endDate && format(parseISO(viewingHistoryEntry.endDate), 'PPP')}.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4 space-y-6">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <Card>
+                  <CardContent className="p-4">
+                    <p className="text-sm text-gray-600">Monthly Income</p>
+                    <p className="text-xl font-bold text-green-600">${viewingHistoryEntry?.monthlyIncome.toFixed(2)}</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-4">
+                    <p className="text-sm text-gray-600">Monthly Expenses</p>
+                    <p className="text-xl font-bold text-red-600">${viewingHistoryEntry?.monthlyExpenses.toFixed(2)}</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-4">
+                    <p className="text-sm text-gray-600">Net Income</p>
+                    <p className={`text-xl font-bold ${viewingHistoryEntry && viewingHistoryEntry.monthlyNet >= 0 ? "text-green-600" : "text-red-600"}`}>
+                      ${viewingHistoryEntry?.monthlyNet.toFixed(2)}
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <h3 className="text-lg font-semibold border-b pb-2">Income Items</h3>
+              {Object.keys(groupedHistoryItems.income).length > 0 ? (
+                  <div className="space-y-3">
+                    {Object.keys(groupedHistoryItems.income).map(category => (
+                        <div key={category}>
+                          <h4 className="font-semibold text-gray-800 mb-1">{category}</h4>
+                          <div className="space-y-2">
+                            {groupedHistoryItems.income[category].map(item => (
+                                <div key={item.id} className="flex justify-between items-center bg-gray-50 p-2 rounded text-sm">
+                                  <p className="text-blue-600">{item.subcategory || "No description"}</p>
+                                  <span className="font-bold text-green-600">+${item.amount.toFixed(2)} ({item.frequency})</span>
+                                </div>
+                            ))}
+                          </div>
+                        </div>
+                    ))}
+                  </div>
+              ) : (
+                  <p className="text-gray-500 text-sm">No income items in this snapshot.</p>
+              )}
+
+              <h3 className="text-lg font-semibold border-b pb-2">Expense Items</h3>
+              {Object.keys(groupedHistoryItems.expense).length > 0 ? (
+                  <div className="space-y-3">
+                    {Object.keys(groupedHistoryItems.expense).map(category => (
+                        <div key={category}>
+                          <h4 className="font-semibold text-gray-800 mb-1">{category}</h4>
+                          <div className="space-y-2">
+                            {groupedHistoryItems.expense[category].map(item => (
+                                <div key={item.id} className="flex justify-between items-center bg-gray-50 p-2 rounded text-sm">
+                                  <p className="text-blue-600">{item.subcategory || "No description"}</p>
+                                  <span className="font-bold text-red-600">-${item.amount.toFixed(2)} ({item.frequency})</span>
+                                </div>
+                            ))}
+                          </div>
+                        </div>
+                    ))}
+                  </div>
+              ) : (
+                  <p className="text-gray-500 text-sm">No expense items in this snapshot.</p>
+              )}
+
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsHistoryDetailModalOpen(false)}>Close</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
