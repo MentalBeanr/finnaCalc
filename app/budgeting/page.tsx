@@ -1066,7 +1066,7 @@ export default function BudgetingPage() {
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
                         <div>
-                            <Label htmlFor="history-name">Snapshot Name (Optional)</Label>
+                            <Label htmlFor="history-name">Budget Name (Optional)</Label>
                             <Input
                                 id="history-name"
                                 placeholder={`e.g., Budget for ${format(new Date(), 'MMMM yyyy')}`}
