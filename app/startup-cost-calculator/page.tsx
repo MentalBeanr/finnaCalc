@@ -13,6 +13,9 @@ import { Progress } from "@/components/ui/progress"
 
 export default function StartupCostCalculator() {
   const router = useRouter()
+  const [activeTab, setActiveTab] = useState("costs"); // State to track the active tab
+
+  // Cost States
   const [businessType, setBusinessType] = useState("")
   const [equipment, setEquipment] = useState("")
   const [inventory, setInventory] = useState("")
@@ -22,18 +25,24 @@ export default function StartupCostCalculator() {
   const [utilities, setUtilities] = useState("")
   const [insurance, setInsurance] = useState("")
   const [other, setOther] = useState("")
-
   const [employees, setEmployees] = useState("")
   const [salaries, setSalaries] = useState("")
   const [permits, setPermits] = useState("")
   const [website, setWebsite] = useState("")
   const [workingCapital, setWorkingCapital] = useState("")
 
+  // Funding States
   const [personalSavings, setPersonalSavings] = useState("")
   const [loanAmount, setLoanAmount] = useState("")
   const [investorFunding, setInvestorFunding] = useState("")
 
-  const [result, setResult] = useState<any>(null)
+  const [result, setResult] = useState<any>(null) // State to hold calculation results
+
+  // Function to handle tab changes and clear results
+  const handleTabChange = (value: string) => {
+    setResult(null); // Clear previous results when changing tabs
+    setActiveTab(value);
+  };
 
   const businessTemplates: { [key: string]: any } = {
     retail: {
@@ -123,10 +132,13 @@ export default function StartupCostCalculator() {
       setPermits(template.permits.toString())
       setWebsite(template.website.toString())
       setWorkingCapital(template.workingCapital.toString())
+      // Clear results when loading template
+      setResult(null);
     }
   }
 
   const calculateStartupCosts = () => {
+    setResult(null); // Clear previous results before calculating
     const costs = {
       equipment: Number.parseFloat(equipment) || 0,
       inventory: Number.parseFloat(inventory) || 0,
@@ -243,7 +255,8 @@ export default function StartupCostCalculator() {
                   <CardDescription>Comprehensive startup cost estimation with funding analysis</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <Tabs defaultValue="costs" className="w-full">
+                  {/* **FIX**: Added value and onValueChange to Tabs */}
+                  <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
                     <TabsList className="grid w-full grid-cols-2">
                       <TabsTrigger value="costs">Startup Costs</TabsTrigger>
                       <TabsTrigger value="funding">Funding Sources</TabsTrigger>
@@ -449,6 +462,7 @@ export default function StartupCostCalculator() {
                     Calculate Comprehensive Startup Costs
                   </Button>
 
+                  {/* **FIX**: Conditional rendering based on result */}
                   {result && (
                       <div className="calculator-result space-y-6 mt-6">
                         <h3 className="text-lg font-semibold text-blue-800">Your Comprehensive Startup Analysis</h3>

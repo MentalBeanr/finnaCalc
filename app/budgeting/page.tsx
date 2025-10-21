@@ -38,21 +38,15 @@ import Link from "next/link"
 import { format, parseISO, differenceInDays, isValid } from 'date-fns';
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
+import Papa from 'papaparse';
+// **FIX**: pdfjs-dist is now imported dynamically below to prevent server-side errors.
 
-const convertToMonthly = (amount: number, frequency: string): number => {
-    switch (frequency) {
-        case 'Weekly':
-            return amount * 4.33; // Average weeks in a month
-        case 'Bi-Weekly':
-            return amount * 2.167; // Average bi-weekly periods in a month
-        case 'Monthly':
-            return amount;
-        case 'Yearly':
-            return amount / 12;
-        default:
-            return 0;
-    }
+// **FIX**: Restored the original, correct version of this function to fix calculations.
+const convertToMonthly = (amount: number, frequency: string) => {
+    const multipliers = { daily: 30, weekly: 4.33, monthly: 1, yearly: 1 / 12 };
+    return amount * (multipliers[frequency as keyof typeof multipliers] || 1);
 };
+
 
 interface BudgetItem {
     id: string
@@ -241,11 +235,6 @@ export default function BudgetingPage() {
         return budgetType === 'personal' ? personalCategories : businessCategories;
     }, [budgetType]);
 
-    const convertToMonthly = (amount: number, frequency: string) => {
-        const multipliers = { daily: 30, weekly: 4.33, monthly: 1, yearly: 1 / 12 }
-        return amount * (multipliers[frequency as keyof typeof multipliers] || 1)
-    }
-
     const monthlyIncome = budgetItems
         .filter((item) => item.type === "income" && item.budgetType === budgetType)
         .reduce((sum, item) => sum + convertToMonthly(item.amount, item.frequency), 0)
@@ -391,6 +380,11 @@ export default function BudgetingPage() {
         const start = parseISO(startDate);
         const end = endDate ? parseISO(endDate) : start;
 
+        if (!isValid(start) || (endDate && !isValid(end))) {
+            setHistoryError('Invalid date format provided.');
+            return;
+        }
+
         if (start > end) {
             setHistoryError('Start date cannot be after end date.');
             return;
@@ -406,7 +400,7 @@ export default function BudgetingPage() {
             return;
         }
 
-        const defaultName = `Budget: ${format(start, 'MMM d, yyyy')}` + (endDate ? ` - ${format(end, 'MMM d, yyyy')}` : '');
+        const defaultName = `Budget: ${format(start, 'MMM d, yyyy')}` + (endDate && startDate !== endDate ? ` - ${format(end, 'MMM d, yyyy')}` : '');
         const name = customName.trim() || defaultName;
 
         const newHistoryEntry: BudgetHistoryEntry = {
@@ -467,132 +461,229 @@ export default function BudgetingPage() {
         }
     };
 
-    // Basic AI-like parsing for bank statements (placeholder logic)
-    const parseBankStatement = async (file: File) => {
-        const text = await file.text();
-        const lines = text.split('\n');
-        const parsedItems: BudgetItem[] = [];
-        let statementStartDate: Date | null = null;
-        let statementEndDate: Date | null = null;
+    // Advanced description cleaner
+    const cleanDescription = (rawDescription: string): string => {
+        if (!rawDescription) return "Unknown Transaction";
 
-        // Regex for common date formats (MM/DD/YYYY, YYYY-MM-DD, Month DD, YYYY)
-        const dateRegex = /(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})|([A-Za-z]+ \d{1,2},? \d{4})/;
-        // Regex for amount: looks for numbers with optional thousands comma and two decimal places, possibly negative
-        const amountRegex = /(-?\$?\d{1,3}(?:,?\d{3})*\.\d{2})/;
+        let cleaned = rawDescription.trim();
 
-        // Helper to parse date
-        const parseDate = (dateString: string): Date | null => {
-            try {
-                // Try different formats
-                const formats = [
-                    'MM/dd/yyyy', 'M/d/yyyy',
-                    'yyyy-MM-dd',
-                    'MMM d, yyyy', 'MMMM d, yyyy'
-                ];
-                for (let f of formats) {
-                    const parsed = format(new Date(dateString), f);
-                    if (isValid(parsed)) return new Date(dateString);
-                }
-            } catch (e) {
-                // console.error("Failed to parse date:", dateString, e);
+        // Remove transaction IDs, dates, and common prefixes/suffixes
+        cleaned = cleaned.replace(/\b\d{8,}\b/g, ''); // Remove long numbers (potential IDs)
+        cleaned = cleaned.replace(/\b[A-Z0-9]{10,}\b/g, ''); // Remove long alphanumeric codes
+        cleaned = cleaned.replace(/(?:\d{1,2}\/\d{1,2}\/\d{2,4}|\d{4}-\d{2}-\d{2})/g, ''); // Remove dates
+        cleaned = cleaned.replace(/(?:DEBIT|CREDIT|WITHDRAWAL|DEPOSIT)\s*(CARD|FASTER PAYMENTS)?\s*(\*|\s-)?/i, '');
+        cleaned = cleaned.replace(/ZEL\*/i, ''); // Remove Zelle identifier
+        cleaned = cleaned.replace(/PAYMENT - THANK YOU/i, '');
+        cleaned = cleaned.replace(/Annual Percentage Yield Earned/i, 'Interest Earned');
+
+        // Extract cleaner names
+        const patterns = [
+            /(?:SQ|SQUARE)\s*\*?\s*([A-Z\s\d&'-]+)/i, // Square payments
+            /([A-Z\s&'-]+?)(?:\s*#\d+|\s*\d{5,}|LLC|INC|CORP)/i, // Common business names
+        ];
+
+        for (const pattern of patterns) {
+            const match = cleaned.match(pattern);
+            if (match && match[1]) {
+                cleaned = match[1];
+                break;
             }
-            return null;
-        };
-
-        lines.forEach(line => {
-            const dateMatch = line.match(dateRegex);
-            const amountMatch = line.match(amountRegex);
-
-            if (dateMatch && amountMatch) {
-                let datePart = dateMatch[0];
-                let amountPart = amountMatch[0];
-
-                const itemDate = parseDate(datePart);
-                if (itemDate) {
-                    if (!statementStartDate || itemDate < statementStartDate) statementStartDate = itemDate;
-                    if (!statementEndDate || itemDate > statementEndDate) statementEndDate = itemDate;
-                }
-
-                const amount = parseFloat(amountPart.replace(/[^0-9.-]+/g, "")); // Remove all non-numeric except . and -
-                if (isNaN(amount)) return;
-
-                let type: "income" | "expense" = amount > 0 ? "income" : "expense";
-                let category: string = "Other";
-                let subcategory: string = line.replace(datePart, "").replace(amountPart, "").trim();
-
-                // Basic categorization based on keywords
-                const lowerLine = line.toLowerCase();
-                if (lowerLine.includes("deposit") || lowerLine.includes("salary") || lowerLine.includes("paycheck")) {
-                    category = "Salary"; type = "income";
-                } else if (lowerLine.includes("rent") || lowerLine.includes("mortgage")) {
-                    category = "Housing"; type = "expense";
-                } else if (lowerLine.includes("utility") || lowerLine.includes("electric") || lowerLine.includes("water") || lowerLine.includes("gas")) {
-                    category = "Utilities"; type = "expense";
-                } else if (lowerLine.includes("grocery") || lowerLine.includes("food") || lowerLine.includes("restaurant")) {
-                    category = "Food"; type = "expense";
-                } else if (lowerLine.includes("insurance")) {
-                    category = "Insurance"; type = "expense";
-                } else if (lowerLine.includes("payment to") || lowerLine.includes("loan payment")) {
-                    category = "Debt Payments"; type = "expense";
-                } else if (lowerLine.includes("transfer from")) {
-                    type = "income"; category = "Transfer In";
-                } else if (lowerLine.includes("transfer to")) {
-                    type = "expense"; category = "Transfer Out";
-                }
-
-                parsedItems.push({
-                    id: `${Date.now()}-${Math.random()}`, // Unique ID
-                    category: category,
-                    subcategory: subcategory,
-                    amount: Math.abs(amount), // Always store positive, type handles sign
-                    frequency: "monthly", // Default to monthly for statement items
-                    type: type,
-                    isFixed: false,
-                    budgetType: budgetType, // Use current budget type
-                    importDate: itemDate?.toISOString(),
-                });
-            }
-        });
-
-        // If no dates found, default to current month
-        if (!statementStartDate || !statementEndDate) {
-            const today = new Date();
-            statementStartDate = new Date(today.getFullYear(), today.getMonth(), 1);
-            statementEndDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
         }
 
-        const totalIncome = parsedItems.filter(item => item.type === 'income').reduce((sum, item) => sum + item.amount, 0);
-        const totalExpenses = parsedItems.filter(item => item.type === 'expense').reduce((sum, item) => sum + item.amount, 0);
+        // Final cleanup
+        cleaned = cleaned.replace(/[^\w\s&'-]/g, ' ').replace(/\s+/g, ' ').trim();
 
-        // Save to history
-        handleSaveBudgetHistory(
-            parsedItems,
-            totalIncome,
-            totalExpenses,
-            totalIncome - totalExpenses,
-            budgetType,
-            `${file.name} Import: ${format(statementStartDate, 'MMM d, yyyy')} - ${format(statementEndDate, 'MMM d, yyyy')}`,
-            statementStartDate.toISOString(),
-            statementEndDate.toISOString(),
-            true // Mark as import
-        );
-
-        toast.success("Bank statement processed and saved to history!");
-        setIsFileUploadModalOpen(false);
-        setSelectedFile(null);
+        // Capitalize words
+        return cleaned.toLowerCase().split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
     };
 
+    // New, robust bank statement parser
+    const parseBankStatement = async (file: File): Promise<BudgetItem[]> => {
+        const fileName = file.name.toLowerCase();
+        if (fileName.endsWith('.csv')) {
+            return parseCsvStatement(file);
+        } else if (fileName.endsWith('.pdf')) {
+            return parsePdfStatement(file);
+        } else if (fileName.endsWith('.txt')) {
+            return parseTxtStatement(file);
+        }
+        throw new Error("Unsupported file type. Please use CSV, PDF, or TXT.");
+    };
+
+    const parseTxtStatement = (file: File): Promise<BudgetItem[]> => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const text = e.target?.result as string;
+                const lines = text.split('\n');
+                const parsedItems: BudgetItem[] = [];
+                // Regex to find dates, descriptions, and amounts in various formats
+                const transactionRegex = /((\d{1,2}[\/-]\d{1,2}[\/-]\d{2,4})|([A-Za-z]{3}\s\d{1,2}))\s+(.*?)\s+(-?\$?\d{1,3}(?:,?\d{3})*\.\d{2})/;
+
+                lines.forEach(line => {
+                    const match = line.match(transactionRegex);
+                    if (match) {
+                        const date = match[1];
+                        const description = cleanDescription(match[4]);
+                        const amount = parseFloat(match[5].replace(/[^0-9.-]+/g, ""));
+
+                        parsedItems.push({
+                            id: `${Date.now()}-${Math.random()}`,
+                            category: "Imported",
+                            subcategory: description,
+                            amount: Math.abs(amount),
+                            frequency: "monthly",
+                            type: amount > 0 ? "income" : "expense",
+                            isFixed: false,
+                            budgetType: budgetType,
+                            importDate: new Date(date).toISOString(),
+                        });
+                    }
+                });
+                resolve(parsedItems);
+            };
+            reader.onerror = reject;
+            reader.readAsText(file);
+        });
+    };
+
+    const parseCsvStatement = (file: File): Promise<BudgetItem[]> => {
+        return new Promise((resolve, reject) => {
+            Papa.parse(file, {
+                header: true,
+                skipEmptyLines: true,
+                complete: (results) => {
+                    const parsedItems: BudgetItem[] = results.data.map((row: any) => {
+                        // Attempt to find common column names
+                        const date = row.Date || row.date || row['Transaction Date'];
+                        const description = row.Description || row.description || row.Payee;
+                        let amountStr = row.Amount || row.amount;
+
+                        if (!amountStr) {
+                            const debit = row.Debit || row.debit;
+                            const credit = row.Credit || row.credit;
+                            if (debit) amountStr = `-${debit}`;
+                            else if (credit) amountStr = credit;
+                        }
+
+                        if (!date || !description || !amountStr) return null;
+
+                        const amount = parseFloat(String(amountStr).replace(/[^0-9.-]+/g, ""));
+                        if (isNaN(amount)) return null;
+
+                        return {
+                            id: `${Date.now()}-${Math.random()}`,
+                            category: "Imported",
+                            subcategory: cleanDescription(description),
+                            amount: Math.abs(amount),
+                            frequency: "monthly",
+                            type: amount >= 0 ? "income" : "expense",
+                            isFixed: false,
+                            budgetType: budgetType,
+                            importDate: new Date(date).toISOString(),
+                        };
+                    }).filter(item => item !== null) as BudgetItem[];
+                    resolve(parsedItems);
+                },
+                error: (error) => reject(error),
+            });
+        });
+    };
+
+    const parsePdfStatement = async (file: File): Promise<BudgetItem[]> => {
+        // Dynamically import the library and set worker source
+        const pdfjsLib = await import('pdfjs-dist/build/pdf');
+        // @ts-ignore
+        pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
+        let fullText = '';
+        for (let i = 1; i <= pdf.numPages; i++) {
+            const page = await pdf.getPage(i);
+            const textContent = await page.getTextContent();
+            fullText += textContent.items.map(item => ('str' in item ? item.str : '')).join(' ');
+        }
+
+        // This regex is a generic attempt and might need tuning for specific PDF layouts
+        const transactionRegex = /((\d{1,2}[\/-]\d{1,2}(\/\d{2,4})?))\s+(.*?)\s+(-?\$?\d{1,3}(?:,?\d{3})*\.\d{2})/g;
+        const parsedItems: BudgetItem[] = [];
+        let match;
+        while ((match = transactionRegex.exec(fullText)) !== null) {
+            const date = match[1];
+            const description = cleanDescription(match[4]);
+            const amount = parseFloat(match[5].replace(/[^0-9.-]+/g, ""));
+
+            parsedItems.push({
+                id: `${Date.now()}-${Math.random()}`,
+                category: "Imported",
+                subcategory: description,
+                amount: Math.abs(amount),
+                frequency: "monthly", // Default assumption
+                type: amount > 0 ? "income" : "expense",
+                isFixed: false,
+                budgetType: budgetType,
+                importDate: new Date(date).toISOString(),
+            });
+        }
+        return parsedItems;
+    };
 
     const handleUploadStatement = async () => {
-        if (selectedFile) {
-            try {
-                await parseBankStatement(selectedFile);
-            } catch (error) {
-                console.error("Error processing bank statement:", error);
-                toast.error("Failed to process bank statement. Please try a different file format.");
-            }
-        } else {
+        if (!selectedFile) {
             toast.error("Please select a file to upload.");
+            return;
+        }
+
+        try {
+            const parsedItems = await parseBankStatement(selectedFile);
+            if (parsedItems.length === 0) {
+                toast.warning("No transactions could be found in the file. Please check the file format.");
+                return;
+            }
+
+            const totalIncome = parsedItems.filter(item => item.type === 'income').reduce((sum, item) => sum + item.amount, 0);
+            const totalExpenses = parsedItems.filter(item => item.type === 'expense').reduce((sum, item) => sum + item.amount, 0);
+
+            // **FIX**: Correctly find min and max dates from all parsed items
+            let firstDate: Date | null = null;
+            let lastDate: Date | null = null;
+
+            parsedItems.forEach(item => {
+                if (item.importDate) {
+                    const itemDate = new Date(item.importDate);
+                    if (isValid(itemDate)) {
+                        if (!firstDate || itemDate < firstDate) {
+                            firstDate = itemDate;
+                        }
+                        if (!lastDate || itemDate > lastDate) {
+                            lastDate = itemDate;
+                        }
+                    }
+                }
+            });
+
+            // Use today's date as a fallback if no valid dates are found
+            const finalStartDate = firstDate || new Date();
+            const finalEndDate = lastDate || new Date();
+
+            handleSaveBudgetHistory(
+                parsedItems,
+                totalIncome,
+                totalExpenses,
+                totalIncome - totalExpenses,
+                budgetType,
+                `${selectedFile.name} Import`,
+                finalStartDate.toISOString(), // Pass full ISO string
+                finalEndDate.toISOString(),   // Pass full ISO string
+                true
+            );
+
+            toast.success("Bank statement processed successfully and saved to history!");
+            setIsFileUploadModalOpen(false);
+            setSelectedFile(null);
+        } catch (error: any) {
+            toast.error(`Error processing file: ${error.message}`);
         }
     };
 
@@ -1460,16 +1551,16 @@ export default function BudgetingPage() {
                     <DialogHeader>
                         <DialogTitle>Upload Bank Statement</DialogTitle>
                         <DialogDescription>
-                            Upload a text-based bank statement (.txt file) to automatically categorize transactions.
+                            Upload a statement to automatically categorize transactions.
                             <br/>
-                            <span className="text-red-500 font-semibold">Note:</span> This is a basic parser. For best results, use simple text statements.
+                            <span className="font-semibold">Supported formats: CSV, PDF, TXT</span>
                         </DialogDescription>
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
                         <Input
                             id="bank-statement-file"
                             type="file"
-                            accept=".txt"
+                            accept=".csv, .pdf, .txt"
                             onChange={handleFileChange}
                         />
                         {selectedFile && <p className="text-sm text-gray-600">Selected: {selectedFile.name}</p>}

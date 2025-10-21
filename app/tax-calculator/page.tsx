@@ -14,13 +14,10 @@ import { Checkbox } from "@/components/ui/checkbox"
 export default function TaxCalculator() {
   const router = useRouter()
   const [taxType, setTaxType] = useState("individual")
+
+  // Individual Tax States
   const [filingStatus, setFilingStatus] = useState("single")
   const [income, setIncome] = useState("")
-  const [businessIncome, setBusinessIncome] = useState("")
-  const [businessExpenses, setBusinessExpenses] = useState("")
-  const [homeOffice, setHomeOffice] = useState("")
-  const [vehicleExpenses, setVehicleExpenses] = useState("")
-  const [equipment, setEquipment] = useState("")
   const [mortgageInterest, setMortgageInterest] = useState("")
   const [charitableDonations, setCharitableDonations] = useState("")
   const [stateLocalTax, setStateLocalTax] = useState("")
@@ -29,9 +26,23 @@ export default function TaxCalculator() {
   const [childTaxCredit, setChildTaxCredit] = useState(false)
   const [earnedIncomeCredit, setEarnedIncomeCredit] = useState(false)
   const [dependents, setDependents] = useState("")
+
+  // Business Tax States
+  const [businessIncome, setBusinessIncome] = useState("")
+  const [businessExpenses, setBusinessExpenses] = useState("")
+  const [homeOffice, setHomeOffice] = useState("")
+  const [vehicleExpenses, setVehicleExpenses] = useState("")
+  const [equipment, setEquipment] = useState("")
+
   const [result, setResult] = useState<any>(null)
 
+  const handleTabChange = (value: string) => {
+    setResult(null); // Clear previous results when changing tabs
+    setTaxType(value);
+  };
+
   const calculateTax = () => {
+    setResult(null);
     if (taxType === "individual") {
       calculateIndividualTax()
     } else {
@@ -43,12 +54,11 @@ export default function TaxCalculator() {
     const grossIncome = Number.parseFloat(income) || 0
     const mortgage = Number.parseFloat(mortgageInterest) || 0
     const charitable = Number.parseFloat(charitableDonations) || 0
-    const saltDeduction = Math.min(Number.parseFloat(stateLocalTax) || 0, 10000) // SALT cap
-    const medical = Math.max(0, (Number.parseFloat(medicalExpenses) || 0) - grossIncome * 0.075) // 7.5% AGI threshold
-    const studentLoan = Math.min(Number.parseFloat(studentLoanInterest) || 0, 2500) // Student loan cap
+    const saltDeduction = Math.min(Number.parseFloat(stateLocalTax) || 0, 10000)
+    const medical = Math.max(0, (Number.parseFloat(medicalExpenses) || 0) - grossIncome * 0.075)
+    const studentLoan = Math.min(Number.parseFloat(studentLoanInterest) || 0, 2500)
     const numDependents = Number.parseFloat(dependents) || 0
 
-    // Standard deduction for 2024
     const standardDeduction = filingStatus === "married" ? 29200 : filingStatus === "head" ? 21900 : 14600
     const itemizedDeductions = mortgage + charitable + saltDeduction + medical
     const totalDeductions = Math.max(standardDeduction, itemizedDeductions)
@@ -56,34 +66,41 @@ export default function TaxCalculator() {
     const adjustedGrossIncome = grossIncome - studentLoan
     const taxableIncome = Math.max(0, adjustedGrossIncome - totalDeductions)
 
-    // 2024 tax brackets
     let federalTax = 0
+    let marginalRate = 0 // Define marginalRate here
+
     if (filingStatus === "single") {
-      if (taxableIncome > 609350) federalTax += (taxableIncome - 609350) * 0.37
-      if (taxableIncome > 243725) federalTax += Math.min(taxableIncome - 243725, 609350 - 243725) * 0.35
-      if (taxableIncome > 191950) federalTax += Math.min(taxableIncome - 191950, 243725 - 191950) * 0.32
-      if (taxableIncome > 100525) federalTax += Math.min(taxableIncome - 100525, 191950 - 100525) * 0.24
-      if (taxableIncome > 47150) federalTax += Math.min(taxableIncome - 47150, 100525 - 47150) * 0.22
-      if (taxableIncome > 11000) federalTax += Math.min(taxableIncome - 11000, 47150 - 11000) * 0.12
-      if (taxableIncome > 0) federalTax += Math.min(taxableIncome, 11000) * 0.1
+      if (taxableIncome <= 11600) { federalTax = taxableIncome * 0.10; marginalRate = 10; }
+      else if (taxableIncome <= 47150) { federalTax = 1160 + (taxableIncome - 11600) * 0.12; marginalRate = 12; }
+      else if (taxableIncome <= 100525) { federalTax = 5426 + (taxableIncome - 47150) * 0.22; marginalRate = 22; }
+      else if (taxableIncome <= 191950) { federalTax = 17168.50 + (taxableIncome - 100525) * 0.24; marginalRate = 24; }
+      else if (taxableIncome <= 243725) { federalTax = 39110.50 + (taxableIncome - 191950) * 0.32; marginalRate = 32; }
+      else if (taxableIncome <= 609350) { federalTax = 55678.50 + (taxableIncome - 243725) * 0.35; marginalRate = 35; }
+      else { federalTax = 183647.25 + (taxableIncome - 609350) * 0.37; marginalRate = 37; }
     } else if (filingStatus === "married") {
-      if (taxableIncome > 731200) federalTax += (taxableIncome - 731200) * 0.37
-      if (taxableIncome > 487450) federalTax += Math.min(taxableIncome - 487450, 731200 - 487450) * 0.35
-      if (taxableIncome > 383900) federalTax += Math.min(taxableIncome - 383900, 487450 - 383900) * 0.32
-      if (taxableIncome > 201050) federalTax += Math.min(taxableIncome - 201050, 383900 - 201050) * 0.24
-      if (taxableIncome > 94300) federalTax += Math.min(taxableIncome - 94300, 201050 - 94300) * 0.22
-      if (taxableIncome > 22000) federalTax += Math.min(taxableIncome - 22000, 94300 - 22000) * 0.12
-      if (taxableIncome > 0) federalTax += Math.min(taxableIncome, 22000) * 0.1
+      if (taxableIncome <= 23200) { federalTax = taxableIncome * 0.10; marginalRate = 10; }
+      else if (taxableIncome <= 94300) { federalTax = 2320 + (taxableIncome - 23200) * 0.12; marginalRate = 12; }
+      else if (taxableIncome <= 201050) { federalTax = 10852 + (taxableIncome - 94300) * 0.22; marginalRate = 22; }
+      else if (taxableIncome <= 383900) { federalTax = 34337 + (taxableIncome - 201050) * 0.24; marginalRate = 24; }
+      else if (taxableIncome <= 487450) { federalTax = 78221 + (taxableIncome - 383900) * 0.32; marginalRate = 32; }
+      else if (taxableIncome <= 731200) { federalTax = 111357 + (taxableIncome - 487450) * 0.35; marginalRate = 35; }
+      else { federalTax = 196669.50 + (taxableIncome - 731200) * 0.37; marginalRate = 37; }
+    } else { // Head of Household
+      if (taxableIncome <= 16550) { federalTax = taxableIncome * 0.10; marginalRate = 10; }
+      else if (taxableIncome <= 63100) { federalTax = 1655 + (taxableIncome - 16550) * 0.12; marginalRate = 12; }
+      else if (taxableIncome <= 100500) { federalTax = 7241 + (taxableIncome - 63100) * 0.22; marginalRate = 22; }
+      else if (taxableIncome <= 191950) { federalTax = 15469 + (taxableIncome - 100500) * 0.24; marginalRate = 24; }
+      else if (taxableIncome <= 243700) { federalTax = 37417 + (taxableIncome - 191950) * 0.32; marginalRate = 32; }
+      else if (taxableIncome <= 609350) { federalTax = 53977 + (taxableIncome - 243700) * 0.35; marginalRate = 35; }
+      else { federalTax = 181954.50 + (taxableIncome - 609350) * 0.37; marginalRate = 37; }
     }
 
-    // Tax credits
     let taxCredits = 0
-    if (childTaxCredit) taxCredits += numDependents * 2000 // Child Tax Credit
-    if (earnedIncomeCredit && grossIncome < 60000) taxCredits += Math.min(7430, grossIncome * 0.45) // Simplified EIC
+    if (childTaxCredit) taxCredits += numDependents * 2000
+    if (earnedIncomeCredit && grossIncome < 60000) taxCredits += Math.min(7430, grossIncome * 0.45)
 
     const finalTax = Math.max(0, federalTax - taxCredits)
     const effectiveTaxRate = grossIncome > 0 ? (finalTax / grossIncome) * 100 : 0
-    const marginalTaxRate = getMarginalRate(taxableIncome, filingStatus)
 
     setResult({
       type: "individual",
@@ -95,41 +112,59 @@ export default function TaxCalculator() {
       taxCredits,
       finalTax,
       effectiveTaxRate,
-      marginalTaxRate,
+      marginalTaxRate: marginalRate, // **FIX**: Changed from marginalTaxRate to marginalRate
       usingStandardDeduction: totalDeductions === standardDeduction,
       itemizedDeductions,
     })
   }
 
   const calculateBusinessTax = () => {
-    const income = Number.parseFloat(businessIncome) || 0
-    const expenses = Number.parseFloat(businessExpenses) || 0
-    const homeOfficeDeduction = Number.parseFloat(homeOffice) || 0
-    const vehicleDeduction = Number.parseFloat(vehicleExpenses) || 0
-    const equipmentDeduction = Number.parseFloat(equipment) || 0
+    const incomeNum = Number.parseFloat(businessIncome) || 0;
+    const expensesNum = Number.parseFloat(businessExpenses) || 0;
+    const homeOfficeDeductionNum = Number.parseFloat(homeOffice) || 0;
+    const vehicleExpensesNum = Number.parseFloat(vehicleExpenses) || 0;
+    const equipmentNum = Number.parseFloat(equipment) || 0;
 
-    const totalDeductions = expenses + homeOfficeDeduction + vehicleDeduction + equipmentDeduction
-    const netBusinessIncome = Math.max(0, income - totalDeductions)
+    const totalDeductions = expensesNum + homeOfficeDeductionNum + vehicleExpensesNum + equipmentNum;
+    const netBusinessIncome = Math.max(0, incomeNum - totalDeductions);
 
-    // Self-employment tax (15.3% on net earnings)
-    const selfEmploymentTax = netBusinessIncome * 0.9235 * 0.153 // 92.35% of net earnings subject to SE tax
-    const deductibleSETax = selfEmploymentTax * 0.5 // Half of SE tax is deductible
+    const seTaxableIncome = netBusinessIncome * 0.9235;
+    const selfEmploymentTax = seTaxableIncome * 0.153;
+    const deductibleSETax = selfEmploymentTax * 0.5;
 
-    // Federal income tax on business income
-    const adjustedBusinessIncome = netBusinessIncome - deductibleSETax
-    const federalTaxRate = income > 100000 ? 0.24 : income > 50000 ? 0.22 : 0.12
-    const federalTax = adjustedBusinessIncome * federalTaxRate
+    const adjustedGrossIncome = netBusinessIncome - deductibleSETax;
+    const standardDeduction = 14600; // Assuming single filer for estimation
+    const taxableIncome = Math.max(0, adjustedGrossIncome - standardDeduction);
 
-    const totalTax = federalTax + selfEmploymentTax
-    const effectiveTaxRate = income > 0 ? (totalTax / income) * 100 : 0
+    let federalTax = 0;
+    let marginalRate = 0;
 
-    // Calculate tax savings from deductions
-    const taxWithoutDeductions = income * federalTaxRate + income * 0.9235 * 0.153
-    const taxSavings = taxWithoutDeductions - totalTax
+    if (taxableIncome <= 11600) { federalTax = taxableIncome * 0.10; marginalRate = 10; }
+    else if (taxableIncome <= 47150) { federalTax = 1160 + (taxableIncome - 11600) * 0.12; marginalRate = 12; }
+    else if (taxableIncome <= 100525) { federalTax = 5426 + (taxableIncome - 47150) * 0.22; marginalRate = 22; }
+    else if (taxableIncome <= 191950) { federalTax = 17168.50 + (taxableIncome - 100525) * 0.24; marginalRate = 24; }
+    else if (taxableIncome <= 243725) { federalTax = 39110.50 + (taxableIncome - 191950) * 0.32; marginalRate = 32; }
+    else if (taxableIncome <= 609350) { federalTax = 55678.50 + (taxableIncome - 243725) * 0.35; marginalRate = 35; }
+    else { federalTax = 183647.25 + (taxableIncome - 609350) * 0.37; marginalRate = 37; }
+
+    const totalTax = federalTax + selfEmploymentTax;
+    const effectiveTaxRate = incomeNum > 0 ? (totalTax / incomeNum) * 100 : 0;
+
+    // Estimate tax savings from deductions
+    let taxWithoutDeductions = 0;
+    const taxableIncomeWithoutDeductions = Math.max(0, (incomeNum * 0.9235 * (1-0.153/2)) - standardDeduction);
+
+    if (taxableIncomeWithoutDeductions <= 11600) { taxWithoutDeductions = taxableIncomeWithoutDeductions * 0.10; }
+    else if (taxableIncomeWithoutDeductions <= 47150) { taxWithoutDeductions = 1160 + (taxableIncomeWithoutDeductions - 11600) * 0.12; }
+    else { taxWithoutDeductions = 5426 + (taxableIncomeWithoutDeductions - 47150) * 0.22; } // Simplified for brevity
+
+    const seTaxWithoutDeductions = (incomeNum * 0.9235) * 0.153;
+    const totalTaxWithoutDeductions = taxWithoutDeductions + seTaxWithoutDeductions;
+    const taxSavings = Math.max(0, totalTaxWithoutDeductions - totalTax);
 
     setResult({
       type: "business",
-      income,
+      income: incomeNum,
       totalDeductions,
       netBusinessIncome,
       selfEmploymentTax,
@@ -138,29 +173,9 @@ export default function TaxCalculator() {
       totalTax,
       effectiveTaxRate,
       taxSavings,
-    })
-  }
-
-  const getMarginalRate = (taxableIncome: number, status: string) => {
-    if (status === "single") {
-      if (taxableIncome > 609350) return 37
-      if (taxableIncome > 243725) return 35
-      if (taxableIncome > 191950) return 32
-      if (taxableIncome > 100525) return 24
-      if (taxableIncome > 47150) return 22
-      if (taxableIncome > 11000) return 12
-      return 10
-    } else if (status === "married") {
-      if (taxableIncome > 731200) return 37
-      if (taxableIncome > 487450) return 35
-      if (taxableIncome > 383900) return 32
-      if (taxableIncome > 201050) return 24
-      if (taxableIncome > 94300) return 22
-      if (taxableIncome > 22000) return 12
-      return 10
-    }
-    return 10
-  }
+      marginalRate,
+    });
+  };
 
   return (
       <div className="min-h-screen bg-gray-50">
@@ -185,7 +200,7 @@ export default function TaxCalculator() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  <Tabs value={taxType} onValueChange={setTaxType} className="w-full">
+                  <Tabs value={taxType} onValueChange={handleTabChange} className="w-full">
                     <TabsList className="grid w-full grid-cols-2">
                       <TabsTrigger value="individual" className="flex items-center gap-2">
                         <Users className="h-4 w-4" />
@@ -372,17 +387,17 @@ export default function TaxCalculator() {
                   </Button>
 
                   {result && (
-                      <div className="calculator-result space-y-4">
+                      <div className="calculator-result space-y-4 mt-6">
                         <h3 className="text-lg font-semibold text-blue-800">
                           {result.type === "individual" ? "Your Tax Calculation" : "Your Business Tax Analysis"}
                         </h3>
 
-                        {result.type === "individual" ? (
+                        {result.type === "individual" && taxType === "individual" ? (
                             <>
                               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div>
                                   <p className="text-sm text-gray-600">Federal Tax Owed</p>
-                                  <p className="text-3xl font-bold text-red-600">${result.finalTax.toLocaleString()}</p>
+                                  <p className="text-3xl font-bold text-red-600">${result.finalTax.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
                                 </div>
                                 <div>
                                   <p className="text-sm text-gray-600">Effective Tax Rate</p>
@@ -403,27 +418,27 @@ export default function TaxCalculator() {
                                   </div>
                                   <div className="flex justify-between">
                                     <span>Adjusted Gross Income:</span>
-                                    <span>${result.adjustedGrossIncome.toLocaleString()}</span>
+                                    <span>${result.adjustedGrossIncome.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
                                   </div>
                                   <div className="flex justify-between">
                                     <span>{result.usingStandardDeduction ? "Standard" : "Itemized"} Deduction:</span>
-                                    <span className="text-green-600">-${result.totalDeductions.toLocaleString()}</span>
+                                    <span className="text-green-600">-${result.totalDeductions.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
                                   </div>
                                   <div className="flex justify-between border-t pt-2">
                                     <span>Taxable Income:</span>
-                                    <span className="font-semibold">${result.taxableIncome.toLocaleString()}</span>
+                                    <span className="font-semibold">${result.taxableIncome.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
                                   </div>
                                   <div className="flex justify-between">
                                     <span>Federal Tax Before Credits:</span>
-                                    <span>${result.federalTax.toLocaleString()}</span>
+                                    <span>${result.federalTax.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
                                   </div>
                                   <div className="flex justify-between">
                                     <span>Tax Credits:</span>
-                                    <span className="text-green-600">-${result.taxCredits.toLocaleString()}</span>
+                                    <span className="text-green-600">-${result.taxCredits.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
                                   </div>
                                   <div className="flex justify-between border-t pt-2 font-semibold">
                                     <span>Final Tax Owed:</span>
-                                    <span>${result.finalTax.toLocaleString()}</span>
+                                    <span>${result.finalTax.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
                                   </div>
                                 </div>
                               </div>
@@ -432,27 +447,27 @@ export default function TaxCalculator() {
                                   <div className="bg-blue-50 p-4 rounded-lg">
                                     <h4 className="font-semibold mb-2 text-blue-800">Itemized Deductions Breakdown:</h4>
                                     <p className="text-sm text-blue-700">
-                                      Your itemized deductions (${result.itemizedDeductions.toLocaleString()}) exceed the
+                                      Your itemized deductions (${result.itemizedDeductions.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}) exceed the
                                       standard deduction, saving you $
                                       {(
                                           result.itemizedDeductions -
                                           (filingStatus === "married" ? 29200 : filingStatus === "head" ? 21900 : 14600)
-                                      ).toLocaleString()}{" "}
+                                      ).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}{" "}
                                       in taxable income.
                                     </p>
                                   </div>
                               )}
                             </>
-                        ) : (
+                        ) : result.type === "business" && taxType === "business" ? (
                             <>
                               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div>
                                   <p className="text-sm text-gray-600">Estimated Tax Savings</p>
-                                  <p className="text-3xl font-bold text-green-600">${result.taxSavings.toLocaleString()}</p>
+                                  <p className="text-3xl font-bold text-green-600">${result.taxSavings.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
                                 </div>
                                 <div>
                                   <p className="text-sm text-gray-600">Total Tax Owed</p>
-                                  <p className="text-2xl font-bold text-red-600">${result.totalTax.toLocaleString()}</p>
+                                  <p className="text-2xl font-bold text-red-600">${result.totalTax.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
                                 </div>
                                 <div>
                                   <p className="text-sm text-gray-600">Effective Tax Rate</p>
@@ -473,24 +488,24 @@ export default function TaxCalculator() {
                                   </div>
                                   <div className="flex justify-between border-t pt-2">
                                     <span>Net Business Income:</span>
-                                    <span className="font-semibold">${result.netBusinessIncome.toLocaleString()}</span>
+                                    <span className="font-semibold">${result.netBusinessIncome.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
                                   </div>
                                   <div className="flex justify-between">
                                     <span>Self-Employment Tax:</span>
-                                    <span>${result.selfEmploymentTax.toLocaleString()}</span>
+                                    <span>${result.selfEmploymentTax.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
                                   </div>
                                   <div className="flex justify-between">
                                     <span>Federal Income Tax:</span>
-                                    <span>${result.federalTax.toLocaleString()}</span>
+                                    <span>${result.federalTax.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
                                   </div>
                                   <div className="flex justify-between border-t pt-2 font-semibold">
                                     <span>Total Tax:</span>
-                                    <span>${result.totalTax.toLocaleString()}</span>
+                                    <span>${result.totalTax.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
                                   </div>
                                 </div>
                               </div>
                             </>
-                        )}
+                        ): null}
 
                         <div className="bg-yellow-50 p-4 rounded-lg">
                           <p className="text-sm text-yellow-800">

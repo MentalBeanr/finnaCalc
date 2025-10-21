@@ -39,7 +39,13 @@ export default function LoanCalculator() {
   const [loanType, setLoanType] = useState("personal")
   const [paymentFrequency, setPaymentFrequency] = useState("monthly")
   const [downPayment, setDownPayment] = useState("")
-  const [result, setResult] = useState<any>(null)
+  const [result, setResult] = useState<any>(null) // State to hold calculation results
+
+  // Function to handle tab changes and clear results
+  const handleTabChange = (value: string) => {
+    setResult(null); // Clear previous results when changing tabs
+    setCalculationType(value);
+  };
 
   const calculatePayment = () => {
     const principal = (Number.parseFloat(loanAmount) || 0) - (Number.parseFloat(downPayment) || 0)
@@ -160,7 +166,7 @@ export default function LoanCalculator() {
   }
 
   const handleCalculate = () => {
-    setResult(null)
+    setResult(null) // Clear previous results before calculating
     switch (calculationType) {
       case "payment":
         calculatePayment()
@@ -200,7 +206,8 @@ export default function LoanCalculator() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <Tabs value={calculationType} onValueChange={setCalculationType} className="w-full">
+                  {/* **FIX**: Added onValueChange to Tabs */}
+                  <Tabs value={calculationType} onValueChange={handleTabChange} className="w-full">
                     <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 mb-6">
                       <TabsTrigger value="payment" className="text-xs sm:text-sm">
                         Payment
@@ -431,6 +438,7 @@ export default function LoanCalculator() {
                                 : "Remaining Balance"}
                   </Button>
 
+                  {/* **FIX**: Conditional rendering based on result AND calculationType */}
                   {result && (
                       <div className="calculator-result space-y-4 mt-6">
                         {result.error ? (
@@ -451,7 +459,7 @@ export default function LoanCalculator() {
                                 Calculation
                               </h3>
 
-                              {result.type === "payment" && (
+                              {result.type === "payment" && calculationType === "payment" && (
                                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                       <p className="text-sm text-gray-600">Payment per Period</p>
@@ -484,7 +492,7 @@ export default function LoanCalculator() {
                                   </div>
                               )}
 
-                              {result.type === "apr" && (
+                              {result.type === "apr" && calculationType === "apr" && (
                                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                       <p className="text-sm text-gray-600">Annual Percentage Rate (APR)</p>
@@ -497,12 +505,12 @@ export default function LoanCalculator() {
                                   </div>
                               )}
 
-                              {result.type === "loanAmount" && (
+                              {result.type === "loanAmount" && calculationType === "loanAmount" && (
                                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                       <p className="text-sm text-gray-600">Maximum Loan Amount</p>
                                       <p className="text-3xl font-bold text-green-600">
-                                        ${result.maxLoanAmount.toLocaleString()}
+                                        ${result.maxLoanAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                       </p>
                                     </div>
                                     <div>
@@ -512,12 +520,12 @@ export default function LoanCalculator() {
                                   </div>
                               )}
 
-                              {result.type === "remaining" && (
+                              {result.type === "remaining" && calculationType === "remaining" && (
                                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                       <p className="text-sm text-gray-600">Remaining Balance</p>
                                       <p className="text-3xl font-bold text-green-600">
-                                        ${result.remainingBalance.toLocaleString()}
+                                        ${result.remainingBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                       </p>
                                     </div>
                                     <div>
@@ -526,7 +534,7 @@ export default function LoanCalculator() {
                                     </div>
                                     <div>
                                       <p className="text-sm text-gray-600">Total Paid So Far</p>
-                                      <p className="text-2xl font-bold text-purple-600">${result.totalPaid.toLocaleString()}</p>
+                                      <p className="text-2xl font-bold text-purple-600">${result.totalPaid.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                                     </div>
                                     <div>
                                       <p className="text-sm text-gray-600">Monthly Payment</p>
