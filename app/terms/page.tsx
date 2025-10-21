@@ -30,14 +30,14 @@ export default function TermsOfService() {
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
                                 <FileText className="h-6 w-6 text-blue-600" />
-                                Agreement to Terms
+                                Terms of Service Agreement
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <p className="text-gray-600">
-                                These Terms of Service ("Terms") govern your use of FinnaCalc's website and services. By accessing or
+                                These Terms of Service govern your use of FinnaCalc's website and services. By accessing or
                                 using the services, you agree to be bound by these Terms. If you disagree with any part of these terms,
-                                then you may not access the services.
+                                then you may and should not access the services.
                             </p>
                             <p className="text-gray-600">
                                 The right to update these Terms at any time is reserved. Changes will be effective immediately upon

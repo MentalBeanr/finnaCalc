@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -15,15 +15,43 @@ import {
     ExternalLink,
     ChevronRight,
 } from "lucide-react"
-import {
-    LineChart,
-    Line,
-    XAxis,
-    YAxis,
-    CartesianGrid,
-    Tooltip,
-    ResponsiveContainer,
-} from "recharts"
+
+// TradingView Widget Component
+const TradingViewWidget = ({ symbol }: { symbol: string }) => {
+    const container = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const script = document.createElement("script");
+        script.src = "https://s3.tradingview.com/tv.js";
+        script.type = "text/javascript";
+        script.async = true;
+        script.onload = () => {
+            if (window.TradingView) {
+                new window.TradingView.widget({
+                    autosize: true,
+                    symbol: symbol,
+                    interval: "D",
+                    timezone: "Etc/UTC",
+                    theme: "light",
+                    style: "1",
+                    locale: "en",
+                    toolbar_bg: "#f1f3f6",
+                    enable_publishing: false,
+                    allow_symbol_change: true,
+                    container_id: container.current?.id
+                });
+            }
+        };
+        container.current?.appendChild(script);
+    }, [symbol]);
+
+    return (
+        <div className="tradingview-widget-container" style={{ height: "400px", width: "100%" }}>
+            <div id={`tradingview_${symbol}`} ref={container} style={{ height: "100%", width: "100%" }}></div>
+        </div>
+    );
+};
+
 
 interface StockResearchToolsProps {
     onBack: () => void
@@ -312,45 +340,13 @@ export default function StockResearchTools({ onBack }: StockResearchToolsProps) 
                                                 </div>
                                             </CardContent>
                                         </Card>
-                                        {chartData.length > 0 && (
+                                        {stockData.symbol && (
                                             <Card>
                                                 <CardHeader>
-                                                    <CardTitle>30-Day Price History</CardTitle>
+                                                    <CardTitle>TradingView Chart</CardTitle>
                                                 </CardHeader>
                                                 <CardContent>
-                                                    <div style={{ width: "100%", height: 300 }}>
-                                                        <ResponsiveContainer>
-                                                            <LineChart data={chartData}>
-                                                                <CartesianGrid strokeDasharray="3 3" />
-                                                                <XAxis
-                                                                    dataKey="date"
-                                                                    fontSize={12}
-                                                                    tickLine={false}
-                                                                    axisLine={false}
-                                                                />
-                                                                <YAxis
-                                                                    domain={["auto", "auto"]}
-                                                                    fontSize={12}
-                                                                    tickLine={false}
-                                                                    axisLine={false}
-                                                                    tickFormatter={value => `$${value}`}
-                                                                />
-                                                                <Tooltip
-                                                                    formatter={(value: number) => [
-                                                                        `$${value.toFixed(2)}`,
-                                                                        "Price",
-                                                                    ]}
-                                                                />
-                                                                <Line
-                                                                    type="monotone"
-                                                                    dataKey="price"
-                                                                    stroke="#3B82F6"
-                                                                    strokeWidth={2}
-                                                                    dot={false}
-                                                                />
-                                                            </LineChart>
-                                                        </ResponsiveContainer>
-                                                    </div>
+                                                    <TradingViewWidget symbol={stockData.symbol} />
                                                 </CardContent>
                                             </Card>
                                         )}

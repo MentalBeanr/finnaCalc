@@ -13,11 +13,13 @@ import {
     History,
     PlusCircle,
     Save,
-    CalendarDays,
     XCircle,
     Lightbulb,
     ThumbsUp,
     Award,
+    Banknote,
+    FileText,
+    Plug,
 } from "lucide-react"
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from "recharts"
 import { Button } from "@/components/ui/button"
@@ -30,15 +32,13 @@ import { Progress } from "@/components/ui/progress"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
-import { Calendar } from "@/components/ui/calendar"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useLocalStorage } from "@/hooks/use-local-storage"
 import Link from "next/link"
-import { format, parseISO, differenceInDays } from 'date-fns';
+import { format, parseISO, differenceInDays, isValid } from 'date-fns';
 import { toast } from "sonner"
-import { DateRange } from "react-day-picker"
 import { cn } from "@/lib/utils"
+
 const convertToMonthly = (amount: number, frequency: string): number => {
     switch (frequency) {
         case 'Weekly':
@@ -53,6 +53,7 @@ const convertToMonthly = (amount: number, frequency: string): number => {
             return 0;
     }
 };
+
 interface BudgetItem {
     id: string
     category: string
@@ -99,7 +100,7 @@ const businessCategories = {
 };
 
 // Helper function to generate dynamic analysis
-const generateBudgetAnalysis = (monthlyIncome: number, monthlyNet: number, pieChartData: {name: string, value: number}[], savingsGoals: SavingsGoal[], budgetItems: BudgetItem[]) => {
+const generateBudgetAnalysis = (monthlyIncome: number, monthlyNet: number, pieChartData: { name: string, value: number }[], savingsGoals: SavingsGoal[], budgetItems: BudgetItem[]) => {
     const feedback: { type: 'success' | 'warning' | 'info' | 'destructive'; title: string; message: string; icon: React.ReactNode }[] = [];
     const savingsRate = monthlyIncome > 0 ? (monthlyNet / monthlyIncome) * 100 : 0;
 
@@ -213,12 +214,24 @@ export default function BudgetingPage() {
     const [amountToAdd, setAmountToAdd] = useState("");
 
     const [isSaveHistoryModalOpen, setIsSaveHistoryModalOpen] = useState(false);
-    const [customDate, setCustomDate] = useState<DateRange | undefined>();
+    const [historyStartDate, setHistoryStartDate] = useState<string>("");
+    const [historyEndDate, setHistoryEndDate] = useState<string>("");
     const [historyError, setHistoryError] = useState<string | null>(null);
     const [historyCustomName, setHistoryCustomName] = useState("");
 
     const [viewingHistoryEntry, setViewingHistoryEntry] = useState<BudgetHistoryEntry | null>(null);
     const [isHistoryDetailModalOpen, setIsHistoryDetailModalOpen] = useState(false);
+
+    // New states for clearing data
+    const [isClearDataModalOpen, setIsClearDataModalOpen] = useState(false);
+    const [clearOption, setClearOption] = useState<'budget' | 'all' | null>(null);
+
+    // New states for bank integration
+    const [isBankActionsModalOpen, setIsBankActionsModalOpen] = useState(false);
+    const [isFileUploadModalOpen, setIsFileUploadModalOpen] = useState(false);
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [isConnectingBankModalOpen, setIsConnectingBankModalOpen] = useState(false);
+
 
     useEffect(() => {
         setMounted(true);
@@ -357,16 +370,26 @@ export default function BudgetingPage() {
         }
     };
 
-    const handleSaveBudgetHistory = () => {
+    const handleSaveBudgetHistory = (
+        itemsToSave: BudgetItem[] = filteredBudgetItems,
+        income: number = monthlyIncome,
+        expenses: number = monthlyExpenses,
+        net: number = monthlyNet,
+        type: 'personal' | 'business' = budgetType,
+        customName: string = historyCustomName,
+        startDate: string = historyStartDate,
+        endDate: string = historyEndDate,
+        isImport: boolean = false
+    ) => {
         setHistoryError(null);
-        let start: Date | undefined = customDate?.from;
-        let end: Date | undefined = customDate?.to;
 
-        if (!start) {
+        if (!startDate) {
             setHistoryError('Please select a start date.');
             return;
         }
-        if (!end) end = start;
+
+        const start = parseISO(startDate);
+        const end = endDate ? parseISO(endDate) : start;
 
         if (start > end) {
             setHistoryError('Start date cannot be after end date.');
@@ -374,7 +397,7 @@ export default function BudgetingPage() {
         }
 
         const duration = differenceInDays(end, start);
-        if (duration < 6) {
+        if (duration < 6 && !isImport) { // Allow shorter duration for imported statements
             setHistoryError('The minimum timeframe is one week.');
             return;
         }
@@ -383,28 +406,196 @@ export default function BudgetingPage() {
             return;
         }
 
-        const defaultName = `Budget: ${format(start, 'MMM d, yyyy')} - ${format(end, 'MMM d, yyyy')}`;
-        const name = historyCustomName.trim() || defaultName;
+        const defaultName = `Budget: ${format(start, 'MMM d, yyyy')}` + (endDate ? ` - ${format(end, 'MMM d, yyyy')}` : '');
+        const name = customName.trim() || defaultName;
 
         const newHistoryEntry: BudgetHistoryEntry = {
             id: Date.now().toString(),
             name,
             startDate: start.toISOString(),
             endDate: end.toISOString(),
-            budgetItems: [...filteredBudgetItems],
-            monthlyIncome,
-            monthlyExpenses,
-            monthlyNet,
-            budgetType,
+            budgetItems: [...itemsToSave],
+            monthlyIncome: income,
+            monthlyExpenses: expenses,
+            monthlyNet: net,
+            budgetType: type,
         };
 
         setBudgetHistory([...budgetHistory, newHistoryEntry]);
         setIsSaveHistoryModalOpen(false);
         setHistoryError(null);
-        setCustomDate(undefined);
+        setHistoryStartDate("");
+        setHistoryEndDate("");
         setHistoryCustomName("");
         toast.success("Budget snapshot saved to history!");
     };
+
+    const removeBudgetHistoryEntry = (id: string, name: string) => {
+        toast(`Are you sure you want to delete the history snapshot "${name}"?`, {
+            action: {
+                label: "Delete",
+                onClick: () => {
+                    setBudgetHistory(budgetHistory.filter((entry) => entry.id !== id));
+                    toast.success(`"${name}" has been deleted.`);
+                },
+            },
+            cancel: {
+                label: "Cancel",
+            },
+        });
+    };
+
+    const handleClearData = () => {
+        if (clearOption === 'budget') {
+            setBudgetItems([]);
+            toast.success("Current budget items cleared!");
+        } else if (clearOption === 'all') {
+            setBudgetItems([]);
+            setSavingsGoals([]);
+            setBudgetHistory([]);
+            toast.success("All budgeting data cleared!");
+        }
+        setIsClearDataModalOpen(false);
+        setClearOption(null);
+    };
+
+    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        if (event.target.files && event.target.files[0]) {
+            setSelectedFile(event.target.files[0]);
+        } else {
+            setSelectedFile(null);
+        }
+    };
+
+    // Basic AI-like parsing for bank statements (placeholder logic)
+    const parseBankStatement = async (file: File) => {
+        const text = await file.text();
+        const lines = text.split('\n');
+        const parsedItems: BudgetItem[] = [];
+        let statementStartDate: Date | null = null;
+        let statementEndDate: Date | null = null;
+
+        // Regex for common date formats (MM/DD/YYYY, YYYY-MM-DD, Month DD, YYYY)
+        const dateRegex = /(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})|([A-Za-z]+ \d{1,2},? \d{4})/;
+        // Regex for amount: looks for numbers with optional thousands comma and two decimal places, possibly negative
+        const amountRegex = /(-?\$?\d{1,3}(?:,?\d{3})*\.\d{2})/;
+
+        // Helper to parse date
+        const parseDate = (dateString: string): Date | null => {
+            try {
+                // Try different formats
+                const formats = [
+                    'MM/dd/yyyy', 'M/d/yyyy',
+                    'yyyy-MM-dd',
+                    'MMM d, yyyy', 'MMMM d, yyyy'
+                ];
+                for (let f of formats) {
+                    const parsed = format(new Date(dateString), f);
+                    if (isValid(parsed)) return new Date(dateString);
+                }
+            } catch (e) {
+                // console.error("Failed to parse date:", dateString, e);
+            }
+            return null;
+        };
+
+        lines.forEach(line => {
+            const dateMatch = line.match(dateRegex);
+            const amountMatch = line.match(amountRegex);
+
+            if (dateMatch && amountMatch) {
+                let datePart = dateMatch[0];
+                let amountPart = amountMatch[0];
+
+                const itemDate = parseDate(datePart);
+                if (itemDate) {
+                    if (!statementStartDate || itemDate < statementStartDate) statementStartDate = itemDate;
+                    if (!statementEndDate || itemDate > statementEndDate) statementEndDate = itemDate;
+                }
+
+                const amount = parseFloat(amountPart.replace(/[^0-9.-]+/g, "")); // Remove all non-numeric except . and -
+                if (isNaN(amount)) return;
+
+                let type: "income" | "expense" = amount > 0 ? "income" : "expense";
+                let category: string = "Other";
+                let subcategory: string = line.replace(datePart, "").replace(amountPart, "").trim();
+
+                // Basic categorization based on keywords
+                const lowerLine = line.toLowerCase();
+                if (lowerLine.includes("deposit") || lowerLine.includes("salary") || lowerLine.includes("paycheck")) {
+                    category = "Salary"; type = "income";
+                } else if (lowerLine.includes("rent") || lowerLine.includes("mortgage")) {
+                    category = "Housing"; type = "expense";
+                } else if (lowerLine.includes("utility") || lowerLine.includes("electric") || lowerLine.includes("water") || lowerLine.includes("gas")) {
+                    category = "Utilities"; type = "expense";
+                } else if (lowerLine.includes("grocery") || lowerLine.includes("food") || lowerLine.includes("restaurant")) {
+                    category = "Food"; type = "expense";
+                } else if (lowerLine.includes("insurance")) {
+                    category = "Insurance"; type = "expense";
+                } else if (lowerLine.includes("payment to") || lowerLine.includes("loan payment")) {
+                    category = "Debt Payments"; type = "expense";
+                } else if (lowerLine.includes("transfer from")) {
+                    type = "income"; category = "Transfer In";
+                } else if (lowerLine.includes("transfer to")) {
+                    type = "expense"; category = "Transfer Out";
+                }
+
+                parsedItems.push({
+                    id: `${Date.now()}-${Math.random()}`, // Unique ID
+                    category: category,
+                    subcategory: subcategory,
+                    amount: Math.abs(amount), // Always store positive, type handles sign
+                    frequency: "monthly", // Default to monthly for statement items
+                    type: type,
+                    isFixed: false,
+                    budgetType: budgetType, // Use current budget type
+                    importDate: itemDate?.toISOString(),
+                });
+            }
+        });
+
+        // If no dates found, default to current month
+        if (!statementStartDate || !statementEndDate) {
+            const today = new Date();
+            statementStartDate = new Date(today.getFullYear(), today.getMonth(), 1);
+            statementEndDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+        }
+
+        const totalIncome = parsedItems.filter(item => item.type === 'income').reduce((sum, item) => sum + item.amount, 0);
+        const totalExpenses = parsedItems.filter(item => item.type === 'expense').reduce((sum, item) => sum + item.amount, 0);
+
+        // Save to history
+        handleSaveBudgetHistory(
+            parsedItems,
+            totalIncome,
+            totalExpenses,
+            totalIncome - totalExpenses,
+            budgetType,
+            `${file.name} Import: ${format(statementStartDate, 'MMM d, yyyy')} - ${format(statementEndDate, 'MMM d, yyyy')}`,
+            statementStartDate.toISOString(),
+            statementEndDate.toISOString(),
+            true // Mark as import
+        );
+
+        toast.success("Bank statement processed and saved to history!");
+        setIsFileUploadModalOpen(false);
+        setSelectedFile(null);
+    };
+
+
+    const handleUploadStatement = async () => {
+        if (selectedFile) {
+            try {
+                await parseBankStatement(selectedFile);
+            } catch (error) {
+                console.error("Error processing bank statement:", error);
+                toast.error("Failed to process bank statement. Please try a different file format.");
+            }
+        } else {
+            toast.error("Please select a file to upload.");
+        }
+    };
+
 
     const [chartView, setChartView] = useState<'expense' | 'income'>('expense');
 
@@ -465,6 +656,24 @@ export default function BudgetingPage() {
                             <div>
                                 <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">{budgetType === 'personal' ? 'Personal' : 'Business'} Budget Planner</h1>
                                 <p className="text-gray-600">Take control of your finances with our comprehensive budgeting tool</p>
+                            </div>
+                            <div className="flex gap-2">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setIsBankActionsModalOpen(true)}
+                                    className="flex items-center gap-1"
+                                >
+                                    <Banknote className="h-4 w-4" /> Bank Actions
+                                </Button>
+                                <Button
+                                    variant="destructive"
+                                    size="sm"
+                                    onClick={() => setIsClearDataModalOpen(true)}
+                                    className="flex items-center gap-1"
+                                >
+                                    <Trash2 className="h-4 w-4" /> Clear Data
+                                </Button>
                             </div>
                         </div>
                     </div>
@@ -801,15 +1010,6 @@ export default function BudgetingPage() {
                                         <p className="text-gray-500 text-center py-8">Add some income and expenses to see your budget analysis here!</p>
                                     ) : (
                                         <>
-                                            {/*}
-                                            <Alert className="bg-blue-50 border-blue-200 text-blue-800">
-                                                <AlertCircle className="h-4 w-4 text-blue-600" />
-                                                <AlertTitle className="text-blue-800">Overview</AlertTitle>
-                                                <AlertDescription className="text-blue-700">
-                                                    Your monthly income is <span className="font-semibold">${monthlyIncome.toFixed(2)}</span> and your monthly expenses are <span className="font-semibold">${monthlyExpenses.toFixed(2)}</span>, resulting in a net of <span className="font-semibold">${monthlyNet.toFixed(2)}</span>.
-                                                </AlertDescription>
-                                            </Alert>
-                                            */}
                                             {analysisFeedback.map((item, index) => {
                                                 let variant: 'default' | 'destructive' = 'default';
                                                 let customClass = '';
@@ -1008,12 +1208,23 @@ export default function BudgetingPage() {
                                                         </p>
                                                         <p className="text-xs text-gray-500 capitalize">{entry.budgetType} Budget</p>
                                                     </div>
-                                                    <Button variant="outline" onClick={() => {
-                                                        setViewingHistoryEntry(entry);
-                                                        setIsHistoryDetailModalOpen(true);
-                                                    }}>
-                                                        View Details
-                                                    </Button>
+                                                    <div className="flex gap-2">
+                                                        <Button variant="outline" onClick={() => {
+                                                            setViewingHistoryEntry(entry);
+                                                            setIsHistoryDetailModalOpen(true);
+                                                        }}>
+                                                            View Details
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() => removeBudgetHistoryEntry(entry.id, entry.name)}
+                                                            className="text-red-600 hover:text-red-700 hover:bg-red-50 p-2"
+                                                            title="Delete snapshot"
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    </div>
                                                 </div>
                                             ))}
                                         </div>
@@ -1076,48 +1287,32 @@ export default function BudgetingPage() {
                         </div>
                         <div>
                             <Label>Select Date Range</Label>
-                            <Popover>
-                                <PopoverTrigger asChild>
-                                    <Button
-                                        id="date"
-                                        variant={"outline"}
-                                        className={cn(
-                                            "w-full justify-start text-left font-normal",
-                                            !customDate && "text-muted-foreground"
-                                        )}
-                                    >
-                                        <CalendarDays className="mr-2 h-4 w-4" />
-                                        {customDate?.from ? (
-                                            customDate.to ? (
-                                                <>
-                                                    {format(customDate.from, "LLL dd, y")} -{" "}
-                                                    {format(customDate.to, "LLL dd, y")}
-                                                </>
-                                            ) : (
-                                                format(customDate.from, "LLL dd, y")
-                                            )
-                                        ) : (
-                                            <span>Pick a date range</span>
-                                        )}
-                                    </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0" align="start">
-                                    <Calendar
-                                        initialFocus
-                                        mode="range"
-                                        defaultMonth={customDate?.from}
-                                        selected={customDate}
-                                        onSelect={setCustomDate}
-                                        numberOfMonths={2}
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <Label htmlFor="start-date" className="text-sm font-normal">Start Date</Label>
+                                    <Input
+                                        id="start-date"
+                                        type="date"
+                                        value={historyStartDate}
+                                        onChange={(e) => setHistoryStartDate(e.target.value)}
                                     />
-                                </PopoverContent>
-                            </Popover>
+                                </div>
+                                <div>
+                                    <Label htmlFor="end-date" className="text-sm font-normal">End Date</Label>
+                                    <Input
+                                        id="end-date"
+                                        type="date"
+                                        value={historyEndDate}
+                                        onChange={(e) => setHistoryEndDate(e.target.value)}
+                                    />
+                                </div>
+                            </div>
                             {historyError && <p className="text-red-500 text-sm mt-2">{historyError}</p>}
                         </div>
                     </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setIsSaveHistoryModalOpen(false)}>Cancel</Button>
-                        <Button onClick={handleSaveBudgetHistory}>Save Snapshot</Button>
+                        <Button onClick={() => handleSaveBudgetHistory()}>Save Snapshot</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
@@ -1200,6 +1395,111 @@ export default function BudgetingPage() {
                     </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setIsHistoryDetailModalOpen(false)}>Close</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Clear Data Confirmation Modal */}
+            <Dialog open={isClearDataModalOpen} onOpenChange={setIsClearDataModalOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Clear Budget Data</DialogTitle>
+                        <DialogDescription>
+                            Please select what you would like to clear. This action cannot be undone.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <Button
+                            variant={clearOption === 'budget' ? 'default' : 'outline'}
+                            onClick={() => setClearOption('budget')}
+                        >
+                            Clear Current Budget Items
+                        </Button>
+                        <Button
+                            variant={clearOption === 'all' ? 'destructive' : 'outline'}
+                            onClick={() => setClearOption('all')}
+                        >
+                            Clear All Budget Data (Budget Items, Goals, History)
+                        </Button>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsClearDataModalOpen(false)}>Cancel</Button>
+                        <Button variant="destructive" onClick={handleClearData} disabled={clearOption === null}>
+                            Confirm Clear
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Bank Actions Modal */}
+            <Dialog open={isBankActionsModalOpen} onOpenChange={setIsBankActionsModalOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Bank Actions</DialogTitle>
+                        <DialogDescription>
+                            Upload a bank statement or connect your bank account.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <Button onClick={() => { setIsBankActionsModalOpen(false); setIsFileUploadModalOpen(true); }} className="flex items-center justify-center gap-2">
+                            <FileText className="h-4 w-4" /> Upload Bank Statement
+                        </Button>
+                        <Button onClick={() => { setIsBankActionsModalOpen(false); setIsConnectingBankModalOpen(true); }} className="flex items-center justify-center gap-2" variant="outline">
+                            <Plug className="h-4 w-4" /> Connect Bank Account (Coming Soon)
+                        </Button>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsBankActionsModalOpen(false)}>Close</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* File Upload Modal */}
+            <Dialog open={isFileUploadModalOpen} onOpenChange={setIsFileUploadModalOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Upload Bank Statement</DialogTitle>
+                        <DialogDescription>
+                            Upload a text-based bank statement (.txt file) to automatically categorize transactions.
+                            <br/>
+                            <span className="text-red-500 font-semibold">Note:</span> This is a basic parser. For best results, use simple text statements.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <Input
+                            id="bank-statement-file"
+                            type="file"
+                            accept=".txt"
+                            onChange={handleFileChange}
+                        />
+                        {selectedFile && <p className="text-sm text-gray-600">Selected: {selectedFile.name}</p>}
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => { setIsFileUploadModalOpen(false); setSelectedFile(null); }}>Cancel</Button>
+                        <Button onClick={handleUploadStatement} disabled={!selectedFile}>Process Statement</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Connect Bank Account Modal (Coming Soon) */}
+            <Dialog open={isConnectingBankModalOpen} onOpenChange={setIsConnectingBankModalOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Connect Bank Account</DialogTitle>
+                        <DialogDescription>
+                            Seamlessly link your bank account to automatically import transactions.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-8 text-center">
+                        <Plug className="h-12 w-12 text-blue-500 mx-auto" />
+                        <p className="text-xl font-semibold text-gray-800">Coming Soon!</p>
+                        <p className="text-gray-600">
+                            We're working on integrating secure bank connections (e.g., via Plaid API) to make budgeting even easier.
+                            Stay tuned for updates!
+                        </p>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsConnectingBankModalOpen(false)}>Close</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
