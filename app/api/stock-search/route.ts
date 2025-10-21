@@ -9,6 +9,10 @@ export async function GET(req: NextRequest) {
     }
 
     const apiKey = process.env.ALPHA_VANTAGE_API_KEY
+
+    // --- Add this for debugging ---
+    console.log("Alpha Vantage API Key Present:", !!apiKey);
+    // ----------------------------
     if (!apiKey) {
         return NextResponse.json({ error: "API key is not configured." }, { status: 500 })
     }
