@@ -1,5 +1,6 @@
 "use client"
 
+
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -7,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
     ArrowLeft,
     Calculator,
@@ -18,34 +20,58 @@ import {
     ExternalLink,
     Info,
 } from "lucide-react"
+import { cn } from "@/lib/utils"
+
 
 interface TaxCalculatorsProps {
     onBack: () => void
 }
 
+
+// List of US states for the dropdown
+const usStates = [
+    "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA",
+    "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD",
+    "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ",
+    "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC",
+    "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY", "DC"
+];
+
+
 export default function TaxCalculators({ onBack }: TaxCalculatorsProps) {
     const [activeCalculator, setActiveCalculator] = useState("tax-calculator")
+    const [selectedState, setSelectedState] = useState(""); // State selection moved inside each calculator where relevant
+
+
+    // Tax Calculator States
     const [income, setIncome] = useState("")
     const [filingStatus, setFilingStatus] = useState("single")
-    const [deductions, setDeductions] = useState("standard")
     const [results, setResults] = useState<any>(null)
 
+
+    // Refund Estimator States
     const [refundIncome, setRefundIncome] = useState("")
     const [refundWithheld, setRefundWithheld] = useState("")
     const [refundCredits, setRefundCredits] = useState("")
     const [refundResults, setRefundResults] = useState<any>(null)
 
-    const [quarterlyIncome, setQuarterlyIncome] = useState("")
-    const [quarterlyExpenses, setQuarterlyExpenses] = useState("")
+
+    // Quarterly Payment States
+    const [quarterlyNetIncome, setQuarterlyNetIncome] = useState("")
     const [quarterlyResults, setQuarterlyResults] = useState<any>(null)
 
+
+    // Deduction Finder States
     const [selectedDeductions, setSelectedDeductions] = useState<Record<string, boolean>>({})
     const [deductionResults, setDeductionResults] = useState<any>(null)
 
+
+    // Withholding Calculator States
     const [withholdingIncome, setWithholdingIncome] = useState("")
     const [withholdingPayPeriods, setWithholdingPayPeriods] = useState("26")
     const [withholdingAllowances, setWithholdingAllowances] = useState("0")
     const [withholdingResults, setWithholdingResults] = useState<any>(null)
+
 
     const calculators = [
         {
@@ -57,114 +83,71 @@ export default function TaxCalculators({ onBack }: TaxCalculatorsProps) {
         {
             id: "refund-estimator",
             title: "Refund Estimator",
-            description: "See your potential tax refund",
+            description: "See your potential federal refund",
             icon: <DollarSign className="h-5 w-5" />,
         },
         {
             id: "deduction-finder",
             title: "Deduction Finder",
-            description: "Discover write-offs you might miss",
+            description: "Discover potential federal write-offs",
             icon: <Search className="h-5 w-5" />,
         },
         {
             id: "quarterly-calculator",
             title: "Quarterly Payments",
-            description: "Calculate estimated tax payments",
+            description: "Calculate estimated federal tax payments",
             icon: <Calendar className="h-5 w-5" />,
         },
         {
             id: "withholding-calculator",
             title: "Withholding Calculator",
-            description: "Adjust your paycheck withholdings",
+            description: "Adjust federal paycheck withholdings",
             icon: <PieChart className="h-5 w-5" />,
         },
     ]
 
+
+    // --- Calculation Functions ---
+
+
     const calculateTax = () => {
-        const incomeNum = Number.parseFloat(income) || 0
+        const incomeNum = Number.parseFloat(income) || 0;
+        let standardDeduction = 14600; // Single 2024
+        if (filingStatus === "married") standardDeduction = 29200;
+        if (filingStatus === "head") standardDeduction = 21900;
 
-        // 2024 standard deductions
-        let standardDeduction = 13850 // Single
-        if (filingStatus === "married") standardDeduction = 27700
-        if (filingStatus === "head") standardDeduction = 20800
 
-        const taxableIncome = Math.max(0, incomeNum - standardDeduction)
+        const taxableIncome = Math.max(0, incomeNum - standardDeduction);
+        let tax = 0;
+        let marginalRate = 0;
 
-        // 2024 tax brackets
-        let tax = 0
-        let marginalRate = 0
 
         if (filingStatus === "single") {
-            if (taxableIncome <= 11600) {
-                tax = taxableIncome * 0.1
-                marginalRate = 10
-            } else if (taxableIncome <= 47150) {
-                tax = 1160 + (taxableIncome - 11600) * 0.12
-                marginalRate = 12
-            } else if (taxableIncome <= 100525) {
-                tax = 5426 + (taxableIncome - 47150) * 0.22
-                marginalRate = 22
-            } else if (taxableIncome <= 191950) {
-                tax = 17168.5 + (taxableIncome - 100525) * 0.24
-                marginalRate = 24
-            } else if (taxableIncome <= 243725) {
-                tax = 39110.5 + (taxableIncome - 191950) * 0.32
-                marginalRate = 32
-            } else if (taxableIncome <= 609350) {
-                tax = 55678.5 + (taxableIncome - 243725) * 0.35
-                marginalRate = 35
-            } else {
-                tax = 183647.25 + (taxableIncome - 609350) * 0.37
-                marginalRate = 37
-            }
+            if (taxableIncome <= 11600) { tax = taxableIncome * 0.10; marginalRate = 10; }
+            else if (taxableIncome <= 47150) { tax = 1160 + (taxableIncome - 11600) * 0.12; marginalRate = 12; }
+            else if (taxableIncome <= 100525) { tax = 5426 + (taxableIncome - 47150) * 0.22; marginalRate = 22; }
+            else if (taxableIncome <= 191950) { tax = 17168.50 + (taxableIncome - 100525) * 0.24; marginalRate = 24; }
+            else if (taxableIncome <= 243725) { tax = 39110.50 + (taxableIncome - 191950) * 0.32; marginalRate = 32; }
+            else if (taxableIncome <= 609350) { tax = 55678.50 + (taxableIncome - 243725) * 0.35; marginalRate = 35; }
+            else { tax = 183647.25 + (taxableIncome - 609350) * 0.37; marginalRate = 37; }
         } else if (filingStatus === "married") {
-            if (taxableIncome <= 23200) {
-                tax = taxableIncome * 0.1
-                marginalRate = 10
-            } else if (taxableIncome <= 94300) {
-                tax = 2320 + (taxableIncome - 23200) * 0.12
-                marginalRate = 12
-            } else if (taxableIncome <= 201050) {
-                tax = 10852 + (taxableIncome - 94300) * 0.22
-                marginalRate = 22
-            } else if (taxableIncome <= 383900) {
-                tax = 34337 + (taxableIncome - 201050) * 0.24
-                marginalRate = 24
-            } else if (taxableIncome <= 487450) {
-                tax = 78221 + (taxableIncome - 383900) * 0.32
-                marginalRate = 32
-            } else if (taxableIncome <= 731200) {
-                tax = 111357 + (taxableIncome - 487450) * 0.35
-                marginalRate = 35
-            } else {
-                tax = 196669.5 + (taxableIncome - 731200) * 0.37
-                marginalRate = 37
-            }
-        } else {
-            // head of household
-            if (taxableIncome <= 16550) {
-                tax = taxableIncome * 0.1
-                marginalRate = 10
-            } else if (taxableIncome <= 63100) {
-                tax = 1655 + (taxableIncome - 16550) * 0.12
-                marginalRate = 12
-            } else if (taxableIncome <= 100500) {
-                tax = 7241 + (taxableIncome - 63100) * 0.22
-                marginalRate = 22
-            } else if (taxableIncome <= 191950) {
-                tax = 15469 + (taxableIncome - 100500) * 0.24
-                marginalRate = 24
-            } else if (taxableIncome <= 243700) {
-                tax = 37417 + (taxableIncome - 191950) * 0.32
-                marginalRate = 32
-            } else if (taxableIncome <= 609350) {
-                tax = 53977 + (taxableIncome - 243700) * 0.35
-                marginalRate = 35
-            } else {
-                tax = 181954.5 + (taxableIncome - 609350) * 0.37
-                marginalRate = 37
-            }
+            if (taxableIncome <= 23200) { tax = taxableIncome * 0.10; marginalRate = 10; }
+            else if (taxableIncome <= 94300) { tax = 2320 + (taxableIncome - 23200) * 0.12; marginalRate = 12; }
+            else if (taxableIncome <= 201050) { tax = 10852 + (taxableIncome - 94300) * 0.22; marginalRate = 22; }
+            else if (taxableIncome <= 383900) { tax = 34337 + (taxableIncome - 201050) * 0.24; marginalRate = 24; }
+            else if (taxableIncome <= 487450) { tax = 78221 + (taxableIncome - 383900) * 0.32; marginalRate = 32; }
+            else if (taxableIncome <= 731200) { tax = 111357 + (taxableIncome - 487450) * 0.35; marginalRate = 35; }
+            else { tax = 196669.50 + (taxableIncome - 731200) * 0.37; marginalRate = 37; }
+        } else { // Head of Household
+            if (taxableIncome <= 16550) { tax = taxableIncome * 0.10; marginalRate = 10; }
+            else if (taxableIncome <= 63100) { tax = 1655 + (taxableIncome - 16550) * 0.12; marginalRate = 12; }
+            else if (taxableIncome <= 100500) { tax = 7241 + (taxableIncome - 63100) * 0.22; marginalRate = 22; }
+            else if (taxableIncome <= 191950) { tax = 15469 + (taxableIncome - 100500) * 0.24; marginalRate = 24; }
+            else if (taxableIncome <= 243700) { tax = 37417 + (taxableIncome - 191950) * 0.32; marginalRate = 32; }
+            else if (taxableIncome <= 609350) { tax = 53977 + (taxableIncome - 243700) * 0.35; marginalRate = 35; }
+            else { tax = 181954.50 + (taxableIncome - 609350) * 0.37; marginalRate = 37; }
         }
+
 
         setResults({
             grossIncome: incomeNum,
@@ -173,33 +156,28 @@ export default function TaxCalculators({ onBack }: TaxCalculatorsProps) {
             estimatedTax: tax,
             effectiveRate: incomeNum > 0 ? (tax / incomeNum) * 100 : 0,
             marginalRate,
-        })
-    }
+            state: selectedState,
+        });
+    };
+
 
     const calculateRefund = () => {
-        const incomeNum = Number.parseFloat(refundIncome) || 0
-        const withheldNum = Number.parseFloat(refundWithheld) || 0
-        const creditsNum = Number.parseFloat(refundCredits) || 0
+        const incomeNum = Number.parseFloat(refundIncome) || 0;
+        const withheldNum = Number.parseFloat(refundWithheld) || 0;
+        const creditsNum = Number.parseFloat(refundCredits) || 0;
+        const standardDeduction = 14600; // Assuming single 2024
+        const taxableIncome = Math.max(0, incomeNum - standardDeduction);
+        let tax = 0;
+        if (taxableIncome <= 11600) { tax = taxableIncome * 0.10; }
+        else if (taxableIncome <= 47150) { tax = 1160 + (taxableIncome - 11600) * 0.12; }
+        else if (taxableIncome <= 100525) { tax = 5426 + (taxableIncome - 47150) * 0.22; }
+        else if (taxableIncome <= 191950) { tax = 17168.50 + (taxableIncome - 100525) * 0.24; }
+        else { tax = 39110.50 + (taxableIncome - 191950) * 0.32; }
 
-        // Calculate tax liability (simplified)
-        const standardDeduction = 13850
-        const taxableIncome = Math.max(0, incomeNum - standardDeduction)
 
-        let tax = 0
-        if (taxableIncome <= 11600) {
-            tax = taxableIncome * 0.1
-        } else if (taxableIncome <= 47150) {
-            tax = 1160 + (taxableIncome - 11600) * 0.12
-        } else if (taxableIncome <= 100525) {
-            tax = 5426 + (taxableIncome - 47150) * 0.22
-        } else if (taxableIncome <= 191950) {
-            tax = 17168.5 + (taxableIncome - 100525) * 0.24
-        } else {
-            tax = 39110.5 + (taxableIncome - 191950) * 0.32
-        }
+        const totalTaxLiability = Math.max(0, tax - creditsNum);
+        const refund = withheldNum - totalTaxLiability;
 
-        const totalTaxLiability = Math.max(0, tax - creditsNum)
-        const refund = withheldNum - totalTaxLiability
 
         setRefundResults({
             taxLiability: totalTaxLiability,
@@ -207,68 +185,55 @@ export default function TaxCalculators({ onBack }: TaxCalculatorsProps) {
             credits: creditsNum,
             refund: refund,
             owes: refund < 0,
-        })
-    }
+            state: selectedState,
+        });
+    };
+
 
     const calculateQuarterly = () => {
-        const incomeNum = Number.parseFloat(quarterlyIncome) || 0
-        const expensesNum = Number.parseFloat(quarterlyExpenses) || 0
+        const netIncome = Number.parseFloat(quarterlyNetIncome) || 0;
+        const seTaxableIncome = netIncome * 0.9235;
+        const selfEmploymentTax = seTaxableIncome * 0.153;
+        const deductibleSETax = selfEmploymentTax * 0.5;
+        const adjustedIncome = netIncome - deductibleSETax;
+        const standardDeduction = 14600; // Assuming single 2024
+        const taxableIncome = Math.max(0, adjustedIncome - standardDeduction);
+        let incomeTax = 0;
+        if (taxableIncome <= 11600) { incomeTax = taxableIncome * 0.10; }
+        else if (taxableIncome <= 47150) { incomeTax = 1160 + (taxableIncome - 11600) * 0.12; }
+        else if (taxableIncome <= 100525) { incomeTax = 5426 + (taxableIncome - 47150) * 0.22; }
+        else { incomeTax = 17168.50 + (taxableIncome - 100525) * 0.24; }
 
-        const netIncome = incomeNum - expensesNum
 
-        // Self-employment tax (15.3% on 92.35% of net income)
-        const selfEmploymentTax = netIncome * 0.9235 * 0.153
+        const totalFederalTax = incomeTax + selfEmploymentTax;
+        const quarterlyPayment = totalFederalTax / 4;
 
-        // Income tax on net income minus half of SE tax
-        const adjustedIncome = netIncome - selfEmploymentTax / 2
-        const standardDeduction = 13850
-        const taxableIncome = Math.max(0, adjustedIncome - standardDeduction)
-
-        let incomeTax = 0
-        if (taxableIncome <= 11600) {
-            incomeTax = taxableIncome * 0.1
-        } else if (taxableIncome <= 47150) {
-            incomeTax = 1160 + (taxableIncome - 11600) * 0.12
-        } else if (taxableIncome <= 100525) {
-            incomeTax = 5426 + (taxableIncome - 47150) * 0.22
-        } else {
-            incomeTax = 17168.5 + (taxableIncome - 100525) * 0.24
-        }
-
-        const totalTax = incomeTax + selfEmploymentTax
-        const quarterlyPayment = totalTax / 4
 
         setQuarterlyResults({
             netIncome,
             selfEmploymentTax,
             incomeTax,
-            totalTax,
+            totalTax: totalFederalTax,
             quarterlyPayment,
-        })
-    }
+            state: selectedState,
+        });
+    };
+
 
     const calculateDeductions = () => {
         let totalDeductions = 0
         const selectedItems: string[] = []
-
         deductionItems.forEach((category) => {
             category.items.forEach((item) => {
                 const key = `${category.category}-${item.name}`
                 if (selectedDeductions[key]) {
-                    selectedItems.push(item.name)
-                    // Parse amount and add to total
-                    const amountMatch = item.amount.match(/\$?([\d,]+)/)
-                    if (amountMatch) {
-                        const amount = Number.parseFloat(amountMatch[1].replace(/,/g, ""))
-                        totalDeductions += amount
-                    }
+                    selectedItems.push(item.name);
+                    totalDeductions += item.hypotheticalValue || 1000;
                 }
             })
         })
-
-        const standardDeduction = 13850
-        const shouldItemize = totalDeductions > standardDeduction
-
+        const standardDeduction = 14600; // Single 2024
+        const shouldItemize = totalDeductions > standardDeduction;
         setDeductionResults({
             totalItemized: totalDeductions,
             standardDeduction,
@@ -276,102 +241,85 @@ export default function TaxCalculators({ onBack }: TaxCalculatorsProps) {
             savings: shouldItemize ? totalDeductions - standardDeduction : 0,
             selectedCount: selectedItems.length,
             selectedItems,
-        })
+            state: selectedState,
+        });
     }
 
+
     const calculateWithholding = () => {
-        const incomeNum = Number.parseFloat(withholdingIncome) || 0
-        const payPeriodsNum = Number.parseFloat(withholdingPayPeriods) || 26
-        const allowancesNum = Number.parseFloat(withholdingAllowances) || 0
+        const incomeNum = Number.parseFloat(withholdingIncome) || 0;
+        const payPeriodsNum = Number.parseFloat(withholdingPayPeriods) || 26;
+        const allowancesNum = Number.parseFloat(withholdingAllowances) || 0;
+        const standardDeduction = 14600; // Assuming single 2024
+        const taxableIncome = Math.max(0, incomeNum - standardDeduction);
+        let annualTax = 0;
+        if (taxableIncome <= 11600) { annualTax = taxableIncome * 0.10; }
+        else if (taxableIncome <= 47150) { annualTax = 1160 + (taxableIncome - 11600) * 0.12; }
+        else if (taxableIncome <= 100525) { annualTax = 5426 + (taxableIncome - 47150) * 0.22; }
+        else { annualTax = 17168.50 + (taxableIncome - 100525) * 0.24; }
 
-        // Calculate annual tax liability
-        const standardDeduction = 13850
-        const taxableIncome = Math.max(0, incomeNum - standardDeduction)
 
-        let annualTax = 0
-        if (taxableIncome <= 11600) {
-            annualTax = taxableIncome * 0.1
-        } else if (taxableIncome <= 47150) {
-            annualTax = 1160 + (taxableIncome - 11600) * 0.12
-        } else if (taxableIncome <= 100525) {
-            annualTax = 5426 + (taxableIncome - 47150) * 0.22
-        } else {
-            annualTax = 17168.5 + (taxableIncome - 100525) * 0.24
-        }
+        const simplifiedAllowanceValue = 5150;
+        const adjustedAnnualTax = Math.max(0, annualTax - (allowancesNum * simplifiedAllowanceValue * 0.12));
+        const perPaycheck = adjustedAnnualTax / payPeriodsNum;
+        const monthlyWithholding = adjustedAnnualTax / 12;
 
-        // Adjust for allowances (each allowance reduces withholding)
-        const allowanceReduction = allowancesNum * 4300
-        const adjustedTax = Math.max(0, annualTax - allowanceReduction * 0.12)
-
-        const perPaycheck = adjustedTax / payPeriodsNum
-        const monthlyWithholding = adjustedTax / 12
 
         setWithholdingResults({
-            annualTax: adjustedTax,
+            annualTax: adjustedAnnualTax,
             perPaycheck,
             monthlyWithholding,
             payPeriods: payPeriodsNum,
             allowances: allowancesNum,
-        })
-    }
+            state: selectedState,
+        });
+    };
+
 
     const deductionItems = [
+        // Same deductionItems array as before...
         {
             category: "Home & Property",
             items: [
-                { name: "Mortgage Interest", amount: "Up to $750,000 loan", common: true },
-                { name: "Property Taxes", amount: "Up to $10,000", common: true },
-                { name: "Home Office", amount: "$5 per sq ft (max $1,500)", common: false },
-                { name: "Energy Efficient Improvements", amount: "Up to $3,200", common: false },
+                { name: "Mortgage Interest", amount: "Up to $750k loan", common: true, hypotheticalValue: 8000 },
+                { name: "Property Taxes", amount: "SALT Cap $10k", common: true, hypotheticalValue: 5000 },
+                { name: "Home Office", amount: "$5/sq ft (max $1.5k)", common: false, hypotheticalValue: 1500 },
+                { name: "Energy Credits", amount: "Up to $3.2k", common: false, hypotheticalValue: 1000 }, // Note: Credits != Deductions
             ],
         },
         {
             category: "Medical & Health",
             items: [
-                { name: "Medical Expenses", amount: "> 7.5% of AGI", common: false },
-                { name: "Health Insurance Premiums", amount: "Self-employed", common: false },
-                { name: "HSA Contributions", amount: "Up to $4,150", common: true },
-                { name: "Long-term Care Insurance", amount: "Age-based limits", common: false },
+                { name: "Medical Expenses", amount: "> 7.5% of AGI", common: false, hypotheticalValue: 3000 },
+                { name: "HSA Contributions", amount: "Up to $4.15k/$8.3k", common: true, hypotheticalValue: 4150 }, // Above-the-line
             ],
         },
         {
             category: "Education",
             items: [
-                { name: "Student Loan Interest", amount: "Up to $2,500", common: true },
-                { name: "Tuition & Fees", amount: "Varies", common: false },
-                { name: "American Opportunity Credit", amount: "Up to $2,500", common: true },
-                { name: "Lifetime Learning Credit", amount: "Up to $2,000", common: true },
-                { name: "Educator Expenses", amount: "Up to $300", common: false },
+                { name: "Student Loan Interest", amount: "Up to $2.5k", common: true, hypotheticalValue: 2500 }, // Above-the-line deduction
+                { name: "Educator Expenses", amount: "Up to $300", common: false, hypotheticalValue: 300 }, // Above-the-line deduction
             ],
         },
         {
             category: "Charitable & Other",
             items: [
-                { name: "Charitable Donations", amount: "Up to 60% AGI", common: true },
-                { name: "State & Local Taxes", amount: "Up to $10,000", common: true },
-                { name: "Business Expenses", amount: "Self-employed", common: false },
-                { name: "Job Search Expenses", amount: "Varies", common: false },
+                { name: "Charitable Donations", amount: "Up to 60% AGI", common: true, hypotheticalValue: 2000 },
+                { name: "State & Local Taxes (SALT)", amount: "Up to $10k", common: true, hypotheticalValue: 10000 }, // Itemized, subject to cap with property tax
+                { name: "Business Expenses", amount: "Self-employed", common: false, hypotheticalValue: 5000 }, // Schedule C
             ],
         },
         {
-            category: "Retirement & Investments",
+            category: "Retirement",
             items: [
-                { name: "Traditional IRA Contributions", amount: "Up to $7,000", common: true },
-                { name: "401(k) Contributions", amount: "Up to $23,000", common: true },
-                { name: "SEP IRA (Self-employed)", amount: "Up to $69,000", common: false },
-                { name: "Investment Interest", amount: "Limited to investment income", common: false },
+                { name: "Traditional IRA", amount: "Up to $7k/$8k", common: true, hypotheticalValue: 7000 }, // Above-the-line deduction
+                { name: "Self-Employed Retirement", amount: "Varies", common: false, hypotheticalValue: 10000 }, // E.g., SEP IRA, SIMPLE IRA - Above-the-line
             ],
         },
-        {
-            category: "Family & Dependents",
-            items: [
-                { name: "Child Tax Credit", amount: "Up to $2,000 per child", common: true },
-                { name: "Child & Dependent Care", amount: "Up to $3,000", common: true },
-                { name: "Adoption Credit", amount: "Up to $15,950", common: false },
-                { name: "Earned Income Tax Credit", amount: "Income-based", common: true },
-            ],
-        },
-    ]
+    ];
+
+
+
 
     const toggleDeduction = (category: string, itemName: string) => {
         const key = `${category}-${itemName}`
@@ -379,11 +327,15 @@ export default function TaxCalculators({ onBack }: TaxCalculatorsProps) {
             ...prev,
             [key]: !prev[key],
         }))
+        setTimeout(calculateDeductions, 0); // Recalculate after state update
     }
+
+
+    const commonDisclaimer = "*Estimate is for federal taxes only. State taxes vary and are not included.*";
+
 
     return (
         <div className="space-y-6">
-            {/* Header */}
             <div className="flex items-center gap-4">
                 <Button variant="outline" size="sm" onClick={onBack}>
                     <ArrowLeft className="h-4 w-4 mr-2" />
@@ -395,27 +347,9 @@ export default function TaxCalculators({ onBack }: TaxCalculatorsProps) {
                 </div>
             </div>
 
-            {/* Advertisement Space */}
-            <Card className="bg-gradient-to-r from-blue-50 to-green-50 border-blue-200 hidden">
-                <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <TrendingUp className="h-8 w-8 text-blue-600" />
-                            <div>
-                                <h3 className="font-semibold">Tax Planning Services</h3>
-                                <p className="text-sm text-muted-foreground">Professional tax strategy consultation</p>
-                            </div>
-                        </div>
-                        <Button size="sm" variant="outline">
-                            Get Started <ExternalLink className="h-3 w-3 ml-1" />
-                        </Button>
-                    </div>
-                </CardContent>
-            </Card>
 
             <div className="grid lg:grid-cols-4 gap-6">
-                {/* Calculator Navigation */}
-                <div className="lg:col-span-1">
+                <div className="lg:col-span-1 space-y-6">
                     <Card>
                         <CardHeader>
                             <CardTitle className="text-lg">Tax Tools</CardTitle>
@@ -425,102 +359,96 @@ export default function TaxCalculators({ onBack }: TaxCalculatorsProps) {
                                 {calculators.map((calc) => (
                                     <button
                                         key={calc.id}
-                                        onClick={() => setActiveCalculator(calc.id)}
-                                        className={`w-full text-left p-3 hover:bg-muted transition-colors ${
-                                            activeCalculator === calc.id ? "bg-muted border-r-2 border-primary" : ""
-                                        }`}
+                                        onClick={() => {
+                                            setActiveCalculator(calc.id);
+                                            // Clear specific results when switching calculators
+                                            setResults(null);
+                                            setRefundResults(null);
+                                            setDeductionResults(null);
+                                            setQuarterlyResults(null);
+                                            setWithholdingResults(null);
+                                        }}
+                                        className={cn(
+                                            "w-full text-left p-3 hover:bg-muted transition-colors flex items-center gap-3",
+                                            activeCalculator === calc.id ? "bg-muted border-l-2 border-primary" : ""
+                                        )}
                                     >
-                                        <div className="flex items-center gap-3">
-                                            <div className="text-primary">{calc.icon}</div>
-                                            <div>
-                                                <div className="font-medium text-sm">{calc.title}</div>
-                                                <div className="text-xs text-muted-foreground">{calc.description}</div>
-                                            </div>
+                                        <div className="text-primary">{calc.icon}</div>
+                                        <div>
+                                            <div className="font-medium text-sm">{calc.title}</div>
+                                            <div className="text-xs text-muted-foreground">{calc.description}</div>
                                         </div>
                                     </button>
                                 ))}
                             </div>
                         </CardContent>
                     </Card>
+                    {/* State Selector is now within each calculator section */}
                 </div>
 
-                {/* Calculator Content */}
+
                 <div className="lg:col-span-3">
                     {/* Tax Calculator */}
                     {activeCalculator === "tax-calculator" && (
                         <Card>
                             <CardHeader>
                                 <CardTitle>Federal Tax Calculator</CardTitle>
-                                <CardDescription>Estimate your federal income tax liability for 2024</CardDescription>
+                                <CardDescription>Estimate your federal income tax liability</CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-6">
                                 <div className="grid md:grid-cols-2 gap-6">
                                     <div className="space-y-4">
+                                        {/* State Selection */}
+                                        <div className="space-y-2">
+                                            <Label htmlFor="state-tax-calc">State</Label>
+                                            <Select value={selectedState} onValueChange={setSelectedState}>
+                                                <SelectTrigger id="state-tax-calc">
+                                                    <SelectValue placeholder="Select your state" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {usStates.map(state => (
+                                                        <SelectItem key={state} value={state}>{state}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
                                         <div className="space-y-2">
                                             <Label htmlFor="income">Annual Income</Label>
                                             <Input
                                                 id="income"
+                                                type="number"
                                                 placeholder="$75,000"
                                                 value={income}
                                                 onChange={(e) => setIncome(e.target.value)}
                                             />
                                         </div>
-
                                         <div className="space-y-2">
                                             <Label>Filing Status</Label>
-                                            <div className="grid grid-cols-3 gap-2">
-                                                <Button
-                                                    variant={filingStatus === "single" ? "default" : "outline"}
-                                                    size="sm"
-                                                    onClick={() => setFilingStatus("single")}
-                                                >
-                                                    Single
-                                                </Button>
-                                                <Button
-                                                    variant={filingStatus === "married" ? "default" : "outline"}
-                                                    size="sm"
-                                                    onClick={() => setFilingStatus("married")}
-                                                >
-                                                    Married
-                                                </Button>
-                                                <Button
-                                                    variant={filingStatus === "head" ? "default" : "outline"}
-                                                    size="sm"
-                                                    onClick={() => setFilingStatus("head")}
-                                                >
-                                                    Head
-                                                </Button>
-                                            </div>
+                                            <Select value={filingStatus} onValueChange={setFilingStatus}>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Select filing status" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="single">Single</SelectItem>
+                                                    <SelectItem value="married">Married Filing Jointly</SelectItem>
+                                                    <SelectItem value="head">Head of Household</SelectItem>
+                                                </SelectContent>
+                                            </Select>
                                         </div>
-
                                         <div className="space-y-2">
                                             <Label>Deduction Type</Label>
-                                            <div className="grid grid-cols-2 gap-2">
-                                                <Button
-                                                    variant={deductions === "standard" ? "default" : "outline"}
-                                                    size="sm"
-                                                    onClick={() => setDeductions("standard")}
-                                                >
-                                                    Standard
-                                                </Button>
-                                                <Button
-                                                    variant={deductions === "itemized" ? "default" : "outline"}
-                                                    size="sm"
-                                                    onClick={() => setDeductions("itemized")}
-                                                >
-                                                    Itemized
-                                                </Button>
-                                            </div>
+                                            <Input value="Standard Deduction (Estimated)" disabled />
+                                            <p className="text-xs text-muted-foreground">Itemized deductions can be explored in the Deduction Finder.</p>
                                         </div>
-
                                         <Button onClick={calculateTax} className="w-full">
-                                            Calculate Tax
+                                            Calculate Federal Tax
                                         </Button>
                                     </div>
 
+
                                     {results && (
                                         <div className="space-y-4">
-                                            <h3 className="font-semibold">Tax Calculation Results</h3>
+                                            <h3 className="font-semibold">Federal Tax Results {selectedState && `(State: ${selectedState})`}</h3>
                                             <div className="space-y-3">
                                                 <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
                                                     <span>Gross Income</span>
@@ -536,10 +464,10 @@ export default function TaxCalculators({ onBack }: TaxCalculatorsProps) {
                                                 </div>
                                                 <Separator />
                                                 <div className="flex justify-between items-center p-3 bg-red-50 rounded-lg">
-                                                    <span className="font-semibold">Estimated Tax</span>
+                                                    <span className="font-semibold">Estimated Federal Tax</span>
                                                     <span className="text-2xl font-bold text-red-600">
-                            ${results.estimatedTax.toFixed(0).toLocaleString()}
-                          </span>
+                                                       ${results.estimatedTax.toFixed(0).toLocaleString()}
+                                                   </span>
                                                 </div>
                                                 <div className="grid grid-cols-2 gap-3">
                                                     <div className="text-center p-2 bg-blue-50 rounded">
@@ -552,6 +480,7 @@ export default function TaxCalculators({ onBack }: TaxCalculatorsProps) {
                                                     </div>
                                                 </div>
                                             </div>
+                                            <p className="text-xs text-muted-foreground text-center mt-2">{commonDisclaimer}</p>
                                         </div>
                                     )}
                                 </div>
@@ -559,20 +488,35 @@ export default function TaxCalculators({ onBack }: TaxCalculatorsProps) {
                         </Card>
                     )}
 
+
                     {/* Refund Estimator */}
                     {activeCalculator === "refund-estimator" && (
                         <Card>
                             <CardHeader>
-                                <CardTitle>Tax Refund Estimator</CardTitle>
-                                <CardDescription>Estimate your potential tax refund</CardDescription>
+                                <CardTitle>Federal Tax Refund Estimator</CardTitle>
+                                <CardDescription>Estimate your potential federal tax refund</CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-6">
                                 <div className="grid md:grid-cols-2 gap-6">
                                     <div className="space-y-4">
                                         <div className="space-y-2">
-                                            <Label htmlFor="refundIncome">Total Income</Label>
+                                            <Label htmlFor="state-refund-est">State</Label>
+                                            <Select value={selectedState} onValueChange={setSelectedState}>
+                                                <SelectTrigger id="state-refund-est">
+                                                    <SelectValue placeholder="Select your state" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {usStates.map(state => (
+                                                        <SelectItem key={state} value={state}>{state}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="refundIncome">Total Annual Income</Label>
                                             <Input
                                                 id="refundIncome"
+                                                type="number"
                                                 placeholder="$65,000"
                                                 value={refundIncome}
                                                 onChange={(e) => setRefundIncome(e.target.value)}
@@ -582,27 +526,30 @@ export default function TaxCalculators({ onBack }: TaxCalculatorsProps) {
                                             <Label htmlFor="refundWithheld">Federal Tax Withheld</Label>
                                             <Input
                                                 id="refundWithheld"
+                                                type="number"
                                                 placeholder="$8,500"
                                                 value={refundWithheld}
                                                 onChange={(e) => setRefundWithheld(e.target.value)}
                                             />
                                         </div>
                                         <div className="space-y-2">
-                                            <Label htmlFor="refundCredits">Tax Credits</Label>
+                                            <Label htmlFor="refundCredits">Federal Tax Credits</Label>
                                             <Input
                                                 id="refundCredits"
+                                                type="number"
                                                 placeholder="$2,000"
                                                 value={refundCredits}
                                                 onChange={(e) => setRefundCredits(e.target.value)}
                                             />
                                         </div>
                                         <Button className="w-full" onClick={calculateRefund}>
-                                            Calculate Refund
+                                            Calculate Federal Refund
                                         </Button>
                                     </div>
                                     <div className="space-y-4">
                                         {refundResults ? (
                                             <>
+                                                <h3 className="font-semibold">Federal Refund Results {selectedState && `(State: ${selectedState})`}</h3>
                                                 <div className="text-center p-6 bg-green-50 rounded-lg border-2 border-green-200">
                                                     <DollarSign className="h-12 w-12 text-green-600 mx-auto mb-2" />
                                                     <div
@@ -611,56 +558,56 @@ export default function TaxCalculators({ onBack }: TaxCalculatorsProps) {
                                                         {refundResults.owes ? "-" : ""}${Math.abs(refundResults.refund).toFixed(0).toLocaleString()}
                                                     </div>
                                                     <div className="text-sm text-green-700">
-                                                        {refundResults.owes ? "Amount Owed" : "Estimated Refund"}
+                                                        {refundResults.owes ? "Estimated Federal Amount Owed" : "Estimated Federal Refund"}
                                                     </div>
                                                 </div>
                                                 <div className="space-y-2">
                                                     <div className="flex justify-between p-2 bg-muted rounded">
-                                                        <span className="text-sm">Tax Liability</span>
+                                                        <span className="text-sm">Fed. Tax Liability</span>
                                                         <span className="text-sm font-semibold">
-                              ${refundResults.taxLiability.toFixed(0).toLocaleString()}
-                            </span>
+                                                           ${refundResults.taxLiability.toFixed(0).toLocaleString()}
+                                                       </span>
                                                     </div>
                                                     <div className="flex justify-between p-2 bg-muted rounded">
-                                                        <span className="text-sm">Tax Withheld</span>
+                                                        <span className="text-sm">Fed. Tax Withheld</span>
                                                         <span className="text-sm font-semibold">
-                              ${refundResults.withheld.toFixed(0).toLocaleString()}
-                            </span>
+                                                           ${refundResults.withheld.toFixed(0).toLocaleString()}
+                                                       </span>
                                                     </div>
                                                     <div className="flex justify-between p-2 bg-muted rounded">
-                                                        <span className="text-sm">Tax Credits</span>
+                                                        <span className="text-sm">Fed. Tax Credits</span>
                                                         <span className="text-sm font-semibold">
-                              ${refundResults.credits.toFixed(0).toLocaleString()}
-                            </span>
+                                                           ${refundResults.credits.toFixed(0).toLocaleString()}
+                                                       </span>
                                                     </div>
                                                 </div>
+                                                <p className="text-xs text-muted-foreground text-center mt-2">{commonDisclaimer}</p>
                                             </>
                                         ) : (
-                                            <div className="text-center p-6 bg-muted rounded-lg">
+                                            <div className="text-center p-6 bg-muted rounded-lg h-full flex flex-col justify-center">
                                                 <DollarSign className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
                                                 <p className="text-sm text-muted-foreground">
-                                                    Enter your information and click Calculate Refund
+                                                    Enter your info to estimate your federal refund.
                                                 </p>
                                             </div>
                                         )}
-                                        <div className="text-xs text-muted-foreground text-center">
-                                            This is an estimate. Actual refund may vary based on your complete tax situation.
-                                        </div>
                                     </div>
                                 </div>
                             </CardContent>
                         </Card>
                     )}
 
+
                     {/* Deduction Finder */}
                     {activeCalculator === "deduction-finder" && (
                         <Card>
                             <CardHeader>
-                                <CardTitle>Deduction Finder</CardTitle>
-                                <CardDescription>Discover tax deductions you might be missing</CardDescription>
+                                <CardTitle>Federal Deduction Finder</CardTitle>
+                                <CardDescription>Discover potential federal tax deductions {selectedState && `(context: ${selectedState})`}</CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <div className="space-y-6">
+                                    {/* State is now outside */}
                                     {deductionItems.map((category, index) => (
                                         <div key={index}>
                                             <h3 className="font-semibold mb-3 flex items-center gap-2">
@@ -671,25 +618,26 @@ export default function TaxCalculators({ onBack }: TaxCalculatorsProps) {
                                                 {category.items.map((item, itemIndex) => {
                                                     const key = `${category.category}-${item.name}`
                                                     return (
-                                                        <Card key={itemIndex} className="hover:shadow-md transition-shadow">
+                                                        <Card key={itemIndex} className={cn("hover:shadow-md transition-shadow h-full flex flex-col justify-between", selectedDeductions[key] ? 'border-primary' : '')}>
                                                             <CardContent className="p-4">
                                                                 <div className="flex items-start justify-between mb-2">
                                                                     <h4 className="font-medium text-sm">{item.name}</h4>
                                                                     {item.common && (
-                                                                        <Badge variant="secondary" className="text-xs">
+                                                                        <Badge variant="secondary" className="text-xs shrink-0 ml-2">
                                                                             Common
                                                                         </Badge>
                                                                     )}
                                                                 </div>
                                                                 <p className="text-xs text-muted-foreground mb-3">{item.amount}</p>
-                                                                <div className="flex items-center gap-2">
+                                                                <div className="flex items-center gap-2 mt-auto pt-2 border-t border-dashed">
                                                                     <input
                                                                         type="checkbox"
-                                                                        className="rounded"
+                                                                        id={key}
+                                                                        className="rounded accent-primary cursor-pointer"
                                                                         checked={selectedDeductions[key] || false}
                                                                         onChange={() => toggleDeduction(category.category, item.name)}
                                                                     />
-                                                                    <span className="text-xs">I have this</span>
+                                                                    <Label htmlFor={key} className="text-xs cursor-pointer">I might qualify</Label>
                                                                 </div>
                                                             </CardContent>
                                                         </Card>
@@ -699,119 +647,120 @@ export default function TaxCalculators({ onBack }: TaxCalculatorsProps) {
                                         </div>
                                     ))}
 
+
                                     {deductionResults && (
-                                        <Card className="bg-blue-50 border-blue-200">
+                                        <Card className="bg-blue-50 border-blue-200 mt-6">
                                             <CardContent className="p-6">
-                                                <h3 className="font-semibold mb-4 text-lg">Your Deduction Summary</h3>
+                                                <h3 className="font-semibold mb-4 text-lg">Potential Federal Deduction Summary {selectedState && `(State: ${selectedState})`}</h3>
                                                 <div className="space-y-3">
                                                     <div className="flex justify-between items-center">
-                                                        <span>Selected Deductions</span>
+                                                        <span>Selected Potential Deductions</span>
                                                         <span className="font-semibold">{deductionResults.selectedCount} items</span>
                                                     </div>
                                                     <div className="flex justify-between items-center">
-                                                        <span>Total Itemized Deductions</span>
+                                                        <span>Estimated Itemized Total*</span>
                                                         <span className="font-semibold">${deductionResults.totalItemized.toLocaleString()}</span>
                                                     </div>
                                                     <div className="flex justify-between items-center">
-                                                        <span>Standard Deduction</span>
+                                                        <span>Standard Deduction (Single 2024)</span>
                                                         <span className="font-semibold">
-                              ${deductionResults.standardDeduction.toLocaleString()}
-                            </span>
+                                                           ${deductionResults.standardDeduction.toLocaleString()}
+                                                       </span>
                                                     </div>
                                                     <Separator />
                                                     <div className="flex justify-between items-center p-3 bg-white rounded-lg">
                                                         <span className="font-semibold">Recommendation</span>
                                                         <span className="font-bold text-primary">
-                              {deductionResults.shouldItemize ? "Itemize" : "Take Standard"}
-                            </span>
+                                                           {deductionResults.shouldItemize ? "Likely Better to Itemize (Federal)" : "Likely Better to Take Standard (Federal)"}
+                                                       </span>
                                                     </div>
                                                     {deductionResults.shouldItemize && (
                                                         <div className="text-center p-3 bg-green-100 rounded-lg">
                                                             <p className="text-sm font-semibold text-green-800">
-                                                                You could save an extra ${deductionResults.savings.toLocaleString()} by itemizing!
+                                                                Itemizing could potentially increase your federal deduction by ${deductionResults.savings.toLocaleString()}!*
                                                             </p>
                                                         </div>
                                                     )}
+                                                    <p className="text-xs text-muted-foreground text-center mt-2">*Based on hypothetical values. Actual amounts vary. State deduction rules differ.</p>
                                                 </div>
                                             </CardContent>
                                         </Card>
                                     )}
 
-                                    <div className="text-center pt-4">
-                                        <Button onClick={calculateDeductions}>Calculate My Deductions</Button>
-                                    </div>
+
                                 </div>
                             </CardContent>
                         </Card>
                     )}
 
+
                     {/* Quarterly Calculator */}
                     {activeCalculator === "quarterly-calculator" && (
                         <Card>
                             <CardHeader>
-                                <CardTitle>Quarterly Tax Payment Calculator</CardTitle>
-                                <CardDescription>Calculate estimated tax payments for self-employed individuals</CardDescription>
+                                <CardTitle>Quarterly Federal Tax Payment Calculator</CardTitle>
+                                <CardDescription>Estimate federal tax payments for self-employed individuals</CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-6">
                                 <div className="grid md:grid-cols-2 gap-6">
                                     <div className="space-y-4">
                                         <div className="space-y-2">
-                                            <Label htmlFor="quarterlyIncome">Expected Annual Income</Label>
-                                            <Input
-                                                id="quarterlyIncome"
-                                                placeholder="$80,000"
-                                                value={quarterlyIncome}
-                                                onChange={(e) => setQuarterlyIncome(e.target.value)}
-                                            />
+                                            <Label htmlFor="state-quarterly">State</Label>
+                                            <Select value={selectedState} onValueChange={setSelectedState}>
+                                                <SelectTrigger id="state-quarterly">
+                                                    <SelectValue placeholder="Select state (for context)" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {usStates.map(state => (
+                                                        <SelectItem key={state} value={state}>{state}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
                                         </div>
                                         <div className="space-y-2">
-                                            <Label htmlFor="quarterlyExpenses">Business Expenses</Label>
+                                            <Label htmlFor="quarterlyNetIncome">Expected Annual Net Income (After Expenses)</Label>
                                             <Input
-                                                id="quarterlyExpenses"
-                                                placeholder="$15,000"
-                                                value={quarterlyExpenses}
-                                                onChange={(e) => setQuarterlyExpenses(e.target.value)}
+                                                id="quarterlyNetIncome"
+                                                type="number"
+                                                placeholder="$80,000"
+                                                value={quarterlyNetIncome}
+                                                onChange={(e) => setQuarterlyNetIncome(e.target.value)}
                                             />
                                         </div>
-                                        {quarterlyResults && (
-                                            <div className="space-y-2">
-                                                <Label>Self-Employment Tax</Label>
-                                                <Input value={`$${quarterlyResults.selfEmploymentTax.toFixed(0).toLocaleString()}`} disabled />
-                                            </div>
-                                        )}
                                         <Button className="w-full" onClick={calculateQuarterly}>
-                                            Calculate Quarterly Payments
+                                            Calculate Federal Quarterly Payments
                                         </Button>
                                     </div>
                                     <div className="space-y-4">
                                         {quarterlyResults ? (
                                             <>
+                                                <h3 className="font-semibold">Federal Payment Results {selectedState && `(State: ${selectedState})`}</h3>
                                                 <div className="space-y-2 p-4 bg-muted rounded-lg">
                                                     <div className="flex justify-between">
-                                                        <span className="text-sm">Net Income</span>
+                                                        <span className="text-sm">Net Income (Est.)</span>
                                                         <span className="text-sm font-semibold">
-                              ${quarterlyResults.netIncome.toLocaleString()}
-                            </span>
+                                                           ${quarterlyResults.netIncome.toLocaleString()}
+                                                       </span>
                                                     </div>
                                                     <div className="flex justify-between">
-                                                        <span className="text-sm">Income Tax</span>
+                                                        <span className="text-sm">Fed. Income Tax (Est.)</span>
                                                         <span className="text-sm font-semibold">
-                              ${quarterlyResults.incomeTax.toFixed(0).toLocaleString()}
-                            </span>
+                                                           ${quarterlyResults.incomeTax.toFixed(0).toLocaleString()}
+                                                       </span>
                                                     </div>
                                                     <div className="flex justify-between">
-                                                        <span className="text-sm">SE Tax</span>
+                                                        <span className="text-sm">SE Tax (Est.)</span>
                                                         <span className="text-sm font-semibold">
-                              ${quarterlyResults.selfEmploymentTax.toFixed(0).toLocaleString()}
-                            </span>
+                                                           ${quarterlyResults.selfEmploymentTax.toFixed(0).toLocaleString()}
+                                                       </span>
                                                     </div>
                                                     <Separator />
                                                     <div className="flex justify-between">
-                                                        <span className="font-semibold">Total Annual Tax</span>
+                                                        <span className="font-semibold">Total Annual Federal Tax (Est.)</span>
                                                         <span className="font-bold">${quarterlyResults.totalTax.toFixed(0).toLocaleString()}</span>
                                                     </div>
                                                 </div>
-                                                <h3 className="font-semibold">2024 Payment Schedule</h3>
+                                                <h3 className="font-semibold mt-4">Estimated Federal Payments (2024 Schedule)</h3>
                                                 <div className="space-y-3">
                                                     <div className="flex justify-between items-center p-3 border rounded-lg">
                                                         <div>
@@ -850,11 +799,12 @@ export default function TaxCalculators({ onBack }: TaxCalculatorsProps) {
                                                         </div>
                                                     </div>
                                                 </div>
+                                                <p className="text-xs text-muted-foreground text-center mt-2">{commonDisclaimer} State quarterly payments may also be required.</p>
                                             </>
                                         ) : (
-                                            <div className="text-center p-12 bg-muted rounded-lg">
+                                            <div className="text-center p-12 bg-muted rounded-lg h-full flex flex-col justify-center">
                                                 <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
-                                                <p className="text-sm text-muted-foreground">Enter your income and expenses to calculate</p>
+                                                <p className="text-sm text-muted-foreground">Enter net income to estimate federal payments.</p>
                                             </div>
                                         )}
                                     </div>
@@ -863,21 +813,36 @@ export default function TaxCalculators({ onBack }: TaxCalculatorsProps) {
                         </Card>
                     )}
 
+
                     {/* Withholding Calculator */}
                     {activeCalculator === "withholding-calculator" && (
                         <Card>
                             <CardHeader>
-                                <CardTitle>Withholding Calculator</CardTitle>
-                                <CardDescription>Adjust your paycheck withholdings to avoid a big tax bill or refund</CardDescription>
+                                <CardTitle>Federal Withholding Calculator</CardTitle>
+                                <CardDescription>Estimate federal tax withholdings from your paycheck (simplified)</CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <div className="space-y-6">
                                     <div className="grid md:grid-cols-2 gap-6">
                                         <div className="space-y-4">
                                             <div className="space-y-2">
+                                                <Label htmlFor="state-withholding">State</Label>
+                                                <Select value={selectedState} onValueChange={setSelectedState}>
+                                                    <SelectTrigger id="state-withholding">
+                                                        <SelectValue placeholder="Select state (for context)" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {usStates.map(state => (
+                                                            <SelectItem key={state} value={state}>{state}</SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                            <div className="space-y-2">
                                                 <Label htmlFor="withholdingIncome">Annual Salary</Label>
                                                 <Input
                                                     id="withholdingIncome"
+                                                    type="number"
                                                     placeholder="$75,000"
                                                     value={withholdingIncome}
                                                     onChange={(e) => setWithholdingIncome(e.target.value)}
@@ -887,6 +852,7 @@ export default function TaxCalculators({ onBack }: TaxCalculatorsProps) {
                                                 <Label htmlFor="withholdingPayPeriods">Pay Periods per Year</Label>
                                                 <Input
                                                     id="withholdingPayPeriods"
+                                                    type="number"
                                                     placeholder="26 (bi-weekly)"
                                                     value={withholdingPayPeriods}
                                                     onChange={(e) => setWithholdingPayPeriods(e.target.value)}
@@ -894,70 +860,76 @@ export default function TaxCalculators({ onBack }: TaxCalculatorsProps) {
                                                 <p className="text-xs text-muted-foreground">Weekly: 52, Bi-weekly: 26, Monthly: 12</p>
                                             </div>
                                             <div className="space-y-2">
-                                                <Label htmlFor="withholdingAllowances">W-4 Allowances</Label>
+                                                <Label htmlFor="withholdingAllowances">W-4 Allowances (Simplified)</Label>
                                                 <Input
                                                     id="withholdingAllowances"
+                                                    type="number"
                                                     placeholder="0"
                                                     value={withholdingAllowances}
                                                     onChange={(e) => setWithholdingAllowances(e.target.value)}
                                                 />
+                                                <p className="text-xs text-muted-foreground">Note: Uses older allowance system for estimation.</p>
                                             </div>
                                             <Button className="w-full" onClick={calculateWithholding}>
-                                                Calculate Withholding
+                                                Calculate Federal Withholding
                                             </Button>
                                         </div>
                                         <div className="space-y-4">
                                             {withholdingResults ? (
                                                 <>
+                                                    <h3 className="font-semibold">Federal Withholding Results {selectedState && `(State: ${selectedState})`}</h3>
                                                     <div className="text-center p-6 bg-blue-50 rounded-lg border-2 border-blue-200">
                                                         <PieChart className="h-12 w-12 text-blue-600 mx-auto mb-2" />
                                                         <div className="text-3xl font-bold text-blue-600">
                                                             ${withholdingResults.perPaycheck.toFixed(0).toLocaleString()}
                                                         </div>
-                                                        <div className="text-sm text-blue-700">Per Paycheck</div>
+                                                        <div className="text-sm text-blue-700">Federal Tax Per Paycheck (Est.)</div>
                                                     </div>
                                                     <div className="space-y-3">
                                                         <div className="flex justify-between p-3 bg-muted rounded-lg">
-                                                            <span>Annual Tax</span>
+                                                            <span>Est. Annual Federal Tax</span>
                                                             <span className="font-semibold">
-                                ${withholdingResults.annualTax.toFixed(0).toLocaleString()}
-                              </span>
+                                                               ${withholdingResults.annualTax.toFixed(0).toLocaleString()}
+                                                           </span>
                                                         </div>
                                                         <div className="flex justify-between p-3 bg-muted rounded-lg">
-                                                            <span>Monthly Withholding</span>
+                                                            <span>Est. Monthly Federal Withholding</span>
                                                             <span className="font-semibold">
-                                ${withholdingResults.monthlyWithholding.toFixed(0).toLocaleString()}
-                              </span>
+                                                               ${withholdingResults.monthlyWithholding.toFixed(0).toLocaleString()}
+                                                           </span>
                                                         </div>
                                                         <div className="flex justify-between p-3 bg-muted rounded-lg">
                                                             <span>Pay Periods</span>
                                                             <span className="font-semibold">{withholdingResults.payPeriods}</span>
                                                         </div>
                                                     </div>
-                                                    <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                                                    <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg mt-4">
                                                         <p className="text-sm text-yellow-800">
-                                                            <strong>Tip:</strong> If you're getting large refunds, increase your allowances. If you
-                                                            owe money, decrease them.
+                                                            <strong>Tip:</strong> Use the official IRS Withholding Estimator for accurate W-4 adjustments. State withholding not included.
                                                         </p>
                                                     </div>
                                                 </>
                                             ) : (
-                                                <div className="text-center p-12 bg-muted rounded-lg">
+                                                <div className="text-center p-12 bg-muted rounded-lg h-full flex flex-col justify-center">
                                                     <PieChart className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
-                                                    <p className="text-sm text-muted-foreground">Enter your information to calculate</p>
+                                                    <p className="text-sm text-muted-foreground">Enter info to estimate federal withholding.</p>
                                                 </div>
                                             )}
                                         </div>
                                     </div>
-                                    <div className="p-4 bg-muted rounded-lg">
+                                    <div className="p-4 bg-muted rounded-lg mt-6">
                                         <h4 className="font-semibold mb-2 flex items-center gap-2">
                                             <Info className="h-4 w-4" />
                                             About W-4 Withholding
                                         </h4>
                                         <p className="text-sm text-muted-foreground">
-                                            Your W-4 form tells your employer how much federal tax to withhold from your paycheck. Adjust it
-                                            to match your tax situation and avoid owing money or getting a large refund at tax time.
+                                            Your W-4 form tells your employer how much federal tax to withhold. Adjusting it helps match your tax liability to avoid owing or overpaying significantly. The modern W-4 uses dollar amounts for adjustments rather than allowances.
                                         </p>
+                                        <Button variant="link" size="sm" asChild className="p-0 h-auto mt-2">
+                                            <a href="https://www.irs.gov/individuals/tax-withholding-estimator" target="_blank" rel="noopener noreferrer">
+                                                Use Official IRS Estimator <ExternalLink className="h-3 w-3 ml-1" />
+                                            </a>
+                                        </Button>
                                     </div>
                                 </div>
                             </CardContent>
