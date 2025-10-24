@@ -12,11 +12,14 @@ import StockResearchTools from "@/components/stock-research-tools"
 import Link from "next/link"
 
 export default function InvestingPage() {
-  const [activeSection, setActiveSection] = useState("")
+  const [activeSection, setActiveSection] = useState("");
+  const [initialSymbol, setInitialSymbol] = useState<string | undefined>();
 
-  const handleSectionClick = (section: string) => {
-    setActiveSection(section)
-  }
+  const handleSectionClick = (section: string, symbol?: string) => {
+    setInitialSymbol(symbol);
+    setActiveSection(section);
+  };
+
 
   const handleBackToTab = () => {
     setActiveSection("")
@@ -27,7 +30,7 @@ export default function InvestingPage() {
       return <InvestingOptions onBack={handleBackToTab} onSelect={handleSectionClick} />
     }
     if (activeSection === "stocks") {
-      return <StocksPage onBack={() => setActiveSection("investing-options")} />
+      return <StocksPage onBack={() => setActiveSection("investing-options")} initialSymbol={initialSymbol} />
     }
     if (activeSection === "bonds") {
       return <BondsPage onBack={() => setActiveSection("investing-options")} />

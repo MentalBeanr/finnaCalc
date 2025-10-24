@@ -1,4 +1,8 @@
+
+
 "use client"
+
+
 
 
 import { useState } from "react"
@@ -23,9 +27,24 @@ import {
 import { cn } from "@/lib/utils"
 
 
+
+
+// Helper to sanitize numeric input strings (removes commas, dollar signs, spaces, etc.)
+function sanitizeNumber(value: string | number | undefined) {
+    if (value == null) return 0
+    const s = String(value).replace(/[^\d.-]/g, "")
+    const n = Number.parseFloat(s)
+    return Number.isFinite(n) ? n : 0
+}
+
+
+
+
 interface TaxCalculatorsProps {
     onBack: () => void
 }
+
+
 
 
 // List of US states for the dropdown
@@ -38,15 +57,21 @@ const usStates = [
 ];
 
 
+
+
 export default function TaxCalculators({ onBack }: TaxCalculatorsProps) {
     const [activeCalculator, setActiveCalculator] = useState("tax-calculator")
     const [selectedState, setSelectedState] = useState(""); // State selection moved inside each calculator where relevant
+
+
 
 
     // Tax Calculator States
     const [income, setIncome] = useState("")
     const [filingStatus, setFilingStatus] = useState("single")
     const [results, setResults] = useState<any>(null)
+
+
 
 
     // Refund Estimator States
@@ -56,9 +81,13 @@ export default function TaxCalculators({ onBack }: TaxCalculatorsProps) {
     const [refundResults, setRefundResults] = useState<any>(null)
 
 
+
+
     // Quarterly Payment States
     const [quarterlyNetIncome, setQuarterlyNetIncome] = useState("")
     const [quarterlyResults, setQuarterlyResults] = useState<any>(null)
+
+
 
 
     // Deduction Finder States
@@ -66,11 +95,15 @@ export default function TaxCalculators({ onBack }: TaxCalculatorsProps) {
     const [deductionResults, setDeductionResults] = useState<any>(null)
 
 
+
+
     // Withholding Calculator States
     const [withholdingIncome, setWithholdingIncome] = useState("")
     const [withholdingPayPeriods, setWithholdingPayPeriods] = useState("26")
     const [withholdingAllowances, setWithholdingAllowances] = useState("0")
     const [withholdingResults, setWithholdingResults] = useState<any>(null)
+
+
 
 
     const calculators = [
@@ -107,19 +140,27 @@ export default function TaxCalculators({ onBack }: TaxCalculatorsProps) {
     ]
 
 
+
+
     // --- Calculation Functions ---
 
 
+
+
     const calculateTax = () => {
-        const incomeNum = Number.parseFloat(income) || 0;
+        const incomeNum = sanitizeNumber(income)
         let standardDeduction = 14600; // Single 2024
         if (filingStatus === "married") standardDeduction = 29200;
         if (filingStatus === "head") standardDeduction = 21900;
 
 
+
+
         const taxableIncome = Math.max(0, incomeNum - standardDeduction);
         let tax = 0;
         let marginalRate = 0;
+
+
 
 
         if (filingStatus === "single") {
@@ -149,6 +190,8 @@ export default function TaxCalculators({ onBack }: TaxCalculatorsProps) {
         }
 
 
+
+
         setResults({
             grossIncome: incomeNum,
             standardDeduction,
@@ -161,10 +204,12 @@ export default function TaxCalculators({ onBack }: TaxCalculatorsProps) {
     };
 
 
+
+
     const calculateRefund = () => {
-        const incomeNum = Number.parseFloat(refundIncome) || 0;
-        const withheldNum = Number.parseFloat(refundWithheld) || 0;
-        const creditsNum = Number.parseFloat(refundCredits) || 0;
+        const incomeNum = sanitizeNumber(refundIncome)
+        const withheldNum = sanitizeNumber(refundWithheld)
+        const creditsNum = sanitizeNumber(refundCredits)
         const standardDeduction = 14600; // Assuming single 2024
         const taxableIncome = Math.max(0, incomeNum - standardDeduction);
         let tax = 0;
@@ -175,8 +220,12 @@ export default function TaxCalculators({ onBack }: TaxCalculatorsProps) {
         else { tax = 39110.50 + (taxableIncome - 191950) * 0.32; }
 
 
+
+
         const totalTaxLiability = Math.max(0, tax - creditsNum);
         const refund = withheldNum - totalTaxLiability;
+
+
 
 
         setRefundResults({
@@ -190,8 +239,10 @@ export default function TaxCalculators({ onBack }: TaxCalculatorsProps) {
     };
 
 
+
+
     const calculateQuarterly = () => {
-        const netIncome = Number.parseFloat(quarterlyNetIncome) || 0;
+        const netIncome = sanitizeNumber(quarterlyNetIncome)
         const seTaxableIncome = netIncome * 0.9235;
         const selfEmploymentTax = seTaxableIncome * 0.153;
         const deductibleSETax = selfEmploymentTax * 0.5;
@@ -205,8 +256,12 @@ export default function TaxCalculators({ onBack }: TaxCalculatorsProps) {
         else { incomeTax = 17168.50 + (taxableIncome - 100525) * 0.24; }
 
 
+
+
         const totalFederalTax = incomeTax + selfEmploymentTax;
         const quarterlyPayment = totalFederalTax / 4;
+
+
 
 
         setQuarterlyResults({
@@ -218,6 +273,8 @@ export default function TaxCalculators({ onBack }: TaxCalculatorsProps) {
             state: selectedState,
         });
     };
+
+
 
 
     const calculateDeductions = () => {
@@ -246,10 +303,12 @@ export default function TaxCalculators({ onBack }: TaxCalculatorsProps) {
     }
 
 
+
+
     const calculateWithholding = () => {
-        const incomeNum = Number.parseFloat(withholdingIncome) || 0;
-        const payPeriodsNum = Number.parseFloat(withholdingPayPeriods) || 26;
-        const allowancesNum = Number.parseFloat(withholdingAllowances) || 0;
+        const incomeNum = sanitizeNumber(withholdingIncome)
+        const payPeriodsNum = sanitizeNumber(withholdingPayPeriods) || 26;
+        const allowancesNum = sanitizeNumber(withholdingAllowances) || 0;
         const standardDeduction = 14600; // Assuming single 2024
         const taxableIncome = Math.max(0, incomeNum - standardDeduction);
         let annualTax = 0;
@@ -259,10 +318,14 @@ export default function TaxCalculators({ onBack }: TaxCalculatorsProps) {
         else { annualTax = 17168.50 + (taxableIncome - 100525) * 0.24; }
 
 
+
+
         const simplifiedAllowanceValue = 5150;
         const adjustedAnnualTax = Math.max(0, annualTax - (allowancesNum * simplifiedAllowanceValue * 0.12));
         const perPaycheck = adjustedAnnualTax / payPeriodsNum;
         const monthlyWithholding = adjustedAnnualTax / 12;
+
+
 
 
         setWithholdingResults({
@@ -274,6 +337,8 @@ export default function TaxCalculators({ onBack }: TaxCalculatorsProps) {
             state: selectedState,
         });
     };
+
+
 
 
     const deductionItems = [
@@ -331,7 +396,11 @@ export default function TaxCalculators({ onBack }: TaxCalculatorsProps) {
     }
 
 
+
+
     const commonDisclaimer = "*Estimate is for federal taxes only. State taxes vary and are not included.*";
+
+
 
 
     return (
@@ -346,6 +415,8 @@ export default function TaxCalculators({ onBack }: TaxCalculatorsProps) {
                     <p className="text-muted-foreground">Calculators and tools to maximize your refund</p>
                 </div>
             </div>
+
+
 
 
             <div className="grid lg:grid-cols-4 gap-6">
@@ -387,6 +458,8 @@ export default function TaxCalculators({ onBack }: TaxCalculatorsProps) {
                 </div>
 
 
+
+
                 <div className="lg:col-span-3">
                     {/* Tax Calculator */}
                     {activeCalculator === "tax-calculator" && (
@@ -398,28 +471,15 @@ export default function TaxCalculators({ onBack }: TaxCalculatorsProps) {
                             <CardContent className="space-y-6">
                                 <div className="grid md:grid-cols-2 gap-6">
                                     <div className="space-y-4">
-                                        {/* State Selection */}
-                                        <div className="space-y-2">
-                                            <Label htmlFor="state-tax-calc">State</Label>
-                                            <Select value={selectedState} onValueChange={setSelectedState}>
-                                                <SelectTrigger id="state-tax-calc">
-                                                    <SelectValue placeholder="Select your state" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    {usStates.map(state => (
-                                                        <SelectItem key={state} value={state}>{state}</SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
+                                        {/* State Selection (left in place for context only). If you prefer removal everywhere, I can remove it. */}
                                         <div className="space-y-2">
                                             <Label htmlFor="income">Annual Income</Label>
                                             <Input
                                                 id="income"
-                                                type="number"
+                                                type="text"
                                                 placeholder="$75,000"
                                                 value={income}
-                                                onChange={(e) => setIncome(e.target.value)}
+                                                onChange={(e) => setIncome(e.target.value.replace(/[^\d.-]/g, ""))}
                                             />
                                         </div>
                                         <div className="space-y-2">
@@ -446,6 +506,8 @@ export default function TaxCalculators({ onBack }: TaxCalculatorsProps) {
                                     </div>
 
 
+
+
                                     {results && (
                                         <div className="space-y-4">
                                             <h3 className="font-semibold">Federal Tax Results {selectedState && `(State: ${selectedState})`}</h3>
@@ -466,8 +528,8 @@ export default function TaxCalculators({ onBack }: TaxCalculatorsProps) {
                                                 <div className="flex justify-between items-center p-3 bg-red-50 rounded-lg">
                                                     <span className="font-semibold">Estimated Federal Tax</span>
                                                     <span className="text-2xl font-bold text-red-600">
-                                                       ${results.estimatedTax.toFixed(0).toLocaleString()}
-                                                   </span>
+                                                     ${results.estimatedTax.toFixed(0).toLocaleString()}
+                                                 </span>
                                                 </div>
                                                 <div className="grid grid-cols-2 gap-3">
                                                     <div className="text-center p-2 bg-blue-50 rounded">
@@ -489,6 +551,8 @@ export default function TaxCalculators({ onBack }: TaxCalculatorsProps) {
                     )}
 
 
+
+
                     {/* Refund Estimator */}
                     {activeCalculator === "refund-estimator" && (
                         <Card>
@@ -499,47 +563,35 @@ export default function TaxCalculators({ onBack }: TaxCalculatorsProps) {
                             <CardContent className="space-y-6">
                                 <div className="grid md:grid-cols-2 gap-6">
                                     <div className="space-y-4">
-                                        <div className="space-y-2">
-                                            <Label htmlFor="state-refund-est">State</Label>
-                                            <Select value={selectedState} onValueChange={setSelectedState}>
-                                                <SelectTrigger id="state-refund-est">
-                                                    <SelectValue placeholder="Select your state" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    {usStates.map(state => (
-                                                        <SelectItem key={state} value={state}>{state}</SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
+                                        {/* Removed state selector here because refund calculations do not use state in the current logic */}
                                         <div className="space-y-2">
                                             <Label htmlFor="refundIncome">Total Annual Income</Label>
                                             <Input
                                                 id="refundIncome"
-                                                type="number"
+                                                type="text"
                                                 placeholder="$65,000"
                                                 value={refundIncome}
-                                                onChange={(e) => setRefundIncome(e.target.value)}
+                                                onChange={(e) => setRefundIncome(e.target.value.replace(/[^\d.-]/g, ""))}
                                             />
                                         </div>
                                         <div className="space-y-2">
                                             <Label htmlFor="refundWithheld">Federal Tax Withheld</Label>
                                             <Input
                                                 id="refundWithheld"
-                                                type="number"
+                                                type="text"
                                                 placeholder="$8,500"
                                                 value={refundWithheld}
-                                                onChange={(e) => setRefundWithheld(e.target.value)}
+                                                onChange={(e) => setRefundWithheld(e.target.value.replace(/[^\d.-]/g, ""))}
                                             />
                                         </div>
                                         <div className="space-y-2">
                                             <Label htmlFor="refundCredits">Federal Tax Credits</Label>
                                             <Input
                                                 id="refundCredits"
-                                                type="number"
+                                                type="text"
                                                 placeholder="$2,000"
                                                 value={refundCredits}
-                                                onChange={(e) => setRefundCredits(e.target.value)}
+                                                onChange={(e) => setRefundCredits(e.target.value.replace(/[^\d.-]/g, ""))}
                                             />
                                         </div>
                                         <Button className="w-full" onClick={calculateRefund}>
@@ -565,20 +617,20 @@ export default function TaxCalculators({ onBack }: TaxCalculatorsProps) {
                                                     <div className="flex justify-between p-2 bg-muted rounded">
                                                         <span className="text-sm">Fed. Tax Liability</span>
                                                         <span className="text-sm font-semibold">
-                                                           ${refundResults.taxLiability.toFixed(0).toLocaleString()}
-                                                       </span>
+                                                         ${refundResults.taxLiability.toFixed(0).toLocaleString()}
+                                                     </span>
                                                     </div>
                                                     <div className="flex justify-between p-2 bg-muted rounded">
                                                         <span className="text-sm">Fed. Tax Withheld</span>
                                                         <span className="text-sm font-semibold">
-                                                           ${refundResults.withheld.toFixed(0).toLocaleString()}
-                                                       </span>
+                                                         ${refundResults.withheld.toFixed(0).toLocaleString()}
+                                                     </span>
                                                     </div>
                                                     <div className="flex justify-between p-2 bg-muted rounded">
                                                         <span className="text-sm">Fed. Tax Credits</span>
                                                         <span className="text-sm font-semibold">
-                                                           ${refundResults.credits.toFixed(0).toLocaleString()}
-                                                       </span>
+                                                         ${refundResults.credits.toFixed(0).toLocaleString()}
+                                                     </span>
                                                     </div>
                                                 </div>
                                                 <p className="text-xs text-muted-foreground text-center mt-2">{commonDisclaimer}</p>
@@ -598,6 +650,8 @@ export default function TaxCalculators({ onBack }: TaxCalculatorsProps) {
                     )}
 
 
+
+
                     {/* Deduction Finder */}
                     {activeCalculator === "deduction-finder" && (
                         <Card>
@@ -607,7 +661,7 @@ export default function TaxCalculators({ onBack }: TaxCalculatorsProps) {
                             </CardHeader>
                             <CardContent>
                                 <div className="space-y-6">
-                                    {/* State is now outside */}
+                                    {/* State selector intentionally left outside of the item grid for context */}
                                     {deductionItems.map((category, index) => (
                                         <div key={index}>
                                             <h3 className="font-semibold mb-3 flex items-center gap-2">
@@ -637,7 +691,7 @@ export default function TaxCalculators({ onBack }: TaxCalculatorsProps) {
                                                                         checked={selectedDeductions[key] || false}
                                                                         onChange={() => toggleDeduction(category.category, item.name)}
                                                                     />
-                                                                    <Label htmlFor={key} className="text-xs cursor-pointer">I might qualify</Label>
+                                                                    <Label htmlFor={key} className="text-xs cursor-pointer">I believe I qualify</Label>
                                                                 </div>
                                                             </CardContent>
                                                         </Card>
@@ -646,6 +700,8 @@ export default function TaxCalculators({ onBack }: TaxCalculatorsProps) {
                                             </div>
                                         </div>
                                     ))}
+
+
 
 
                                     {deductionResults && (
@@ -664,15 +720,15 @@ export default function TaxCalculators({ onBack }: TaxCalculatorsProps) {
                                                     <div className="flex justify-between items-center">
                                                         <span>Standard Deduction (Single 2024)</span>
                                                         <span className="font-semibold">
-                                                           ${deductionResults.standardDeduction.toLocaleString()}
-                                                       </span>
+                                                         ${deductionResults.standardDeduction.toLocaleString()}
+                                                     </span>
                                                     </div>
                                                     <Separator />
                                                     <div className="flex justify-between items-center p-3 bg-white rounded-lg">
                                                         <span className="font-semibold">Recommendation</span>
                                                         <span className="font-bold text-primary">
-                                                           {deductionResults.shouldItemize ? "Likely Better to Itemize (Federal)" : "Likely Better to Take Standard (Federal)"}
-                                                       </span>
+                                                         {deductionResults.shouldItemize ? "Likely Better to Itemize (Federal)" : "Likely Better to Take Standard (Federal)"}
+                                                     </span>
                                                     </div>
                                                     {deductionResults.shouldItemize && (
                                                         <div className="text-center p-3 bg-green-100 rounded-lg">
@@ -688,10 +744,14 @@ export default function TaxCalculators({ onBack }: TaxCalculatorsProps) {
                                     )}
 
 
+
+
                                 </div>
                             </CardContent>
                         </Card>
                     )}
+
+
 
 
                     {/* Quarterly Calculator */}
@@ -704,27 +764,15 @@ export default function TaxCalculators({ onBack }: TaxCalculatorsProps) {
                             <CardContent className="space-y-6">
                                 <div className="grid md:grid-cols-2 gap-6">
                                     <div className="space-y-4">
-                                        <div className="space-y-2">
-                                            <Label htmlFor="state-quarterly">State</Label>
-                                            <Select value={selectedState} onValueChange={setSelectedState}>
-                                                <SelectTrigger id="state-quarterly">
-                                                    <SelectValue placeholder="Select state (for context)" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    {usStates.map(state => (
-                                                        <SelectItem key={state} value={state}>{state}</SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
+                                        {/* Removed the state selector here (purely contextual in previous code) */}
                                         <div className="space-y-2">
                                             <Label htmlFor="quarterlyNetIncome">Expected Annual Net Income (After Expenses)</Label>
                                             <Input
                                                 id="quarterlyNetIncome"
-                                                type="number"
+                                                type="text"
                                                 placeholder="$80,000"
                                                 value={quarterlyNetIncome}
-                                                onChange={(e) => setQuarterlyNetIncome(e.target.value)}
+                                                onChange={(e) => setQuarterlyNetIncome(e.target.value.replace(/[^\d.-]/g, ""))}
                                             />
                                         </div>
                                         <Button className="w-full" onClick={calculateQuarterly}>
@@ -739,20 +787,20 @@ export default function TaxCalculators({ onBack }: TaxCalculatorsProps) {
                                                     <div className="flex justify-between">
                                                         <span className="text-sm">Net Income (Est.)</span>
                                                         <span className="text-sm font-semibold">
-                                                           ${quarterlyResults.netIncome.toLocaleString()}
-                                                       </span>
+                                                         ${quarterlyResults.netIncome.toLocaleString()}
+                                                     </span>
                                                     </div>
                                                     <div className="flex justify-between">
                                                         <span className="text-sm">Fed. Income Tax (Est.)</span>
                                                         <span className="text-sm font-semibold">
-                                                           ${quarterlyResults.incomeTax.toFixed(0).toLocaleString()}
-                                                       </span>
+                                                         ${quarterlyResults.incomeTax.toFixed(0).toLocaleString()}
+                                                     </span>
                                                     </div>
                                                     <div className="flex justify-between">
                                                         <span className="text-sm">SE Tax (Est.)</span>
                                                         <span className="text-sm font-semibold">
-                                                           ${quarterlyResults.selfEmploymentTax.toFixed(0).toLocaleString()}
-                                                       </span>
+                                                         ${quarterlyResults.selfEmploymentTax.toFixed(0).toLocaleString()}
+                                                     </span>
                                                     </div>
                                                     <Separator />
                                                     <div className="flex justify-between">
@@ -814,6 +862,8 @@ export default function TaxCalculators({ onBack }: TaxCalculatorsProps) {
                     )}
 
 
+
+
                     {/* Withholding Calculator */}
                     {activeCalculator === "withholding-calculator" && (
                         <Card>
@@ -825,37 +875,25 @@ export default function TaxCalculators({ onBack }: TaxCalculatorsProps) {
                                 <div className="space-y-6">
                                     <div className="grid md:grid-cols-2 gap-6">
                                         <div className="space-y-4">
-                                            <div className="space-y-2">
-                                                <Label htmlFor="state-withholding">State</Label>
-                                                <Select value={selectedState} onValueChange={setSelectedState}>
-                                                    <SelectTrigger id="state-withholding">
-                                                        <SelectValue placeholder="Select state (for context)" />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        {usStates.map(state => (
-                                                            <SelectItem key={state} value={state}>{state}</SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
-                                            </div>
+                                            {/* Removed the state selector here (contextual only previously) */}
                                             <div className="space-y-2">
                                                 <Label htmlFor="withholdingIncome">Annual Salary</Label>
                                                 <Input
                                                     id="withholdingIncome"
-                                                    type="number"
+                                                    type="text"
                                                     placeholder="$75,000"
                                                     value={withholdingIncome}
-                                                    onChange={(e) => setWithholdingIncome(e.target.value)}
+                                                    onChange={(e) => setWithholdingIncome(e.target.value.replace(/[^\d.-]/g, ""))}
                                                 />
                                             </div>
                                             <div className="space-y-2">
                                                 <Label htmlFor="withholdingPayPeriods">Pay Periods per Year</Label>
                                                 <Input
                                                     id="withholdingPayPeriods"
-                                                    type="number"
+                                                    type="text"
                                                     placeholder="26 (bi-weekly)"
                                                     value={withholdingPayPeriods}
-                                                    onChange={(e) => setWithholdingPayPeriods(e.target.value)}
+                                                    onChange={(e) => setWithholdingPayPeriods(e.target.value.replace(/[^\d.-]/g, ""))}
                                                 />
                                                 <p className="text-xs text-muted-foreground">Weekly: 52, Bi-weekly: 26, Monthly: 12</p>
                                             </div>
@@ -863,10 +901,10 @@ export default function TaxCalculators({ onBack }: TaxCalculatorsProps) {
                                                 <Label htmlFor="withholdingAllowances">W-4 Allowances (Simplified)</Label>
                                                 <Input
                                                     id="withholdingAllowances"
-                                                    type="number"
+                                                    type="text"
                                                     placeholder="0"
                                                     value={withholdingAllowances}
-                                                    onChange={(e) => setWithholdingAllowances(e.target.value)}
+                                                    onChange={(e) => setWithholdingAllowances(e.target.value.replace(/[^\d.-]/g, ""))}
                                                 />
                                                 <p className="text-xs text-muted-foreground">Note: Uses older allowance system for estimation.</p>
                                             </div>
@@ -889,14 +927,14 @@ export default function TaxCalculators({ onBack }: TaxCalculatorsProps) {
                                                         <div className="flex justify-between p-3 bg-muted rounded-lg">
                                                             <span>Est. Annual Federal Tax</span>
                                                             <span className="font-semibold">
-                                                               ${withholdingResults.annualTax.toFixed(0).toLocaleString()}
-                                                           </span>
+                                                             ${withholdingResults.annualTax.toFixed(0).toLocaleString()}
+                                                         </span>
                                                         </div>
                                                         <div className="flex justify-between p-3 bg-muted rounded-lg">
                                                             <span>Est. Monthly Federal Withholding</span>
                                                             <span className="font-semibold">
-                                                               ${withholdingResults.monthlyWithholding.toFixed(0).toLocaleString()}
-                                                           </span>
+                                                             ${withholdingResults.monthlyWithholding.toFixed(0).toLocaleString()}
+                                                         </span>
                                                         </div>
                                                         <div className="flex justify-between p-3 bg-muted rounded-lg">
                                                             <span>Pay Periods</span>
@@ -923,7 +961,7 @@ export default function TaxCalculators({ onBack }: TaxCalculatorsProps) {
                                             About W-4 Withholding
                                         </h4>
                                         <p className="text-sm text-muted-foreground">
-                                            Your W-4 form tells your employer how much federal tax to withhold. Adjusting it helps match your tax liability to avoid owing or overpaying significantly. The modern W-4 uses dollar amounts for adjustments rather than allowances.
+                                            Your W-4 form tells your employer how much federal tax to withhold. Adjusting it helps match your tax liability to avoid owing or overpaying significantly.
                                         </p>
                                         <Button variant="link" size="sm" asChild className="p-0 h-auto mt-2">
                                             <a href="https://www.irs.gov/individuals/tax-withholding-estimator" target="_blank" rel="noopener noreferrer">
@@ -940,3 +978,6 @@ export default function TaxCalculators({ onBack }: TaxCalculatorsProps) {
         </div>
     )
 }
+
+
+

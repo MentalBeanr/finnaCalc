@@ -1,16 +1,16 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
-import { ArrowLeft, Search, TrendingUp, TrendingDown, Wallet, LineChart as LineChartIcon, Plus, Minus } from "lucide-react"
-import { useLocalStorage } from "@/hooks/use-local-storage"
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
+import { ArrowLeft, Search, TrendingUp, TrendingDown } from "lucide-react"
+import { LineChart, Line, XAxis, Tooltip, ResponsiveContainer } from "recharts"
 
 interface StocksPageProps {
     onBack: () => void;
+    initialSymbol?: string;
 }
 
 interface StockData {
@@ -21,13 +21,7 @@ interface StockData {
     changePercent: number
     marketCap: string
     description: string
-}
-
-interface PortfolioItem {
-    symbol: string
-    name: string
-    quantity: number
-    purchasePrice: number
+    logo: string; // <-- ADDED THIS
 }
 
 interface SearchResult {
@@ -40,21 +34,22 @@ interface ChartDataPoint {
     price: number
 }
 
-export default function StocksPage({ onBack }: StocksPageProps) {
-    const [portfolio, setPortfolio] = useLocalStorage<PortfolioItem[]>("stock_portfolio", []);
-    const [cashBalance, setCashBalance] = useLocalStorage<number>("cash_balance", 10000);
-
+export default function StocksPage({ onBack, initialSymbol }: StocksPageProps) {
     const [searchTerm, setSearchTerm] = useState("");
     const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
     const [selectedStock, setSelectedStock] = useState<StockData | null>(null);
     const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
-
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-
     const [isTradeModalOpen, setIsTradeModalOpen] = useState(false);
     const [tradeType, setTradeType] = useState<'buy' | 'sell'>('buy');
     const [tradeQuantity, setTradeQuantity] = useState(1);
+
+    useEffect(() => {
+        if (initialSymbol) {
+            fetchStockDetails(initialSymbol);
+        }
+    }, [initialSymbol]);
 
     const handleSearch = async () => {
         if (!searchTerm.trim()) return;
@@ -95,6 +90,7 @@ export default function StocksPage({ onBack }: StocksPageProps) {
                 changePercent: parseFloat(quote["10. change percent"].replace("%", "")),
                 marketCap: overview.MarketCapitalization,
                 description: overview.Description,
+                logo: overview.Logo, // <-- ADDED THIS
             });
 
             const formattedChartData = Object.entries(timeSeries)
@@ -119,50 +115,9 @@ export default function StocksPage({ onBack }: StocksPageProps) {
     };
 
     const handleTrade = () => {
-        if (!selectedStock || tradeQuantity <= 0) return;
-
-        const tradeValue = selectedStock.price * tradeQuantity;
-        const existingHolding = portfolio.find(item => item.symbol === selectedStock.symbol);
-
-        if (tradeType === 'buy') {
-            if (cashBalance < tradeValue) {
-                alert("Not enough cash to complete this purchase.");
-                return;
-            }
-            setCashBalance(cashBalance - tradeValue);
-            if (existingHolding) {
-                const updatedPortfolio = portfolio.map(item =>
-                    item.symbol === selectedStock.symbol
-                        ? { ...item, quantity: item.quantity + tradeQuantity }
-                        : item
-                );
-                setPortfolio(updatedPortfolio);
-            } else {
-                setPortfolio([...portfolio, {
-                    symbol: selectedStock.symbol,
-                    name: selectedStock.name,
-                    quantity: tradeQuantity,
-                    purchasePrice: selectedStock.price
-                }]);
-            }
-        } else { // Sell
-            if (!existingHolding || existingHolding.quantity < tradeQuantity) {
-                alert("You don't own enough shares to sell.");
-                return;
-            }
-            setCashBalance(cashBalance + tradeValue);
-            const updatedPortfolio = portfolio.map(item =>
-                item.symbol === selectedStock.symbol
-                    ? { ...item, quantity: item.quantity - tradeQuantity }
-                    : item
-            ).filter(item => item.quantity > 0);
-            setPortfolio(updatedPortfolio);
-        }
+        alert(`${tradeType === 'buy' ? 'Buying' : 'Selling'} ${tradeQuantity} share(s) of ${selectedStock?.symbol}. (This is a demo action)`);
         setIsTradeModalOpen(false);
     };
-
-    const portfolioValue = portfolio.reduce((total, item) => total + (item.quantity * (selectedStock?.symbol === item.symbol ? selectedStock.price : item.purchasePrice)), 0);
-    const totalValue = portfolioValue + cashBalance;
 
     return (
         <div className="space-y-6">
@@ -201,15 +156,18 @@ export default function StocksPage({ onBack }: StocksPageProps) {
                     )}
                     {selectedStock && (
                         <div className="space-y-4 mt-4">
-                            <div className="flex justify-between items-center">
-                                <div>
-                                    <h3 className="text-xl font-bold">{selectedStock.name} ({selectedStock.symbol})</h3>
-                                    <p className="text-2xl font-bold">${selectedStock.price.toFixed(2)}</p>
-                                    <p className={`text-sm font-medium ${selectedStock.change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                        {selectedStock.change.toFixed(2)} ({selectedStock.changePercent.toFixed(2)}%)
-                                    </p>
+                            <div className="flex justify-between items-start">
+                                <div className="flex items-center gap-4">
+                                    <img src={selectedStock.logo} alt={`${selectedStock.name} logo`} className="h-12 w-12 rounded-full bg-white border" />
+                                    <div>
+                                        <h3 className="text-xl font-bold">{selectedStock.name} ({selectedStock.symbol})</h3>
+                                        <p className="text-2xl font-bold">${selectedStock.price.toFixed(2)}</p>
+                                        <p className={`text-sm font-medium ${selectedStock.change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                            {selectedStock.change.toFixed(2)} ({selectedStock.changePercent.toFixed(2)}%)
+                                        </p>
+                                    </div>
                                 </div>
-                                <div className="flex gap-2">
+                                <div className="flex gap-2 flex-shrink-0">
                                     <Button onClick={() => openTradeModal('buy')} className="bg-green-600 hover:bg-green-700">Buy</Button>
                                     <Button onClick={() => openTradeModal('sell')} variant="outline">Sell</Button>
                                 </div>
