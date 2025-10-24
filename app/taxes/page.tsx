@@ -38,7 +38,7 @@ export default function TaxesPage() {
 
                 <div className="grid md:grid-cols-3 gap-6 mb-8">
                     <Card
-                        className="bg-white hover:shadow-lg transition-shadow cursor-pointer border border-gray-200"
+                        className="bg-white hover:shadow-lg transition-shadow cursor-pointer border border-gray-200 flex flex-col"
                         onClick={() => handleSectionClick("tax-filing")}
                     >
                         <CardHeader className="text-center pb-4">
@@ -48,16 +48,16 @@ export default function TaxesPage() {
                             <CardTitle className="text-lg">Easy Tax Filing</CardTitle>
                             <CardDescription className="text-sm text-gray-600">Simple, step-by-step tax preparation</CardDescription>
                         </CardHeader>
-                        <CardContent className="text-center">
+                        <CardContent className="text-center flex-grow flex flex-col justify-between">
                             <p className="text-sm text-gray-600 mb-4">
                                 File your taxes easily with our guided interface. Supports personal, business, and rental
                                 properties.
                             </p>
-                            <Button className="w-full">Start Filing</Button>
+                            <Button className="w-full bg-blue-600 hover:bg-blue-700 mt-auto">Start Filing</Button>
                         </CardContent>
                     </Card>
                     <Card
-                        className="bg-white hover:shadow-lg transition-shadow cursor-pointer border border-gray-200"
+                        className="bg-white hover:shadow-lg transition-shadow cursor-pointer border border-gray-200 flex flex-col"
                         onClick={() => handleSectionClick("tax-calculators")}
                     >
                         <CardHeader className="text-center pb-4">
@@ -67,19 +67,19 @@ export default function TaxesPage() {
                             <CardTitle className="text-lg">Tax Calculators & Tools</CardTitle>
                             <CardDescription className="text-sm text-gray-600">Calculators to maximize your refund</CardDescription>
                         </CardHeader>
-                        <CardContent className="text-center">
+                        <CardContent className="text-center flex-grow flex flex-col justify-between">
                             <p className="text-sm text-gray-600 mb-4">
                                 Tax calculator, deduction finder, refund estimator, and withholding calculator to optimize your
                                 taxes.
                             </p>
-                            <Button variant="outline" className="w-full border-primary text-primary hover:bg-primary/5 bg-transparent">
+                            <Button className="w-full bg-blue-600 hover:bg-blue-700 mt-auto">
                                 Explore Tools
                             </Button>
                         </CardContent>
                     </Card>
-                    <Link href="/education">
+                    <Link href="/education" className="flex">
                         <Card
-                            className="bg-white hover:shadow-lg transition-shadow cursor-pointer border border-gray-200 h-full"
+                            className="bg-white hover:shadow-lg transition-shadow cursor-pointer border border-gray-200 h-full flex flex-col w-full"
                         >
                             <CardHeader className="text-center pb-4">
                                 <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center mx-auto mb-3">
@@ -88,11 +88,11 @@ export default function TaxesPage() {
                                 <CardTitle className="text-lg">Tax Education</CardTitle>
                                 <CardDescription className="text-sm text-gray-600">Learn tax strategies and planning</CardDescription>
                             </CardHeader>
-                            <CardContent className="text-center">
+                            <CardContent className="text-center flex-grow flex flex-col justify-between">
                                 <p className="text-sm text-gray-600 mb-4">
                                     Understand tax brackets, deductions, business vs personal taxes, and planning strategies.
                                 </p>
-                                <Button variant="outline" className="w-full border-primary text-primary hover:bg-primary/5 bg-transparent">
+                                <Button className="w-full bg-blue-600 hover:bg-blue-700 mt-auto">
                                     Start Learning
                                 </Button>
                             </CardContent>

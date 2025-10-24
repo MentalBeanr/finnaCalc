@@ -9,7 +9,7 @@ import StocksPage from "@/components/stocks-page"
 import BondsPage from "@/components/bonds-page"
 import SafeInvestmentsPage from "@/components/safe-investments-page"
 import StockResearchTools from "@/components/stock-research-tools"
-import Link from "next/link" // Import Link
+import Link from "next/link"
 
 export default function InvestingPage() {
   const [activeSection, setActiveSection] = useState("")
@@ -57,6 +57,7 @@ export default function InvestingPage() {
                   <Shield className="h-6 w-6 text-white" />
                 </div>
                 <CardTitle className="text-lg text-gray-900">Investing</CardTitle>
+                <CardDescription className="text-sm text-gray-600">Explore safe investment options</CardDescription>
               </CardHeader>
               <CardContent className="text-center">
                 <p className="text-sm text-gray-600 mb-4">
@@ -75,17 +76,14 @@ export default function InvestingPage() {
                 </div>
                 <CardTitle className="text-lg text-gray-900">Stock Research Tools</CardTitle>
                 <CardDescription className="text-sm text-gray-600">
-                  Simple tools to research investments
+                  Tools to research and analyze stocks
                 </CardDescription>
               </CardHeader>
               <CardContent className="text-center">
                 <p className="text-sm text-gray-600 mb-4">
                   Basic stock screener and analysis tools designed for beginners.
                 </p>
-                <Button
-                    variant="outline"
-                    className="w-full border-blue-600 text-blue-600 hover:bg-blue-50 bg-transparent"
-                >
+                <Button className="w-full bg-blue-600 hover:bg-blue-700">
                   Explore Tools
                 </Button>
               </CardContent>
@@ -99,16 +97,13 @@ export default function InvestingPage() {
                     <GraduationCap className="h-6 w-6 text-white" />
                   </div>
                   <CardTitle className="text-lg text-gray-900">Learn Investing Basics</CardTitle>
-                  <CardDescription className="text-sm text-gray-600">Master investing fundamentals</CardDescription>
+                  <CardDescription className="text-sm text-gray-600">Learn the fundamentals of investing</CardDescription>
                 </CardHeader>
                 <CardContent className="text-center">
                   <p className="text-sm text-gray-600 mb-4">
                     Educational content about stocks, bonds, and building a portfolio.
                   </p>
-                  <Button
-                      variant="outline"
-                      className="w-full border-blue-600 text-blue-600 hover:bg-blue-50 bg-transparent"
-                  >
+                  <Button className="w-full bg-blue-600 hover:bg-blue-700">
                     Start Learning
                   </Button>
                 </CardContent>

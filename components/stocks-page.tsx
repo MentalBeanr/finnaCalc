@@ -4,8 +4,6 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
 import { ArrowLeft, Search, TrendingUp, TrendingDown, Wallet, LineChart as LineChartIcon, Plus, Minus } from "lucide-react"
 import { useLocalStorage } from "@/hooks/use-local-storage"
@@ -104,7 +102,6 @@ export default function StocksPage({ onBack }: StocksPageProps) {
                     date: new Date(date).toLocaleDateString("en-US", { month: 'short', day: 'numeric' }),
                     price: parseFloat(values["4. close"]),
                 }))
-                .reverse()
                 .slice(-30);
             setChartData(formattedChartData);
 
@@ -176,22 +173,6 @@ export default function StocksPage({ onBack }: StocksPageProps) {
 
             <Card>
                 <CardHeader>
-                    <CardTitle>My Portfolio</CardTitle>
-                </CardHeader>
-                <CardContent className="grid grid-cols-2 gap-4">
-                    <div>
-                        <p className="text-sm text-muted-foreground">Total Value</p>
-                        <p className="text-2xl font-bold">${totalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-                    </div>
-                    <div>
-                        <p className="text-sm text-muted-foreground">Cash Balance</p>
-                        <p className="text-2xl font-bold">${cashBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-                    </div>
-                </CardContent>
-            </Card>
-
-            <Card>
-                <CardHeader>
                     <CardTitle>Search Stocks</CardTitle>
                     <div className="flex gap-2 mt-4">
                         <Input
@@ -238,47 +219,15 @@ export default function StocksPage({ onBack }: StocksPageProps) {
                                 <div className="h-64 w-full">
                                     <ResponsiveContainer>
                                         <LineChart data={chartData}>
+                                            <XAxis dataKey="date" interval="preserveStartEnd" />
                                             <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))' }} />
-                                            <Line type="monotone" dataKey="price" stroke="#3b82f6" strokeWidth={2} dot={false} />
+                                            <Line type="monotone" dataKey="price" stroke="#3b82f6" strokeWidth={3} dot={false} />
                                         </LineChart>
                                     </ResponsiveContainer>
                                 </div>
                             )}
                         </div>
                     )}
-                </CardContent>
-            </Card>
-
-            <Card>
-                <CardHeader>
-                    <CardTitle>Your Holdings</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Symbol</TableHead>
-                                <TableHead>Quantity</TableHead>
-                                <TableHead className="text-right">Value</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {portfolio.length > 0 ? portfolio.map(item => (
-                                <TableRow key={item.symbol}>
-                                    <TableCell>
-                                        <p className="font-bold">{item.symbol}</p>
-                                        <p className="text-xs text-muted-foreground">{item.name}</p>
-                                    </TableCell>
-                                    <TableCell>{item.quantity}</TableCell>
-                                    <TableCell className="text-right">${(item.quantity * item.purchasePrice).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
-                                </TableRow>
-                            )) : (
-                                <TableRow>
-                                    <TableCell colSpan={3} className="text-center">You have no holdings yet.</TableCell>
-                                </TableRow>
-                            )}
-                        </TableBody>
-                    </Table>
                 </CardContent>
             </Card>
 
@@ -293,7 +242,7 @@ export default function StocksPage({ onBack }: StocksPageProps) {
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4">
-                        <Label htmlFor="quantity">Quantity</Label>
+                        <label htmlFor="quantity">Quantity</label>
                         <Input
                             id="quantity"
                             type="number"
