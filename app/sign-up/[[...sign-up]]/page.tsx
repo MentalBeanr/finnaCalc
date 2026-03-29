@@ -13,10 +13,3 @@ export default function SignUpPage() {
         </div>
     )
 }
-```
-
----
-
-**One more thing** — also open your `package.json` and delete this line from the `dependencies` section:
-```
-"@clerk/nextjs": "^6.31.2",
