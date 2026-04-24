@@ -22,7 +22,7 @@ export default function AboutUs() {
                 <div className="space-y-12">
                     {/* Hero Section */}
                     <div className="text-center space-y-4">
-                        <h1 className="text-4xl font-bold text-gray-900 text-balance">DEI CHING CHONG Smart Financial Decisions</h1>
+                        <h1 className="text-4xl font-bold text-gray-900 text-balance">DEI CHING Smart Financial Decisions</h1>
                         <p className="text-xl text-gray-600 max-w-3xl mx-auto text-pretty">
                             FinnaCalc is your trusted partner in financial planning, providing professional-grade calculators and planning
                             tools to help individuals and businesses make informed financial decisions.
