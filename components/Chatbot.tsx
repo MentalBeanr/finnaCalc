@@ -1,51 +1,163 @@
-"use client";
+"use client"
 
-import { useState } from 'react';
-import Image from 'next/image';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { X } from 'lucide-react';
+import { useEffect, useRef, useState } from "react"
+import Image from "next/image"
+import { Button } from "@/components/ui/button"
+import { Card, CardHeader, CardTitle } from "@/components/ui/card"
+import { MessageCircle, Send, X } from "lucide-react"
+
+type Message = { role: "user" | "assistant"; content: string }
+
+const WELCOME: Message = {
+    role: "assistant",
+    content:
+        "Hi! I'm FinnaBot. Ask me about budgeting, investing, taxes, or any of the calculators on this site. I'm not a licensed advisor, so verify anything important with a professional.",
+}
 
 export default function ChatBot() {
-    const [isOpen, setIsOpen] = useState(false);
-    const toggleChat = () => setIsOpen(!isOpen);
+    const [isOpen, setIsOpen] = useState(false)
+    const [messages, setMessages] = useState<Message[]>([WELCOME])
+    const [input, setInput] = useState("")
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState<string | null>(null)
+    const scrollRef = useRef<HTMLDivElement>(null)
+    const inputRef = useRef<HTMLInputElement>(null)
+
+    useEffect(() => {
+        scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" })
+    }, [messages, loading])
+
+    useEffect(() => {
+        if (isOpen) inputRef.current?.focus()
+    }, [isOpen])
+
+    const send = async () => {
+        const trimmed = input.trim()
+        if (!trimmed || loading) return
+        const nextMessages = [...messages, { role: "user", content: trimmed } as Message]
+        setMessages(nextMessages)
+        setInput("")
+        setLoading(true)
+        setError(null)
+        try {
+            const res = await fetch("/api/chat", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    messages: nextMessages.map(({ role, content }) => ({ role, content })),
+                }),
+            })
+            const data = await res.json()
+            if (!res.ok) {
+                throw new Error(data?.error ?? "Something went wrong.")
+            }
+            setMessages((prev) => [...prev, { role: "assistant", content: data.reply || "(no response)" }])
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Something went wrong.")
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault()
+            send()
+        }
+    }
 
     if (!isOpen) {
         return (
-            <Button onClick={toggleChat}
+            <Button
+                onClick={() => setIsOpen(true)}
                 className="fixed bottom-4 right-4 h-14 w-14 rounded-full bg-blue-600 hover:bg-blue-700 shadow-lg p-0"
-                aria-label="Open FinnaBot">
-                <svg className="h-7 w-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                </svg>
+                aria-label="Open FinnaBot"
+            >
+                <MessageCircle className="h-7 w-7 text-white" />
             </Button>
-        );
+        )
     }
 
     return (
         <div className="fixed bottom-4 right-4 z-50">
-            <Card className="w-80 h-[28rem] flex flex-col shadow-lg">
-                <CardHeader className="flex flex-col items-start justify-between p-4 pb-0">
-                    <div className="flex w-full items-center justify-between mb-2">
+            <Card className="w-[22rem] sm:w-96 h-[32rem] flex flex-col shadow-xl border-border">
+                <CardHeader className="p-4 pb-3 border-b border-border">
+                    <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-2">
-                            <Image src="/finnabot-logo.png" alt="FinnaBot Logo" width={24} height={24} />
-                            <CardTitle>Finna<span className="text-blue-600">Bot</span></CardTitle>
+                            <Image src="/finnabot-logo.png" alt="FinnaBot" width={24} height={24} />
+                            <CardTitle className="text-base">
+                                Finna<span className="text-blue-600 dark:text-blue-400">Bot</span>
+                            </CardTitle>
                         </div>
-                        <Button variant="ghost" size="sm" onClick={toggleChat} className="p-2 -mr-2"><X className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="sm" onClick={() => setIsOpen(false)} className="p-2 -mr-2" aria-label="Close">
+                            <X className="h-4 w-4" />
+                        </Button>
                     </div>
-                    <p className="text-xs text-gray-500 mt-1 pl-8">Personal Finance and Business Assistance AI Chatbot</p>
-                    <div className="w-full h-px bg-gray-200 mt-2"></div>
+                    <p className="text-xs text-muted-foreground mt-1">Personal finance & business AI assistant</p>
                 </CardHeader>
-                <CardContent className="flex-1 flex flex-col items-center justify-center p-6 text-center">
-                    <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
-                        <svg className="h-8 w-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                        </svg>
+
+                <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3">
+                    {messages.map((m, i) => (
+                        <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+                            <div
+                                className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm whitespace-pre-wrap ${
+                                    m.role === "user"
+                                        ? "bg-blue-600 text-white rounded-br-sm"
+                                        : "bg-muted text-foreground rounded-bl-sm"
+                                }`}
+                            >
+                                {m.content}
+                            </div>
+                        </div>
+                    ))}
+                    {loading && (
+                        <div className="flex justify-start">
+                            <div className="bg-muted text-foreground rounded-2xl rounded-bl-sm px-3 py-2 text-sm">
+                                <TypingDots />
+                            </div>
+                        </div>
+                    )}
+                    {error && (
+                        <div className="text-xs text-red-500 bg-red-500/10 border border-red-500/30 rounded-md px-2 py-1.5">
+                            {error}
+                        </div>
+                    )}
+                </div>
+
+                <div className="p-3 border-t border-border">
+                    <div className="flex items-center gap-2">
+                        <input
+                            ref={inputRef}
+                            type="text"
+                            value={input}
+                            onChange={(e) => setInput(e.target.value)}
+                            onKeyDown={handleKeyDown}
+                            placeholder="Ask FinnaBot anything..."
+                            disabled={loading}
+                            className="flex-1 rounded-full border border-border bg-background px-4 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:opacity-60"
+                        />
+                        <Button
+                            onClick={send}
+                            disabled={loading || !input.trim()}
+                            size="sm"
+                            className="rounded-full h-9 w-9 p-0 bg-blue-600 hover:bg-blue-700"
+                            aria-label="Send"
+                        >
+                            <Send className="h-4 w-4 text-white" />
+                        </Button>
                     </div>
-                    <h3 className="font-semibold text-gray-900 mb-2">Coming Soon!</h3>
-                    <p className="text-sm text-gray-500">FinnaBot is currently being upgraded. Check back soon for AI-powered financial assistance!</p>
-                </CardContent>
+                </div>
             </Card>
         </div>
-    );
+    )
+}
+
+function TypingDots() {
+    return (
+        <span className="inline-flex gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-foreground/50 animate-bounce [animation-delay:-0.3s]" />
+            <span className="w-1.5 h-1.5 rounded-full bg-foreground/50 animate-bounce [animation-delay:-0.15s]" />
+            <span className="w-1.5 h-1.5 rounded-full bg-foreground/50 animate-bounce" />
+        </span>
+    )
 }

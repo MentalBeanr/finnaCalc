@@ -209,7 +209,7 @@ export default function PricingCalculator() {
   }
 
   return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-muted/40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="mb-8">
             <Button variant="outline" onClick={() => router.back()} className="flex items-center gap-2">
@@ -354,7 +354,7 @@ export default function PricingCalculator() {
                               value={productCost}
                               onChange={(e) => setProductCost(e.target.value)}
                           />
-                          <p className="text-xs text-gray-500 mt-1">Total cost to make/acquire</p>
+                          <p className="text-xs text-muted-foreground mt-1">Total cost to make/acquire</p>
                         </div>
                         <div>
                           <Label htmlFor="productMargin">Desired Profit Margin (%)</Label>
@@ -365,7 +365,7 @@ export default function PricingCalculator() {
                               value={productMargin}
                               onChange={(e) => setProductMargin(e.target.value)}
                           />
-                          <p className="text-xs text-gray-500 mt-1">Percentage of selling price</p>
+                          <p className="text-xs text-muted-foreground mt-1">Percentage of selling price</p>
                         </div>
                         <div>
                           <Label htmlFor="competitorPrice">Competitor Price ($)</Label>
@@ -376,7 +376,7 @@ export default function PricingCalculator() {
                               value={competitorPrice}
                               onChange={(e) => setCompetitorPrice(e.target.value)}
                           />
-                          <p className="text-xs text-gray-500 mt-1">For competitive analysis</p>
+                          <p className="text-xs text-muted-foreground mt-1">For competitive analysis</p>
                         </div>
                         <div>
                           <Label htmlFor="shippingCost">Shipping Cost ($)</Label>
@@ -397,7 +397,7 @@ export default function PricingCalculator() {
                               value={volumeDiscount}
                               onChange={(e) => setVolumeDiscount(e.target.value)}
                           />
-                          <p className="text-xs text-gray-500 mt-1">For bulk orders</p>
+                          <p className="text-xs text-muted-foreground mt-1">For bulk orders</p>
                         </div>
                       </div>
 
@@ -429,13 +429,13 @@ export default function PricingCalculator() {
                                   <>
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                                       <div>
-                                        <p className="text-sm text-gray-600">Current Annual Revenue</p>
+                                        <p className="text-sm text-muted-foreground">Current Annual Revenue</p>
                                         <p className="text-2xl font-bold text-green-600">
                                           ${result.annualRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                         </p>
                                       </div>
                                       <div>
-                                        <p className="text-sm text-gray-600">Net Income (After Tax)</p>
+                                        <p className="text-sm text-muted-foreground">Net Income (After Tax)</p>
                                         <p
                                             className={`text-2xl font-bold ${result.netIncome >= 0 ? "text-blue-600" : "text-red-600"}`}
                                         >
@@ -443,13 +443,13 @@ export default function PricingCalculator() {
                                         </p>
                                       </div>
                                       <div>
-                                        <p className="text-sm text-gray-600">Required Hourly Rate</p>
+                                        <p className="text-sm text-muted-foreground">Required Hourly Rate</p>
                                         <p className="text-2xl font-bold text-purple-600">
                                           ${result.requiredHourlyRate.toFixed(2)}
                                         </p>
                                       </div>
                                       <div>
-                                        <p className="text-sm text-gray-600">Break-Even Rate</p>
+                                        <p className="text-sm text-muted-foreground">Break-Even Rate</p>
                                         <p className="text-2xl font-bold text-orange-600">${result.breakEvenRate.toFixed(2)}</p>
                                       </div>
                                     </div>
@@ -475,14 +475,14 @@ export default function PricingCalculator() {
                                         </div>
                                     )}
 
-                                    <div className="bg-gray-50 p-4 rounded-lg">
+                                    <div className="bg-muted/40 p-4 rounded-lg">
                                       <h4 className="font-semibold mb-3">Pricing Scenarios:</h4>
                                       <div className="space-y-3">
                                         {result.scenarios.map((scenario: any, index: number) => (
-                                            <div key={index} className="flex items-center justify-between p-2 bg-white rounded">
+                                            <div key={index} className="flex items-center justify-between p-2 bg-background rounded">
                                               <div>
                                                 <span className="font-medium">{scenario.name}</span>
-                                                <span className="text-sm text-gray-600 ml-2">${scenario.rate.toFixed(2)}/hr</span>
+                                                <span className="text-sm text-muted-foreground ml-2">${scenario.rate.toFixed(2)}/hr</span>
                                               </div>
                                               <div className="text-right">
                                                 <div className="font-semibold">${scenario.annualRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
@@ -501,19 +501,19 @@ export default function PricingCalculator() {
                                   <>
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                                       <div>
-                                        <p className="text-sm text-gray-600">Recommended Selling Price</p>
+                                        <p className="text-sm text-muted-foreground">Recommended Selling Price</p>
                                         <p className="text-2xl font-bold text-green-600">${result.sellingPrice.toFixed(2)}</p>
                                       </div>
                                       <div>
-                                        <p className="text-sm text-gray-600">Profit per Unit</p>
+                                        <p className="text-sm text-muted-foreground">Profit per Unit</p>
                                         <p className="text-2xl font-bold text-blue-600">${result.profit.toFixed(2)}</p>
                                       </div>
                                       <div>
-                                        <p className="text-sm text-gray-600">Markup Percentage</p>
+                                        <p className="text-sm text-muted-foreground">Markup Percentage</p>
                                         <p className="text-2xl font-bold text-purple-600">{result.markupPercentage.toFixed(1)}%</p>
                                       </div>
                                       <div>
-                                        <p className="text-sm text-gray-600">Profit Margin</p>
+                                        <p className="text-sm text-muted-foreground">Profit Margin</p>
                                         <p className="text-2xl font-bold text-orange-600">{result.marginPercentage}%</p>
                                       </div>
                                     </div>
@@ -528,14 +528,14 @@ export default function PricingCalculator() {
                                         </div>
                                     )}
 
-                                    <div className="bg-gray-50 p-4 rounded-lg">
+                                    <div className="bg-muted/40 p-4 rounded-lg">
                                       <h4 className="font-semibold mb-3">Pricing Strategies:</h4>
                                       <div className="space-y-3">
                                         {result.strategies.map((strategy: any, index: number) => (
-                                            <div key={index} className="flex items-center justify-between p-2 bg-white rounded">
+                                            <div key={index} className="flex items-center justify-between p-2 bg-background rounded">
                                               <div>
                                                 <span className="font-medium">{strategy.name}</span>
-                                                <span className="text-sm text-gray-600 ml-2">{strategy.description}</span>
+                                                <span className="text-sm text-muted-foreground ml-2">{strategy.description}</span>
                                               </div>
                                               <div className="text-right">
                                                 <div className="font-semibold">${strategy.price.toFixed(2)}</div>

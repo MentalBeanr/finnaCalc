@@ -235,7 +235,7 @@ export default function StartupCostCalculator() {
   }
 
   return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-muted/40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="mb-8">
             <Button variant="outline" onClick={() => router.back()} className="flex items-center gap-2">
@@ -469,20 +469,20 @@ export default function StartupCostCalculator() {
 
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                           <div>
-                            <p className="text-sm text-gray-600">Total Startup Costs</p>
+                            <p className="text-sm text-muted-foreground">Total Startup Costs</p>
                             <p className="text-3xl font-bold text-green-600">${result.totalCosts.toLocaleString()}</p>
                           </div>
                           <div>
-                            <p className="text-sm text-gray-600">Recommended Total (with 20% buffer)</p>
+                            <p className="text-sm text-muted-foreground">Recommended Total (with 20% buffer)</p>
                             <p className="text-2xl font-bold text-blue-600">${result.totalWithBuffer.toLocaleString()}</p>
                           </div>
                           <div>
-                            <p className="text-sm text-gray-600">Total Funding Available</p>
+                            <p className="text-sm text-muted-foreground">Total Funding Available</p>
                             <p className="text-2xl font-bold text-purple-600">${result.totalFunding.toLocaleString()}</p>
                           </div>
                         </div>
 
-                        <div className="bg-gray-50 p-4 rounded-lg">
+                        <div className="bg-muted/40 p-4 rounded-lg">
                           <h4 className="font-semibold mb-3">Funding Analysis:</h4>
                           <div className="space-y-2">
                             <div className="flex justify-between items-center">
@@ -505,7 +505,7 @@ export default function StartupCostCalculator() {
                                 value={Math.min((result.totalFunding / result.totalWithBuffer) * 100, 100)}
                                 className="mt-2"
                             />
-                            <p className="text-xs text-gray-600">
+                            <p className="text-xs text-muted-foreground">
                               {result.fundingGap > 0
                                   ? `You need an additional $${result.fundingGap.toLocaleString()} in funding`
                                   : `You have sufficient funding with $${Math.abs(result.fundingGap).toLocaleString()} surplus`}
@@ -513,7 +513,7 @@ export default function StartupCostCalculator() {
                           </div>
                         </div>
 
-                        <div className="bg-gray-50 p-4 rounded-lg">
+                        <div className="bg-muted/40 p-4 rounded-lg">
                           <h4 className="font-semibold mb-3 flex items-center gap-2">
                             <PieChart className="h-4 w-4" />
                             Detailed Cost Breakdown:
@@ -527,7 +527,7 @@ export default function StartupCostCalculator() {
                                   </div>
                                   <div className="text-right">
                                     <span className="font-semibold">${category.value.toLocaleString()}</span>
-                                    <span className="text-xs text-gray-500 ml-2">
+                                    <span className="text-xs text-muted-foreground ml-2">
                                 ({((category.value / result.totalCosts) * 100).toFixed(1)}%)
                               </span>
                                   </div>

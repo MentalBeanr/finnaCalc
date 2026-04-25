@@ -724,7 +724,7 @@ export default function TaxCalculators({ onBack }: TaxCalculatorsProps) {
                                                      </span>
                                                     </div>
                                                     <Separator />
-                                                    <div className="flex justify-between items-center p-3 bg-white rounded-lg">
+                                                    <div className="flex justify-between items-center p-3 bg-background rounded-lg">
                                                         <span className="font-semibold">Recommendation</span>
                                                         <span className="font-bold text-primary">
                                                          {deductionResults.shouldItemize ? "Likely Better to Itemize (Federal)" : "Likely Better to Take Standard (Federal)"}

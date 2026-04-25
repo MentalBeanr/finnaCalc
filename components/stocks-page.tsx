@@ -158,7 +158,7 @@ export default function StocksPage({ onBack, initialSymbol }: StocksPageProps) {
                         <div className="space-y-4 mt-4">
                             <div className="flex justify-between items-start">
                                 <div className="flex items-center gap-4">
-                                    <img src={selectedStock.logo} alt={`${selectedStock.name} logo`} className="h-12 w-12 rounded-full bg-white border" />
+                                    <img src={selectedStock.logo} alt={`${selectedStock.name} logo`} className="h-12 w-12 rounded-full bg-background border" />
                                     <div>
                                         <h3 className="text-xl font-bold">{selectedStock.name} ({selectedStock.symbol})</h3>
                                         <p className="text-2xl font-bold">${selectedStock.price.toFixed(2)}</p>

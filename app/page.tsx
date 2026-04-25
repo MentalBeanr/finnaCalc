@@ -191,7 +191,7 @@ export default function HomePage() {
             </p>
             <div className="flex justify-center">
               <Link href="#calculators">
-                <Button className="bg-white text-blue-600 hover:bg-gray-100 px-6 sm:px-8 py-3">
+                <Button className="bg-background text-blue-600 hover:bg-muted px-6 sm:px-8 py-3">
                   Explore Our Calculators
                 </Button>
               </Link>

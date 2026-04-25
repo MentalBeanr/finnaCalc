@@ -178,7 +178,7 @@ export default function TaxCalculator() {
   };
 
   return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-muted/40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="mb-8">
             <Button variant="outline" onClick={() => router.back()} className="flex items-center gap-2">
@@ -396,20 +396,20 @@ export default function TaxCalculator() {
                             <>
                               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div>
-                                  <p className="text-sm text-gray-600">Federal Tax Owed</p>
+                                  <p className="text-sm text-muted-foreground">Federal Tax Owed</p>
                                   <p className="text-3xl font-bold text-red-600">${result.finalTax.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
                                 </div>
                                 <div>
-                                  <p className="text-sm text-gray-600">Effective Tax Rate</p>
+                                  <p className="text-sm text-muted-foreground">Effective Tax Rate</p>
                                   <p className="text-2xl font-bold text-blue-600">{result.effectiveTaxRate.toFixed(1)}%</p>
                                 </div>
                                 <div>
-                                  <p className="text-sm text-gray-600">Marginal Tax Rate</p>
+                                  <p className="text-sm text-muted-foreground">Marginal Tax Rate</p>
                                   <p className="text-2xl font-bold text-purple-600">{result.marginalTaxRate}%</p>
                                 </div>
                               </div>
 
-                              <div className="bg-gray-50 p-4 rounded-lg">
+                              <div className="bg-muted/40 p-4 rounded-lg">
                                 <h4 className="font-semibold mb-3">Tax Breakdown:</h4>
                                 <div className="space-y-2 text-sm">
                                   <div className="flex justify-between">
@@ -462,20 +462,20 @@ export default function TaxCalculator() {
                             <>
                               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div>
-                                  <p className="text-sm text-gray-600">Estimated Tax Savings</p>
+                                  <p className="text-sm text-muted-foreground">Estimated Tax Savings</p>
                                   <p className="text-3xl font-bold text-green-600">${result.taxSavings.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
                                 </div>
                                 <div>
-                                  <p className="text-sm text-gray-600">Total Tax Owed</p>
+                                  <p className="text-sm text-muted-foreground">Total Tax Owed</p>
                                   <p className="text-2xl font-bold text-red-600">${result.totalTax.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
                                 </div>
                                 <div>
-                                  <p className="text-sm text-gray-600">Effective Tax Rate</p>
+                                  <p className="text-sm text-muted-foreground">Effective Tax Rate</p>
                                   <p className="text-2xl font-bold text-purple-600">{result.effectiveTaxRate.toFixed(1)}%</p>
                                 </div>
                               </div>
 
-                              <div className="bg-gray-50 p-4 rounded-lg">
+                              <div className="bg-muted/40 p-4 rounded-lg">
                                 <h4 className="font-semibold mb-3">Business Tax Breakdown:</h4>
                                 <div className="space-y-2 text-sm">
                                   <div className="flex justify-between">

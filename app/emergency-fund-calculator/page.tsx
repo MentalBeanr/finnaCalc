@@ -62,7 +62,7 @@ export default function EmergencyFundCalculator() {
   }
 
   return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-muted/40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Back Button */}
           <div className="mb-8">
@@ -130,7 +130,7 @@ export default function EmergencyFundCalculator() {
                           value={targetValue}
                           onChange={(e) => setTargetValue(e.target.value)}
                       />
-                      <p className="text-xs text-gray-500 mt-1">
+                      <p className="text-xs text-muted-foreground mt-1">
                         {targetType === "months"
                             ? "Recommended: 3-6 months for most people"
                             : "Enter your desired emergency fund amount"}
@@ -183,31 +183,31 @@ export default function EmergencyFundCalculator() {
                         <h3 className="text-lg font-semibold text-blue-800">Your Emergency Fund Analysis</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div>
-                            <p className="text-sm text-gray-600">Target Emergency Fund</p>
+                            <p className="text-sm text-muted-foreground">Target Emergency Fund</p>
                             <p className="text-2xl font-bold text-green-600">${result.targetAmount.toLocaleString()}</p>
                           </div>
                           <div>
-                            <p className="text-sm text-gray-600">Still Need to Save</p>
+                            <p className="text-sm text-muted-foreground">Still Need to Save</p>
                             <p className="text-2xl font-bold text-red-600">${result.stillNeeded.toLocaleString()}</p>
                           </div>
                           <div>
-                            <p className="text-sm text-gray-600">Progress Complete</p>
+                            <p className="text-sm text-muted-foreground">Progress Complete</p>
                             <p className="text-2xl font-bold text-blue-600">{result.percentComplete.toFixed(1)}%</p>
                           </div>
                           <div>
-                            <p className="text-sm text-gray-600">Current Coverage</p>
+                            <p className="text-sm text-muted-foreground">Current Coverage</p>
                             <p className="text-2xl font-bold text-purple-600">
                               {result.monthsOfExpensesCovered.toFixed(1)} months
                             </p>
                           </div>
                           <div>
-                            <p className="text-sm text-gray-600">Time to Reach Goal</p>
+                            <p className="text-sm text-muted-foreground">Time to Reach Goal</p>
                             <p className="text-2xl font-bold text-orange-600">
                               {result.timeToGoal > 0 ? `${result.timeToGoal} months` : "Goal reached!"}
                             </p>
                           </div>
                           <div>
-                            <p className="text-sm text-gray-600">Interest Earned</p>
+                            <p className="text-sm text-muted-foreground">Interest Earned</p>
                             <p className="text-2xl font-bold text-green-600">
                               ${result.projectedInterest?.toFixed(2) || "0.00"}
                             </p>

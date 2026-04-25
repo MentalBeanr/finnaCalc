@@ -740,13 +740,13 @@ export default function BudgetingPage() {
 
     return (
         <>
-            <div className="min-h-screen bg-gray-50">
+            <div className="min-h-screen bg-muted/40">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                     <div className="mb-8">
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                             <div>
-                                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">{budgetType === 'personal' ? 'Personal' : 'Business'} Budget Planner</h1>
-                                <p className="text-gray-600">Take control of your finances with our comprehensive budgeting tool</p>
+                                <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-2">{budgetType === 'personal' ? 'Personal' : 'Business'} Budget Planner</h1>
+                                <p className="text-muted-foreground">Take control of your finances with our comprehensive budgeting tool</p>
                             </div>
                             <div className="flex gap-2">
                                 <Button
@@ -774,7 +774,7 @@ export default function BudgetingPage() {
                             <CardContent className="p-4 sm:p-6">
                                 <div className="flex items-center justify-between">
                                     <div>
-                                        <p className="text-sm text-gray-600">Monthly Income</p>
+                                        <p className="text-sm text-muted-foreground">Monthly Income</p>
                                         <p className="text-xl sm:text-2xl font-bold text-green-600">${monthlyIncome.toFixed(2)}</p>
                                     </div>
                                     <TrendingUp className="h-6 w-6 sm:h-8 sm:w-8 text-green-600" />
@@ -786,7 +786,7 @@ export default function BudgetingPage() {
                             <CardContent className="p-4 sm:p-6">
                                 <div className="flex items-center justify-between">
                                     <div>
-                                        <p className="text-sm text-gray-600">Monthly Expenses</p>
+                                        <p className="text-sm text-muted-foreground">Monthly Expenses</p>
                                         <p className="text-xl sm:text-2xl font-bold text-red-600">${monthlyExpenses.toFixed(2)}</p>
                                     </div>
                                     <TrendingDown className="h-6 w-6 sm:h-8 sm:w-8 text-red-600" />
@@ -798,7 +798,7 @@ export default function BudgetingPage() {
                             <CardContent className="p-4 sm:p-6">
                                 <div className="flex items-center justify-between">
                                     <div>
-                                        <p className="text-sm text-gray-600">Net Income</p>
+                                        <p className="text-sm text-muted-foreground">Net Income</p>
                                         <p
                                             className={`text-xl sm:text-2xl font-bold ${monthlyNet >= 0 ? "text-green-600" : "text-red-600"}`}
                                         >
@@ -816,7 +816,7 @@ export default function BudgetingPage() {
                             <CardContent className="p-4 sm:p-6">
                                 <div className="flex items-center justify-between">
                                     <div>
-                                        <p className="text-sm text-gray-600">Savings Rate</p>
+                                        <p className="text-sm text-muted-foreground">Savings Rate</p>
                                         <p className="text-xl sm:text-2xl font-bold text-blue-600">
                                             {monthlyIncome > 0 ? ((monthlyNet / monthlyIncome) * 100).toFixed(1) : "0.0"}%
                                         </p>
@@ -977,7 +977,7 @@ export default function BudgetingPage() {
                                                         </div>
                                                     ) : (
                                                         <div className="flex items-center justify-center h-full min-h-[250px]">
-                                                            <p className="text-gray-500 text-sm text-center">Your expense summary chart will appear here.</p>
+                                                            <p className="text-muted-foreground text-sm text-center">Your expense summary chart will appear here.</p>
                                                         </div>
                                                     )
                                                 ) : (
@@ -997,7 +997,7 @@ export default function BudgetingPage() {
                                                         </div>
                                                     ) : (
                                                         <div className="flex items-center justify-center h-full min-h-[250px]">
-                                                            <p className="text-gray-500 text-sm text-center">Your income summary chart will appear here.</p>
+                                                            <p className="text-muted-foreground text-sm text-center">Your income summary chart will appear here.</p>
                                                         </div>
                                                     )
                                                 )}
@@ -1027,13 +1027,13 @@ export default function BudgetingPage() {
                                             {Object.keys(groupedBudgetItems).length > 0 ? (
                                                 Object.keys(groupedBudgetItems).map(category => (
                                                     <div key={category} className="border-b pb-2 last:border-b-0">
-                                                        <h3 className="text-lg font-semibold text-gray-800 mb-2">{category}</h3> {/* Changed to gray-800 */}
+                                                        <h3 className="text-lg font-semibold text-foreground mb-2">{category}</h3> {/* Changed to gray-800 */}
                                                         <div className="space-y-2">
                                                             {groupedBudgetItems[category].map((item) => (
-                                                                <div key={item.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                                                                <div key={item.id} className="flex justify-between items-center p-3 bg-muted/40 rounded-lg">
                                                                     <div className="flex-1 min-w-0">
                                                                         <p className="font-semibold text-blue-600 truncate">{item.subcategory || "No description"}</p> {/* Changed to blue-600 */}
-                                                                        <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
+                                                                        <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
                                                                             <span className="capitalize">{item.frequency}</span>
                                                                             {item.isFixed && (
                                                                                 <>
@@ -1052,7 +1052,7 @@ export default function BudgetingPage() {
                                                             >
                                                                 {item.type === "income" ? "+" : "-"}${item.amount.toFixed(2)}
                                                             </span>
-                                                                            <div className="text-xs text-gray-500">
+                                                                            <div className="text-xs text-muted-foreground">
                                                                                 ${convertToMonthly(item.amount, item.frequency).toFixed(2)}/month
                                                                             </div>
                                                                         </div>
@@ -1081,7 +1081,7 @@ export default function BudgetingPage() {
                                                     </div>
                                                 ))
                                             ) : (
-                                                <p className="text-gray-500 text-center py-8">
+                                                <p className="text-muted-foreground text-center py-8">
                                                     No budget items yet. Add your first income or expense above!
                                                 </p>
                                             )}
@@ -1098,7 +1098,7 @@ export default function BudgetingPage() {
                                 </CardHeader>
                                 <CardContent className="space-y-4">
                                     {filteredBudgetItems.length === 0 ? (
-                                        <p className="text-gray-500 text-center py-8">Add some income and expenses to see your budget analysis here!</p>
+                                        <p className="text-muted-foreground text-center py-8">Add some income and expenses to see your budget analysis here!</p>
                                     ) : (
                                         <>
                                             {analysisFeedback.map((item, index) => {
@@ -1138,7 +1138,7 @@ export default function BudgetingPage() {
                                 <CardContent>
                                     <div className="space-y-4">
                                         {newGoal.targetDate && ( // Only show form if adding a new goal
-                                            <div className="space-y-4 border p-4 rounded-lg bg-gray-50">
+                                            <div className="space-y-4 border p-4 rounded-lg bg-muted/40">
                                                 <h4 className="font-semibold text-lg">New Savings Goal</h4>
                                                 <div>
                                                     <Label htmlFor="goal-name">Goal Name</Label>
@@ -1199,7 +1199,7 @@ export default function BudgetingPage() {
                                             </div>
                                         )}
                                         {savingsGoals.length === 0 ? (
-                                            <p className="text-gray-500 text-center py-4">No savings goals yet. Add one to start tracking!</p>
+                                            <p className="text-muted-foreground text-center py-4">No savings goals yet. Add one to start tracking!</p>
                                         ) : (
                                             <div className="space-y-4">
                                                 {savingsGoals.map((goal) => {
@@ -1210,7 +1210,7 @@ export default function BudgetingPage() {
                                                     const neededPerMonth = monthsLeft > 0 ? remaining / monthsLeft : remaining;
 
                                                     return (
-                                                        <div key={goal.id} className="border p-4 rounded-lg shadow-sm bg-white">
+                                                        <div key={goal.id} className="border p-4 rounded-lg shadow-sm bg-background">
                                                             <div className="flex justify-between items-center mb-2">
                                                                 <h3 className="text-lg font-semibold">{goal.name}</h3>
                                                                 <div className="flex gap-2">
@@ -1234,12 +1234,12 @@ export default function BudgetingPage() {
                                                                     </Button>
                                                                 </div>
                                                             </div>
-                                                            <div className="flex justify-between text-sm text-gray-600 mb-1">
+                                                            <div className="flex justify-between text-sm text-muted-foreground mb-1">
                                                                 <span>Target: ${goal.targetAmount.toFixed(2)}</span>
                                                                 <span>Saved: ${goal.currentAmount.toFixed(2)}</span>
                                                             </div>
                                                             <Progress value={progress} className="w-full mb-2" />
-                                                            <div className="text-sm text-gray-600 mb-2">
+                                                            <div className="text-sm text-muted-foreground mb-2">
                                                                 {progress < 100 ? (
                                                                     <span>
                                                             Remaining: <span className="font-semibold text-red-600">${remaining.toFixed(2)}</span>
@@ -1249,7 +1249,7 @@ export default function BudgetingPage() {
                                                                 )}
                                                             </div>
                                                             {progress < 100 && (
-                                                                <div className="text-xs text-gray-500 space-y-1">
+                                                                <div className="text-xs text-muted-foreground space-y-1">
                                                                     {goal.targetDate && daysLeft > 0 && (
                                                                         <p>Target Date: {format(parseISO(goal.targetDate), 'PPP')} ({daysLeft} days left)</p>
                                                                     )}
@@ -1287,17 +1287,17 @@ export default function BudgetingPage() {
                                 </CardHeader>
                                 <CardContent>
                                     {budgetHistory.length === 0 ? (
-                                        <p className="text-gray-500 text-center py-8">No budget history saved yet. Save a snapshot from the "Budget" tab!</p>
+                                        <p className="text-muted-foreground text-center py-8">No budget history saved yet. Save a snapshot from the "Budget" tab!</p>
                                     ) : (
                                         <div className="space-y-4">
                                             {budgetHistory.map((entry) => (
-                                                <div key={entry.id} className="border p-4 rounded-lg shadow-sm bg-white flex justify-between items-center">
+                                                <div key={entry.id} className="border p-4 rounded-lg shadow-sm bg-background flex justify-between items-center">
                                                     <div>
                                                         <h3 className="text-lg font-semibold">{entry.name}</h3>
-                                                        <p className="text-sm text-gray-600">
+                                                        <p className="text-sm text-muted-foreground">
                                                             {format(parseISO(entry.startDate), 'PPP')} - {format(parseISO(entry.endDate), 'PPP')}
                                                         </p>
-                                                        <p className="text-xs text-gray-500 capitalize">{entry.budgetType} Budget</p>
+                                                        <p className="text-xs text-muted-foreground capitalize">{entry.budgetType} Budget</p>
                                                     </div>
                                                     <div className="flex gap-2">
                                                         <Button variant="outline" onClick={() => {
@@ -1421,19 +1421,19 @@ export default function BudgetingPage() {
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                             <Card>
                                 <CardContent className="p-4">
-                                    <p className="text-sm text-gray-600">Monthly Income</p>
+                                    <p className="text-sm text-muted-foreground">Monthly Income</p>
                                     <p className="text-xl font-bold text-green-600">${viewingHistoryEntry?.monthlyIncome.toFixed(2)}</p>
                                 </CardContent>
                             </Card>
                             <Card>
                                 <CardContent className="p-4">
-                                    <p className="text-sm text-gray-600">Monthly Expenses</p>
+                                    <p className="text-sm text-muted-foreground">Monthly Expenses</p>
                                     <p className="text-xl font-bold text-red-600">${viewingHistoryEntry?.monthlyExpenses.toFixed(2)}</p>
                                 </CardContent>
                             </Card>
                             <Card>
                                 <CardContent className="p-4">
-                                    <p className="text-sm text-gray-600">Net Income</p>
+                                    <p className="text-sm text-muted-foreground">Net Income</p>
                                     <p className={`text-xl font-bold ${viewingHistoryEntry && viewingHistoryEntry.monthlyNet >= 0 ? "text-green-600" : "text-red-600"}`}>
                                         ${viewingHistoryEntry?.monthlyNet.toFixed(2)}
                                     </p>
@@ -1446,10 +1446,10 @@ export default function BudgetingPage() {
                             <div className="space-y-3">
                                 {Object.keys(groupedHistoryItems.income).map(category => (
                                     <div key={category}>
-                                        <h4 className="font-semibold text-gray-800 mb-1">{category}</h4>
+                                        <h4 className="font-semibold text-foreground mb-1">{category}</h4>
                                         <div className="space-y-2">
                                             {groupedHistoryItems.income[category].map(item => (
-                                                <div key={item.id} className="flex justify-between items-center bg-gray-50 p-2 rounded text-sm">
+                                                <div key={item.id} className="flex justify-between items-center bg-muted/40 p-2 rounded text-sm">
                                                     <p className="text-blue-600">{item.subcategory || "No description"}</p>
                                                     <span className="font-bold text-green-600">+${item.amount.toFixed(2)} ({item.frequency})</span>
                                                 </div>
@@ -1459,7 +1459,7 @@ export default function BudgetingPage() {
                                 ))}
                             </div>
                         ) : (
-                            <p className="text-gray-500 text-sm">No income items in this snapshot.</p>
+                            <p className="text-muted-foreground text-sm">No income items in this snapshot.</p>
                         )}
 
                         <h3 className="text-lg font-semibold border-b pb-2">Expense Items</h3>
@@ -1467,10 +1467,10 @@ export default function BudgetingPage() {
                             <div className="space-y-3">
                                 {Object.keys(groupedHistoryItems.expense).map(category => (
                                     <div key={category}>
-                                        <h4 className="font-semibold text-gray-800 mb-1">{category}</h4>
+                                        <h4 className="font-semibold text-foreground mb-1">{category}</h4>
                                         <div className="space-y-2">
                                             {groupedHistoryItems.expense[category].map(item => (
-                                                <div key={item.id} className="flex justify-between items-center bg-gray-50 p-2 rounded text-sm">
+                                                <div key={item.id} className="flex justify-between items-center bg-muted/40 p-2 rounded text-sm">
                                                     <p className="text-blue-600">{item.subcategory || "No description"}</p>
                                                     <span className="font-bold text-red-600">-${item.amount.toFixed(2)} ({item.frequency})</span>
                                                 </div>
@@ -1480,7 +1480,7 @@ export default function BudgetingPage() {
                                 ))}
                             </div>
                         ) : (
-                            <p className="text-gray-500 text-sm">No expense items in this snapshot.</p>
+                            <p className="text-muted-foreground text-sm">No expense items in this snapshot.</p>
                         )}
 
                     </div>
@@ -1563,7 +1563,7 @@ export default function BudgetingPage() {
                             accept=".csv, .pdf, .txt"
                             onChange={handleFileChange}
                         />
-                        {selectedFile && <p className="text-sm text-gray-600">Selected: {selectedFile.name}</p>}
+                        {selectedFile && <p className="text-sm text-muted-foreground">Selected: {selectedFile.name}</p>}
                     </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => { setIsFileUploadModalOpen(false); setSelectedFile(null); }}>Cancel</Button>
@@ -1583,8 +1583,8 @@ export default function BudgetingPage() {
                     </DialogHeader>
                     <div className="grid gap-4 py-8 text-center">
                         <Plug className="h-12 w-12 text-blue-500 mx-auto" />
-                        <p className="text-xl font-semibold text-gray-800">Coming Soon!</p>
-                        <p className="text-gray-600">
+                        <p className="text-xl font-semibold text-foreground">Coming Soon!</p>
+                        <p className="text-muted-foreground">
                             We're working on integrating secure bank connections (e.g., via Plaid API) to make budgeting even easier.
                             Stay tuned for updates!
                         </p>

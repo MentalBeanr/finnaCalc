@@ -10,7 +10,7 @@ export default function PrivacyPolicy() {
     const router = useRouter();
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-muted/40">
             <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 <div className="mb-4">
                     <Button variant="outline" onClick={() => router.back()} className="flex items-center gap-2">
@@ -22,7 +22,7 @@ export default function PrivacyPolicy() {
                 <div className="space-y-8">
                     {/* Header */}
                     <div className="text-center space-y-2">
-                        <h1 className="text-4xl font-bold text-gray-900">Privacy Policy</h1>
+                        <h1 className="text-4xl font-bold text-foreground">Privacy Policy</h1>
                     </div>
 
                     {/* Introduction */}
@@ -34,12 +34,12 @@ export default function PrivacyPolicy() {
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            <p className="text-gray-600">
+                            <p className="text-muted-foreground">
                                 FinnaCalc is committed to protecting your privacy. This Privacy Policy explains
                                 how information is collected, used, disclosed, and safeguarded when you visit the website and use the
                                 financial calculators and tools.
                             </p>
-                            <p className="text-gray-600">
+                            <p className="text-muted-foreground">
                                 By using FinnaCalc, you agree to the collection and use of information in accordance with this policy.
                                 If you do not agree with the policies and practices outlined, please do not use the services.
                             </p>
@@ -56,8 +56,8 @@ export default function PrivacyPolicy() {
                         </CardHeader>
                         <CardContent className="space-y-6">
                             <div>
-                                <h3 className="text-lg font-semibold text-gray-900 mb-3">Information You Provide</h3>
-                                <ul className="space-y-2 text-gray-600">
+                                <h3 className="text-lg font-semibold text-foreground mb-3">Information You Provide</h3>
+                                <ul className="space-y-2 text-muted-foreground">
                                     <li>• Calculator inputs and financial data (processed locally, not stored)</li>
                                     <li>• Contact information when you reach out</li>
                                     <li>• Feedback and suggestions you provide</li>
@@ -65,8 +65,8 @@ export default function PrivacyPolicy() {
                             </div>
 
                             <div>
-                                <h3 className="text-lg font-semibold text-gray-900 mb-3">Automatically Collected Information</h3>
-                                <ul className="space-y-2 text-gray-600">
+                                <h3 className="text-lg font-semibold text-foreground mb-3">Automatically Collected Information</h3>
+                                <ul className="space-y-2 text-muted-foreground">
                                     <li>• Usage data and analytics (page views, time spent, features used)</li>
                                     <li>• Device information (browser type, operating system, screen resolution)</li>
                                     <li>• IP address and general location information</li>
@@ -92,7 +92,7 @@ export default function PrivacyPolicy() {
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <ul className="space-y-3 text-gray-600">
+                            <ul className="space-y-3 text-muted-foreground">
                                 <li>
                                     • <strong>Service Provision:</strong> To provide and maintain financial calculators and tools
                                 </li>
@@ -121,11 +121,11 @@ export default function PrivacyPolicy() {
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            <p className="text-gray-600">
+                            <p className="text-muted-foreground">
                                 Personal information is not sold, traded, or otherwise transferred to third parties except in the
                                 following circumstances:
                             </p>
-                            <ul className="space-y-2 text-gray-600">
+                            <ul className="space-y-2 text-muted-foreground">
                                 <li>
                                     • <strong>Service Providers:</strong> Trusted third parties who assist in operating the website and
                                     conducting business
@@ -152,11 +152,11 @@ export default function PrivacyPolicy() {
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            <p className="text-gray-600">
+                            <p className="text-muted-foreground">
                                 Appropriate technical and organizational security measures are implemented to protect your information
                                 against unauthorized access, alteration, disclosure, or destruction.
                             </p>
-                            <ul className="space-y-2 text-gray-600">
+                            <ul className="space-y-2 text-muted-foreground">
                                 <li>• SSL encryption for data transmission</li>
                                 <li>• Regular security assessments and updates</li>
                                 <li>• Limited access to personal information on a need-to-know basis</li>
@@ -177,10 +177,10 @@ export default function PrivacyPolicy() {
                             <CardTitle>Cookies and Tracking Technologies</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            <p className="text-gray-600">
+                            <p className="text-muted-foreground">
                                 Cookies and similar tracking technologies are used to enhance your experience on the website:
                             </p>
-                            <ul className="space-y-2 text-gray-600">
+                            <ul className="space-y-2 text-muted-foreground">
                                 <li>
                                     • <strong>Essential Cookies:</strong> Required for basic website functionality
                                 </li>
@@ -191,7 +191,7 @@ export default function PrivacyPolicy() {
                                     • <strong>Preference Cookies:</strong> To remember your settings and preferences
                                 </li>
                             </ul>
-                            <p className="text-gray-600">
+                            <p className="text-muted-foreground">
                                 You can control cookies through your browser settings. However, disabling certain cookies may affect
                                 website functionality.
                             </p>
@@ -204,8 +204,8 @@ export default function PrivacyPolicy() {
                             <CardTitle>Your Privacy Rights</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <p className="text-gray-600 mb-4">Depending on your location, you may have the following rights:</p>
-                            <ul className="space-y-2 text-gray-600">
+                            <p className="text-muted-foreground mb-4">Depending on your location, you may have the following rights:</p>
+                            <ul className="space-y-2 text-muted-foreground">
                                 <li>
                                     • <strong>Access:</strong> Request information about the personal data held about you
                                 </li>
@@ -231,7 +231,7 @@ export default function PrivacyPolicy() {
                             <CardTitle>Children's Privacy</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <p className="text-gray-600">
+                            <p className="text-muted-foreground">
                                 The services are not intended for children under 13 years of age. Personal
                                 information from children under 13 is not knowingly collected. If you are a parent or guardian and believe your child has provided
                                 personal information, please make contact immediately.
@@ -248,7 +248,7 @@ export default function PrivacyPolicy() {
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <p className="text-gray-600">
+                            <p className="text-muted-foreground">
                                 This Privacy Policy may be updated from time to time. You will be notified of any changes by posting the
                                 new Privacy Policy on this page. You are advised to review this
                                 Privacy Policy periodically for any changes.
@@ -262,10 +262,10 @@ export default function PrivacyPolicy() {
                             <CardTitle>Contact Us</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <p className="text-gray-600 mb-4">
+                            <p className="text-muted-foreground mb-4">
                                 If you have any questions about this Privacy Policy or privacy practices, please make contact:
                             </p>
-                            <div className="space-y-2 text-gray-600">
+                            <div className="space-y-2 text-muted-foreground">
                                 <p>
                                     <strong>Help & Assistance:</strong> helpfinnacalc@gmail.com
                                 </p>

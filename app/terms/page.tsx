@@ -10,7 +10,7 @@ export default function TermsOfService() {
     const router = useRouter()
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-muted/40">
             <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 <div className="mb-4">
                     <Button variant="outline" onClick={() => router.back()} className="flex items-center gap-2">
@@ -22,7 +22,7 @@ export default function TermsOfService() {
                 <div className="space-y-8">
                     {/* Header */}
                     <div className="text-center space-y-2">
-                        <h1 className="text-4xl font-bold text-gray-900">Terms of Service</h1>
+                        <h1 className="text-4xl font-bold text-foreground">Terms of Service</h1>
                     </div>
 
                     {/* Agreement */}
@@ -34,12 +34,12 @@ export default function TermsOfService() {
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            <p className="text-gray-600">
+                            <p className="text-muted-foreground">
                                 These Terms of Service govern your use of FinnaCalc's website and services. By accessing or
                                 using the services, you agree to be bound by these Terms. If you disagree with any part of these terms,
                                 then you may and should not access the services.
                             </p>
-                            <p className="text-gray-600">
+                            <p className="text-muted-foreground">
                                 The right to update these Terms at any time is reserved. Changes will be effective immediately upon
                                 posting. Your continued use of the services after changes are posted constitutes acceptance of the new
                                 Terms.
@@ -56,11 +56,11 @@ export default function TermsOfService() {
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            <p className="text-gray-600">
+                            <p className="text-muted-foreground">
                                 FinnaCalc provides free financial calculators and planning tools for personal and business use. The
                                 services include but are not limited to:
                             </p>
-                            <ul className="space-y-2 text-gray-600">
+                            <ul className="space-y-2 text-muted-foreground">
                                 <li>• Business financial calculators (startup costs, break-even analysis, ROI, etc.)</li>
                                 <li>• Personal finance tools (tax calculators, loan analyzers, etc.)</li>
                                 <li>• Educational content and financial planning resources</li>
@@ -84,8 +84,8 @@ export default function TermsOfService() {
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <p className="text-gray-600 mb-4">By using the services, you agree to:</p>
-                            <ul className="space-y-2 text-gray-600">
+                            <p className="text-muted-foreground mb-4">By using the services, you agree to:</p>
+                            <ul className="space-y-2 text-muted-foreground">
                                 <li>• Use the service only for lawful purposes and in accordance with these Terms</li>
                                 <li>• Provide accurate information when using the calculators</li>
                                 <li>• Not attempt to interfere with or disrupt the services</li>
@@ -107,8 +107,8 @@ export default function TermsOfService() {
                         </CardHeader>
                         <CardContent className="space-y-6">
                             <div>
-                                <h3 className="text-lg font-semibold text-gray-900 mb-3">Financial Advice Disclaimer</h3>
-                                <p className="text-gray-600">
+                                <h3 className="text-lg font-semibold text-foreground mb-3">Financial Advice Disclaimer</h3>
+                                <p className="text-muted-foreground">
                                     FinnaCalc does not provide financial, investment, tax, or legal advice. The calculators and tools are
                                     for informational and educational purposes only. Results are estimates based on the information you
                                     provide and should not be relied upon for making financial decisions without consulting qualified
@@ -117,8 +117,8 @@ export default function TermsOfService() {
                             </div>
 
                             <div>
-                                <h3 className="text-lg font-semibold text-gray-900 mb-3">Accuracy Disclaimer</h3>
-                                <p className="text-gray-600">
+                                <h3 className="text-lg font-semibold text-foreground mb-3">Accuracy Disclaimer</h3>
+                                <p className="text-muted-foreground">
                                     While efforts are made for accuracy, no warranties are made about the completeness, reliability, or accuracy
                                     of the calculators or information. Financial regulations, tax laws, and market conditions change
                                     frequently, and the tools may not reflect the most current information.
@@ -126,8 +126,8 @@ export default function TermsOfService() {
                             </div>
 
                             <div>
-                                <h3 className="text-lg font-semibold text-gray-900 mb-3">No Warranty</h3>
-                                <p className="text-gray-600">
+                                <h3 className="text-lg font-semibold text-foreground mb-3">No Warranty</h3>
+                                <p className="text-muted-foreground">
                                     The services are provided "as is" without any warranty of any kind, either express or implied,
                                     including but not limited to warranties of merchantability, fitness for a particular purpose, or
                                     non-infringement.
@@ -145,17 +145,17 @@ export default function TermsOfService() {
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            <p className="text-gray-600">
+                            <p className="text-muted-foreground">
                                 To the fullest extent permitted by law, FinnaCalc shall not be liable for any indirect, incidental,
                                 special, consequential, or punitive damages, including but not limited to:
                             </p>
-                            <ul className="space-y-2 text-gray-600">
+                            <ul className="space-y-2 text-muted-foreground">
                                 <li>• Financial losses resulting from use of the calculators</li>
                                 <li>• Business interruption or loss of profits</li>
                                 <li>• Data loss or corruption</li>
                                 <li>• Third-party claims or damages</li>
                             </ul>
-                            <p className="text-gray-600">
+                            <p className="text-muted-foreground">
                                 Total liability for any claims arising from your use of the services shall not exceed the amount
                                 paid for the services (which is $0 for free services).
                             </p>
@@ -168,14 +168,14 @@ export default function TermsOfService() {
                             <CardTitle>Intellectual Property Rights</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            <p className="text-gray-600">
+                            <p className="text-muted-foreground">
                                 The FinnaCalc website, including its content, features, and functionality, is owned by FinnaCalc and is
                                 protected by copyright, trademark, and other intellectual property laws.
                             </p>
-                            <p className="text-gray-600">
+                            <p className="text-muted-foreground">
                                 You may use the services for personal and business purposes, but you may not:
                             </p>
-                            <ul className="space-y-2 text-gray-600">
+                            <ul className="space-y-2 text-muted-foreground">
                                 <li>• Copy, modify, or distribute content without permission</li>
                                 <li>• Use trademarks or branding without authorization</li>
                                 <li>• Create derivative works based on the services</li>
@@ -190,7 +190,7 @@ export default function TermsOfService() {
                             <CardTitle>Privacy and Data Protection</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <p className="text-gray-600">
+                            <p className="text-muted-foreground">
                                 Your privacy is important. The collection and use of personal information is governed by the{" "}
                                 <Link href="/privacy" className="text-blue-600 hover:underline">
                                     Privacy Policy
@@ -207,7 +207,7 @@ export default function TermsOfService() {
                             <CardTitle>Termination</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <p className="text-gray-600">
+                            <p className="text-muted-foreground">
                                 Access to the services may be terminated or suspended immediately, without prior notice or liability,
                                 for any reason, including breach of these Terms. Upon termination, your right to use the services will
                                 cease immediately.
@@ -221,7 +221,7 @@ export default function TermsOfService() {
                             <CardTitle>Governing Law and Jurisdiction</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <p className="text-gray-600">
+                            <p className="text-muted-foreground">
                                 These Terms shall be governed by and construed in accordance with the laws of the United States, without
                                 regard to conflict of law principles. Any disputes arising from these Terms or your use of the services
                                 shall be resolved through binding arbitration or in the courts of competent jurisdiction.
@@ -235,11 +235,11 @@ export default function TermsOfService() {
                             <CardTitle>Severability and Entire Agreement</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            <p className="text-gray-600">
+                            <p className="text-muted-foreground">
                                 If any provision of these Terms is held to be invalid or unenforceable, the remaining provisions will
                                 remain in full force and effect.
                             </p>
-                            <p className="text-gray-600">
+                            <p className="text-muted-foreground">
                                 These Terms, together with the Privacy Policy, constitute the entire agreement between you and FinnaCalc
                                 regarding your use of the services.
                             </p>
@@ -252,10 +252,10 @@ export default function TermsOfService() {
                             <CardTitle>Contact Information</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <p className="text-gray-600 mb-4">
+                            <p className="text-muted-foreground mb-4">
                                 If you have any questions about these Terms of Service, please make contact:
                             </p>
-                            <div className="space-y-2 text-gray-600">
+                            <div className="space-y-2 text-muted-foreground">
                                 <p>
                                     <strong>Help & Assistance:</strong> helpfinnacalc@gmail.com
                                 </p>

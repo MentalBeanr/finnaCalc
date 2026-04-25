@@ -58,7 +58,7 @@ export default function EmployeeContractorCalculator() {
   }
 
   return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-muted/40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="mb-8">
             <Button variant="outline" onClick={() => router.back()} className="flex items-center gap-2">
@@ -139,19 +139,19 @@ export default function EmployeeContractorCalculator() {
                           <TabsContent value="comparison" className="space-y-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               <div>
-                                <p className="text-sm text-gray-600">Total Employee Cost</p>
+                                <p className="text-sm text-muted-foreground">Total Employee Cost</p>
                                 <p className="text-2xl font-bold text-red-600">
                                   ${result.employee.totalCost.toLocaleString()}
                                 </p>
                               </div>
                               <div>
-                                <p className="text-sm text-gray-600">Total Contractor Cost</p>
+                                <p className="text-sm text-muted-foreground">Total Contractor Cost</p>
                                 <p className="text-2xl font-bold text-blue-600">
                                   ${result.contractor.annualCost.toLocaleString()}
                                 </p>
                               </div>
                               <div>
-                                <p className="text-sm text-gray-600">Annual Savings</p>
+                                <p className="text-sm text-muted-foreground">Annual Savings</p>
                                 <p
                                     className={`text-2xl font-bold ${result.comparison.savings >= 0 ? "text-green-600" : "text-red-600"}`}
                                 >
@@ -159,7 +159,7 @@ export default function EmployeeContractorCalculator() {
                                 </p>
                               </div>
                               <div>
-                                <p className="text-sm text-gray-600">Savings Percentage</p>
+                                <p className="text-sm text-muted-foreground">Savings Percentage</p>
                                 <p
                                     className={`text-2xl font-bold ${result.comparison.savingsPercentage >= 0 ? "text-green-600" : "text-red-600"}`}
                                 >
@@ -181,7 +181,7 @@ export default function EmployeeContractorCalculator() {
                           </TabsContent>
 
                           <TabsContent value="employee" className="space-y-4">
-                            <div className="bg-gray-50 p-4 rounded-lg">
+                            <div className="bg-muted/40 p-4 rounded-lg">
                               <h4 className="font-semibold mb-3">Employee Cost Breakdown:</h4>
                               <div className="space-y-2 text-sm">
                                 <div className="flex justify-between">
@@ -213,7 +213,7 @@ export default function EmployeeContractorCalculator() {
                           </TabsContent>
 
                           <TabsContent value="contractor" className="space-y-4">
-                            <div className="bg-gray-50 p-4 rounded-lg">
+                            <div className="bg-muted/40 p-4 rounded-lg">
                               <h4 className="font-semibold mb-3">Contractor Cost Analysis:</h4>
                               <div className="space-y-2 text-sm">
                                 <div className="flex justify-between">

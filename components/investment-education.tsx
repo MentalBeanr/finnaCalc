@@ -200,7 +200,7 @@ export default function InvestmentEducation({ onBack }: InvestmentEducationProps
                 </CardHeader>
                 <CardContent>
                     <div className="space-y-4">
-                        <div className="flex items-center gap-3 p-3 bg-white rounded-lg border">
+                        <div className="flex items-center gap-3 p-3 bg-background rounded-lg border">
                             <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
                                 1
                             </div>
@@ -211,7 +211,7 @@ export default function InvestmentEducation({ onBack }: InvestmentEducationProps
                                 </p>
                             </div>
                         </div>
-                        <div className="flex items-center gap-3 p-3 bg-white rounded-lg border">
+                        <div className="flex items-center gap-3 p-3 bg-background rounded-lg border">
                             <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
                                 2
                             </div>
@@ -222,7 +222,7 @@ export default function InvestmentEducation({ onBack }: InvestmentEducationProps
                                 </p>
                             </div>
                         </div>
-                        <div className="flex items-center gap-3 p-3 bg-white rounded-lg border">
+                        <div className="flex items-center gap-3 p-3 bg-background rounded-lg border">
                             <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
                                 3
                             </div>
@@ -233,7 +233,7 @@ export default function InvestmentEducation({ onBack }: InvestmentEducationProps
                                 </p>
                             </div>
                         </div>
-                        <div className="flex items-center gap-3 p-3 bg-white rounded-lg border">
+                        <div className="flex items-center gap-3 p-3 bg-background rounded-lg border">
                             <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
                                 4
                             </div>

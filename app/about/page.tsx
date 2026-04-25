@@ -10,7 +10,7 @@ export default function AboutUs() {
     const router = useRouter()
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-muted/40">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 <div className="mb-4">
                     <Button variant="outline" onClick={() => router.back()} className="flex items-center gap-2">
@@ -22,8 +22,8 @@ export default function AboutUs() {
                 <div className="space-y-12">
                     {/* Hero Section */}
                     <div className="text-center space-y-4">
-                        <h1 className="text-4xl font-bold text-gray-900 text-balance">Empowering Smart Financial Decisions</h1>
-                        <p className="text-xl text-gray-600 max-w-3xl mx-auto text-pretty">
+                        <h1 className="text-4xl font-bold text-foreground text-balance">Empowering Smart Financial Decisions</h1>
+                        <p className="text-xl text-muted-foreground max-w-3xl mx-auto text-pretty">
                             FinnaCalc is your trusted partner in financial planning, providing professional-grade calculators and planning
                             tools to help individuals and businesses make informed financial decisions.
                         </p>
@@ -39,7 +39,7 @@ export default function AboutUs() {
                                 </CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <p className="text-gray-600">
+                                <p className="text-muted-foreground">
                                     To democratize financial planning by providing free, accurate, and easy-to-use financial calculators and personal finance tools
                                     that empower everyone to make better financial decisions, regardless of their background or experience
                                     level.
@@ -55,7 +55,7 @@ export default function AboutUs() {
                                 </CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <p className="text-gray-600">
+                                <p className="text-muted-foreground">
                                     To become the world's most trusted platform for financial calculations and personal finance planning tools, helping
                                     millions of people achieve their financial goals through informed decision-making.
                                 </p>
@@ -66,8 +66,8 @@ export default function AboutUs() {
                     {/* What We Offer */}
                     <div className="space-y-8">
                         <div className="text-center">
-                            <h2 className="text-3xl font-bold text-gray-900 mb-4">What We Offer</h2>
-                            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+                            <h2 className="text-3xl font-bold text-foreground mb-4">What We Offer</h2>
+                            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
                                 Comprehensive financial tools designed for real-world applications
                             </p>
                         </div>
@@ -81,7 +81,7 @@ export default function AboutUs() {
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent>
-                                    <p className="text-gray-600">
+                                    <p className="text-muted-foreground">
                                         Startup costs, break-even analysis, ROI calculations, cash flow projections, and pricing strategies
                                         to help businesses plan and grow.
                                     </p>
@@ -96,7 +96,7 @@ export default function AboutUs() {
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent>
-                                    <p className="text-gray-600">
+                                    <p className="text-muted-foreground">
                                         Tax calculators, loan analyzers, investment tools, and budgeting calculators designed for
                                         individuals and families.
                                     </p>
@@ -111,7 +111,7 @@ export default function AboutUs() {
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent>
-                                    <p className="text-gray-600">
+                                    <p className="text-muted-foreground">
                                         All calculations are based on current financial formulas and regulations, ensuring accuracy and
                                         reliability for professional use.
                                     </p>
@@ -123,7 +123,7 @@ export default function AboutUs() {
                     {/* Our Values */}
                     <div className="space-y-8">
                         <div className="text-center">
-                            <h2 className="text-3xl font-bold text-gray-900 mb-4">Our Core Values</h2>
+                            <h2 className="text-3xl font-bold text-foreground mb-4">Our Core Values</h2>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -131,8 +131,8 @@ export default function AboutUs() {
                                 <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto">
                                     <Shield className="h-8 w-8 text-blue-600" />
                                 </div>
-                                <h3 className="font-semibold text-gray-900">Accuracy</h3>
-                                <p className="text-sm text-gray-600">
+                                <h3 className="font-semibold text-foreground">Accuracy</h3>
+                                <p className="text-sm text-muted-foreground">
                                     Every calculation is thoroughly tested and based on current financial standards and regulations.
                                 </p>
                             </div>
@@ -141,8 +141,8 @@ export default function AboutUs() {
                                 <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
                                     <Heart className="h-8 w-8 text-green-600" />
                                 </div>
-                                <h3 className="font-semibold text-gray-900">Accessibility</h3>
-                                <p className="text-sm text-gray-600">
+                                <h3 className="font-semibold text-foreground">Accessibility</h3>
+                                <p className="text-sm text-muted-foreground">
                                     Financial planning tools should be available to everyone, regardless of their economic background.
                                 </p>
                             </div>
@@ -151,8 +151,8 @@ export default function AboutUs() {
                                 <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto">
                                     <Users className="h-8 w-8 text-purple-600" />
                                 </div>
-                                <h3 className="font-semibold text-gray-900">Simplicity</h3>
-                                <p className="text-sm text-gray-600">
+                                <h3 className="font-semibold text-foreground">Simplicity</h3>
+                                <p className="text-sm text-muted-foreground">
                                     Complex financial concepts made simple and understandable for users of all experience levels.
                                 </p>
                             </div>
@@ -161,8 +161,8 @@ export default function AboutUs() {
                                 <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto">
                                     <Award className="h-8 w-8 text-orange-600" />
                                 </div>
-                                <h3 className="font-semibold text-gray-900">Excellence</h3>
-                                <p className="text-sm text-gray-600">
+                                <h3 className="font-semibold text-foreground">Excellence</h3>
+                                <p className="text-sm text-muted-foreground">
                                     Continuous improvement and innovation to provide the best possible user experience.
                                 </p>
                             </div>
@@ -170,42 +170,42 @@ export default function AboutUs() {
                     </div>
 
                     {/* Why Choose FinnaCalc */}
-                    <div className="bg-white rounded-lg p-8 shadow-sm">
+                    <div className="bg-background rounded-lg p-8 shadow-sm">
                         <div className="text-center space-y-4 mb-8">
-                            <h2 className="text-3xl font-bold text-gray-900">Why Choose FinnaCalc?</h2>
-                            <p className="text-lg text-gray-600">
+                            <h2 className="text-3xl font-bold text-foreground">Why Choose FinnaCalc?</h2>
+                            <p className="text-lg text-muted-foreground">
                                 We're committed to providing the most reliable and user-friendly financial tools available
                             </p>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                             <div className="space-y-4">
-                                <h3 className="text-xl font-semibold text-gray-900">Free & Accessible</h3>
-                                <p className="text-gray-600">
+                                <h3 className="text-xl font-semibold text-foreground">Free & Accessible</h3>
+                                <p className="text-muted-foreground">
                                     All basic calculations and personal finance tools are completely free to use. No hidden fees, no
                                     subscriptions, no barriers to financial planning.
                                 </p>
                             </div>
 
                             <div className="space-y-4">
-                                <h3 className="text-xl font-semibold text-gray-900">Professional Quality</h3>
-                                <p className="text-gray-600">
+                                <h3 className="text-xl font-semibold text-foreground">Professional Quality</h3>
+                                <p className="text-muted-foreground">
                                     Our calculators use the same formulas and methodologies employed by financial professionals and
                                     institutions worldwide.
                                 </p>
                             </div>
 
                             <div className="space-y-4">
-                                <h3 className="text-xl font-semibold text-gray-900">User-Friendly Design</h3>
-                                <p className="text-gray-600">
+                                <h3 className="text-xl font-semibold text-foreground">User-Friendly Design</h3>
+                                <p className="text-muted-foreground">
                                     Clean, intuitive interfaces that make complex financial calculations simple and straightforward for
                                     everyone to use.
                                 </p>
                             </div>
 
                             <div className="space-y-4">
-                                <h3 className="text-xl font-semibold text-gray-900">Constantly Updated</h3>
-                                <p className="text-gray-600">
+                                <h3 className="text-xl font-semibold text-foreground">Constantly Updated</h3>
+                                <p className="text-muted-foreground">
                                     We regularly update our calculators to reflect current tax rates, interest rates, and financial
                                     regulations.
                                 </p>
@@ -215,16 +215,16 @@ export default function AboutUs() {
 
                     {/* Contact Information */}
                     <div className="text-center space-y-4">
-                        <h2 className="text-2xl font-bold text-gray-900">Get in Touch</h2>
-                        <p className="text-gray-600 max-w-2xl mx-auto">
+                        <h2 className="text-2xl font-bold text-foreground">Get in Touch</h2>
+                        <p className="text-muted-foreground max-w-2xl mx-auto">
                             Have questions, suggestions, or feedback? We'd love to hear from you. Our team is committed to
                             continuously improving FinnaCalc based on user needs and feedback.
                         </p>
                         <div className="space-y-2">
-                            <p className="text-gray-600">
+                            <p className="text-muted-foreground">
                                 <strong>Help & Assistance:</strong> helpfinnacalc@gmail.com
                             </p>
-                            <p className="text-gray-600">
+                            <p className="text-muted-foreground">
                                 <strong>Business Inquiries:</strong> finnacalc@gmail.com
                             </p>
                         </div>

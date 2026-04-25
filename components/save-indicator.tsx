@@ -39,7 +39,7 @@ export function SaveIndicator({ lastSaved, hasUnsavedChanges }: SaveIndicatorPro
 
   if (lastSaved) {
     return (
-      <div className="flex items-center gap-2 text-gray-500 text-sm">
+      <div className="flex items-center gap-2 text-muted-foreground text-sm">
         <Check className="h-4 w-4" />
         <span>Last saved: {lastSaved.toLocaleTimeString()}</span>
       </div>

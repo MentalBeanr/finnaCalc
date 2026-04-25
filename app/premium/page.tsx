@@ -41,14 +41,14 @@ export default function PremiumPage() {
   };
 
   return (
-      <div className="min-h-screen bg-gray-50">
-        <header className="border-b border-gray-200 bg-white">
+      <div className="min-h-screen bg-muted/40">
+        <header className="border-b border-border bg-background">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center h-16">
               <div className="flex items-center">
                 <Link href="/" className="flex items-center">
                   <Calculator className="h-8 w-8 text-blue-600" />
-                  <span className="ml-2 text-xl font-bold text-gray-900">FinnaCalc</span>
+                  <span className="ml-2 text-xl font-bold text-foreground">FinnaCalc</span>
                 </Link>
               </div>
               <Link href="/">
@@ -61,8 +61,8 @@ export default function PremiumPage() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
           <div className="text-center">
             <Crown className="h-16 w-16 text-yellow-500 mx-auto mb-6" />
-            <h1 className="text-4xl font-bold text-gray-900 mb-4">FinnaCalc Premium</h1>
-            <p className="text-xl text-gray-600 mb-8">Coming Soon</p>
+            <h1 className="text-4xl font-bold text-foreground mb-4">FinnaCalc Premium</h1>
+            <p className="text-xl text-muted-foreground mb-8">Coming Soon</p>
 
             <Card className="max-w-3xl mx-auto">
               <CardHeader>
@@ -77,7 +77,7 @@ export default function PremiumPage() {
                 {/* ... (rest of your premium features) */}
 
                 <div className="pt-4 border-t">
-                  <p className="text-sm text-gray-600 mb-4 text-center">
+                  <p className="text-sm text-muted-foreground mb-4 text-center">
                     Join our exclusive early access list and be the first to experience FinnaCalc Premium!
                   </p>
                   <div className="flex gap-2 max-w-md mx-auto">
@@ -95,7 +95,7 @@ export default function PremiumPage() {
                     </Button>
                   </div>
                   {message && <p className="text-sm text-center mt-2">{message}</p>}
-                  <p className="text-xs text-gray-500 text-center mt-2">
+                  <p className="text-xs text-muted-foreground text-center mt-2">
                     No spam. Unsubscribe anytime. Early access members get 60% off forever.
                   </p>
                 </div>
@@ -103,7 +103,7 @@ export default function PremiumPage() {
             </Card>
 
             <div className="mt-8">
-              <p className="text-gray-600 mb-4">Continue using our free calculators while you wait:</p>
+              <p className="text-muted-foreground mb-4">Continue using our free calculators while you wait:</p>
               <Link href="/">
                 <Button variant="outline" className="mr-4">
                   Back to Calculators

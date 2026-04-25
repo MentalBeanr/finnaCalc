@@ -231,7 +231,7 @@ export default function FinancialEducationHub({ onBack, initialTopic = "credit" 
                         <DialogDescription>{modalContent?.description}</DialogDescription>
                     </DialogHeader>
                     <div className="aspect-video bg-gray-200 flex items-center justify-center rounded-lg">
-                        <p className="text-gray-500">Video or article content will be embedded here.</p>
+                        <p className="text-muted-foreground">Video or article content will be embedded here.</p>
                     </div>
                     <DialogFooter>
                         <Button onClick={() => setModalContent(null)}>Close</Button>
