@@ -4,6 +4,7 @@ import './globals.css'
 import ChatBot from '@/components/Chatbot'
 import Header from "@/components/header";
 import { ThemeProvider } from '@/components/theme-provider'
+import { AuthProvider } from '@/lib/auth'
 import { Toaster } from '@/components/ui/sonner'
 
 const geistSans = Geist({ variable: '--font-geist-sans', subsets: ['latin'] })
@@ -19,12 +20,14 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <html lang="en" suppressHydrationWarning>
         <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-            <div className="flex flex-col min-h-screen">
-                <Header />
-                <main className="flex-grow">{children}</main>
-                <ChatBot />
-                <Toaster />
-            </div>
+            <AuthProvider>
+                <div className="flex flex-col min-h-screen">
+                    <Header />
+                    <main className="flex-grow">{children}</main>
+                    <ChatBot />
+                    <Toaster />
+                </div>
+            </AuthProvider>
         </ThemeProvider>
         </body>
         </html>

@@ -5,7 +5,6 @@ import { Calculator, TrendingUp, DollarSign, PieChart, Building2, Users, FileTex
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
-import { SignedIn, SignedOut, UserButton } from "@clerk/nextjs"
 
 export default function HomePage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -84,17 +83,17 @@ export default function HomePage() {
   ]
 
   return (
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen bg-background">
 
 
         {/* Hero Section */}
-        <section className="bg-gradient-to-br from-blue-50 to-white py-12 sm:py-20">
+        <section className="bg-gradient-to-br from-blue-50 to-white dark:from-blue-950/30 dark:to-background py-12 sm:py-20">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center">
-              <h1 className="text-3xl sm:text-4xl md:text-6xl font-bold text-gray-900 mb-4 sm:mb-6">
-                Professional <span className="text-blue-600">Financial Calculators</span> and <span className="text-blue-600"> Personal Finance</span> Tools
+              <h1 className="text-3xl sm:text-4xl md:text-6xl font-bold text-foreground mb-4 sm:mb-6">
+                Professional <span className="text-blue-600 dark:text-blue-400">Financial Calculators</span> and <span className="text-blue-600 dark:text-blue-400"> Personal Finance</span> Tools
               </h1>
-              <p className="text-lg sm:text-xl text-gray-600 mb-6 sm:mb-8 max-w-3xl mx-auto px-4">
+              <p className="text-lg sm:text-xl text-muted-foreground mb-6 sm:mb-8 max-w-3xl mx-auto px-4">
                 Free, accurate, and easy-to-use financial calculators and personal finance planning tools for individuals, small business
                 owners, entrepreneurs, and anyone looking to make informed financial decisions with professional tools.
               </p>
@@ -103,11 +102,11 @@ export default function HomePage() {
         </section>
 
         {/* Calculator Grid */}
-        <section className="py-12 sm:py-16 bg-gray-50" id="calculators">
+        <section className="py-12 sm:py-16 bg-muted/40" id="calculators">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-8 sm:mb-12">
-              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">Choose Your Calculator</h2>
-              <p className="text-base sm:text-lg text-gray-600 px-4">
+              <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-4">Choose Your Calculator</h2>
+              <p className="text-base sm:text-lg text-muted-foreground px-4">
                 Professional financial tools to help individuals and businesses make better financial decisions
               </p>
             </div>
@@ -118,15 +117,15 @@ export default function HomePage() {
                     <Link href={calc.href}>
                       <CardHeader className="pb-3">
                         <div className="flex items-start gap-3">
-                          <div className="p-2 bg-blue-100 rounded-lg text-blue-600 flex-shrink-0">{calc.icon}</div>
+                          <div className="p-2 bg-blue-100 dark:bg-blue-950/50 rounded-lg text-blue-600 dark:text-blue-400 flex-shrink-0">{calc.icon}</div>
                           <div className="min-w-0 flex-1">
                             <CardTitle className="text-base sm:text-lg leading-tight">{calc.title}</CardTitle>
-                            <span className="text-sm text-blue-600 font-medium">{calc.category}</span>
+                            <span className="text-sm text-blue-600 dark:text-blue-400 font-medium">{calc.category}</span>
                           </div>
                         </div>
                       </CardHeader>
                       <CardContent className="pt-0">
-                        <CardDescription className="text-gray-600 text-sm leading-relaxed">
+                        <CardDescription className="text-muted-foreground text-sm leading-relaxed">
                           {calc.description}
                         </CardDescription>
                       </CardContent>
@@ -138,19 +137,19 @@ export default function HomePage() {
         </section>
 
         {/* Features Section */}
-        <section className="py-12 sm:py-16 bg-white">
+        <section className="py-12 sm:py-16 bg-background">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-12 items-center">
               <div>
-                <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-6">Why Choose FinnaCalc?</h2>
+                <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-6">Why Choose FinnaCalc?</h2>
                 <div className="space-y-4">
                   <div className="flex items-start gap-3">
                     <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
                       <span className="text-white text-sm">✓</span>
                     </div>
                     <div>
-                      <h3 className="font-semibold text-gray-900">All basic calculations and free personal finance tools are free</h3>
-                      <p className="text-gray-600">No hidden fees or premium requirements for essential financial calculations</p>
+                      <h3 className="font-semibold text-foreground">All basic calculations and free personal finance tools are free</h3>
+                      <p className="text-muted-foreground">No hidden fees or premium requirements for essential financial calculations</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
@@ -158,8 +157,8 @@ export default function HomePage() {
                       <span className="text-white text-sm">✓</span>
                     </div>
                     <div>
-                      <h3 className="font-semibold text-gray-900">Accurate Results</h3>
-                      <p className="text-gray-600">
+                      <h3 className="font-semibold text-foreground">Accurate Results</h3>
+                      <p className="text-muted-foreground">
                         Professional-grade calculations you can trust for important decisions
                       </p>
                     </div>
@@ -169,8 +168,8 @@ export default function HomePage() {
                       <span className="text-white text-sm">✓</span>
                     </div>
                     <div>
-                      <h3 className="font-semibold text-gray-900">Save & Share Results</h3>
-                      <p className="text-gray-600">Export your calculations and share them with your team or advisors</p>
+                      <h3 className="font-semibold text-foreground">Save & Share Results</h3>
+                      <p className="text-muted-foreground">Export your calculations and share them with your team or advisors</p>
                     </div>
                   </div>
                 </div>
