@@ -61,7 +61,7 @@ export default function BreakEvenCalculator() {
   }
 
   return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-muted/40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="mb-8">
             <Button variant="outline" onClick={() => router.back()} className="flex items-center gap-2">
@@ -91,7 +91,7 @@ export default function BreakEvenCalculator() {
                           value={fixedCosts}
                           onChange={(e) => setFixedCosts(e.target.value)}
                       />
-                      <p className="text-xs text-gray-500 mt-1">Rent, salaries, insurance, etc.</p>
+                      <p className="text-xs text-muted-foreground mt-1">Rent, salaries, insurance, etc.</p>
                     </div>
                     <div>
                       <Label htmlFor="variableCostPerUnit">
@@ -104,7 +104,7 @@ export default function BreakEvenCalculator() {
                           value={variableCostPerUnit}
                           onChange={(e) => setVariableCostPerUnit(e.target.value)}
                       />
-                      <p className="text-xs text-gray-500 mt-1">
+                      <p className="text-xs text-muted-foreground mt-1">
                         {salesMix === "service" ? "Direct costs per service" : "Materials, labor per unit"}
                       </p>
                     </div>
@@ -117,7 +117,7 @@ export default function BreakEvenCalculator() {
                           value={pricePerUnit}
                           onChange={(e) => setPricePerUnit(e.target.value)}
                       />
-                      <p className="text-xs text-gray-500 mt-1">
+                      <p className="text-xs text-muted-foreground mt-1">
                         {salesMix === "service" ? "Service fee charged" : "Selling price per unit"}
                       </p>
                     </div>
@@ -143,7 +143,7 @@ export default function BreakEvenCalculator() {
                           value={seasonalityFactor}
                           onChange={(e) => setSeasonalityFactor(e.target.value)}
                       />
-                      <p className="text-xs text-gray-500 mt-1">
+                      <p className="text-xs text-muted-foreground mt-1">
                         Adjust for seasonal variations (+ for peak, - for low season)
                       </p>
                     </div>
@@ -172,7 +172,7 @@ export default function BreakEvenCalculator() {
                               <h3 className="text-lg font-semibold text-blue-800">Your Break-Even Analysis</h3>
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                  <p className="text-sm text-gray-600">
+                                  <p className="text-sm text-muted-foreground">
                                     Break-Even {getUnitLabel().charAt(0).toUpperCase() + getUnitLabel().slice(1)}
                                   </p>
                                   <p className="text-2xl font-bold text-green-600">
@@ -180,25 +180,25 @@ export default function BreakEvenCalculator() {
                                   </p>
                                 </div>
                                 <div>
-                                  <p className="text-sm text-gray-600">Break-Even Revenue</p>
+                                  <p className="text-sm text-muted-foreground">Break-Even Revenue</p>
                                   <p className="text-2xl font-bold text-blue-600">
                                     ${result.breakEvenRevenue.toLocaleString()}
                                   </p>
                                 </div>
                                 <div>
-                                  <p className="text-sm text-gray-600">Contribution Margin</p>
+                                  <p className="text-sm text-muted-foreground">Contribution Margin</p>
                                   <p className="text-2xl font-bold text-purple-600">
                                     ${result.contributionMargin.toFixed(2)}
                                   </p>
                                 </div>
                                 <div>
-                                  <p className="text-sm text-gray-600">Contribution Margin %</p>
+                                  <p className="text-sm text-muted-foreground">Contribution Margin %</p>
                                   <p className="text-2xl font-bold text-orange-600">
                                     {result.contributionMarginRatio.toFixed(1)}%
                                   </p>
                                 </div>
                                 <div>
-                                  <p className="text-sm text-gray-600">
+                                  <p className="text-sm text-muted-foreground">
                                     {getUnitLabel().charAt(0).toUpperCase() + getUnitLabel().slice(1)} for Target Profit
                                   </p>
                                   <p className="text-2xl font-bold text-teal-600">
@@ -206,7 +206,7 @@ export default function BreakEvenCalculator() {
                                   </p>
                                 </div>
                                 <div>
-                                  <p className="text-sm text-gray-600">
+                                  <p className="text-sm text-muted-foreground">
                                     Seasonal Break-Even {getUnitLabel().charAt(0).toUpperCase() + getUnitLabel().slice(1)}
                                   </p>
                                   <p className="text-2xl font-bold text-lime-600">
@@ -214,7 +214,7 @@ export default function BreakEvenCalculator() {
                                   </p>
                                 </div>
                                 <div>
-                                  <p className="text-sm text-gray-600">
+                                  <p className="text-sm text-muted-foreground">
                                     Seasonal {getUnitLabel().charAt(0).toUpperCase() + getUnitLabel().slice(1)} for Target
                                     Profit
                                   </p>
@@ -223,16 +223,16 @@ export default function BreakEvenCalculator() {
                                   </p>
                                 </div>
                                 <div>
-                                  <p className="text-sm text-gray-600">Margin of Safety</p>
+                                  <p className="text-sm text-muted-foreground">Margin of Safety</p>
                                   <p className="text-2xl font-bold text-rose-600">
                                     {result.marginOfSafety ? result.marginOfSafety.toFixed(1) : 0}%
                                   </p>
                                 </div>
                               </div>
 
-                              <div className="bg-gray-50 p-4 rounded-lg">
+                              <div className="bg-muted/40 p-4 rounded-lg">
                                 <h4 className="font-semibold mb-2">What this means:</h4>
-                                <p className="text-sm text-gray-700">
+                                <p className="text-sm text-foreground/80">
                                   You need to sell{" "}
                                   <strong>
                                     {result.breakEvenUnits.toLocaleString()} {getUnitLabel()}

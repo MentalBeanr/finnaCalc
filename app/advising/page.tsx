@@ -11,7 +11,7 @@ export default function AdvisingPage() {
   const router = useRouter()
 
   return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-muted/40">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="mb-4">
             <Button variant="outline" onClick={() => router.back()} className="flex items-center gap-2">
@@ -21,8 +21,8 @@ export default function AdvisingPage() {
           </div>
           <div className="text-center">
             <Users className="h-12 w-12 sm:h-16 sm:w-16 text-blue-600 mx-auto mb-6" />
-            <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">Personal Financial Advising</h1>
-            <p className="text-lg sm:text-xl text-gray-600 mb-8">Coming Soon to Premium Version</p>
+            <h1 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">Personal Financial Advising</h1>
+            <p className="text-lg sm:text-xl text-muted-foreground mb-8">Coming Soon to Premium Version</p>
 
             <Card className="max-w-2xl mx-auto">
               <CardHeader>
@@ -58,7 +58,7 @@ export default function AdvisingPage() {
                 </div>
 
                 <div className="pt-4 border-t">
-                  <p className="text-sm text-gray-600 mb-4">
+                  <p className="text-sm text-muted-foreground mb-4">
                     Get notified when our premium advisory services become available!
                   </p>
                   <div className="flex flex-col sm:flex-row gap-2">
@@ -70,7 +70,7 @@ export default function AdvisingPage() {
             </Card>
 
             <div className="mt-8">
-              <p className="text-gray-600 mb-4">Start with our free financial calculators today:</p>
+              <p className="text-muted-foreground mb-4">Start with our free financial calculators today:</p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Link href="/">
                   <Button variant="outline">View All Calculators</Button>

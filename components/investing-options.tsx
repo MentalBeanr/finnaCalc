@@ -99,8 +99,8 @@ export default function InvestingOptions({ onBack, onSelect }: InvestingOptionsP
                     Back
                 </Button>
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Market Overview</h1>
-                    <p className="text-gray-600 dark:text-gray-400">Discover today's trending stocks and market leaders.</p>
+                    <h1 className="text-2xl font-bold text-foreground dark:text-gray-100">Market Overview</h1>
+                    <p className="text-muted-foreground dark:text-gray-400">Discover today's trending stocks and market leaders.</p>
                 </div>
             </div>
 
@@ -177,7 +177,7 @@ export default function InvestingOptions({ onBack, onSelect }: InvestingOptionsP
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         {selectedIndustry.stocks.map(stock => (
                             <div key={stock.symbol} onClick={() => onSelect('stocks', stock.symbol)} className="p-3 rounded-lg hover:bg-muted cursor-pointer text-center flex flex-col items-center gap-2">
-                                <img src={stock.logo} alt={`${stock.name} logo`} className="h-10 w-10 rounded-full bg-white border" />
+                                <img src={stock.logo} alt={`${stock.name} logo`} className="h-10 w-10 rounded-full bg-background border" />
                                 <div>
                                     <p className="font-bold">{stock.symbol}</p>
                                     <p className="text-xs text-muted-foreground">{stock.name}</p>

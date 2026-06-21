@@ -956,7 +956,7 @@ export default function TaxFilingInterface({ onBack }: TaxFilingInterfaceProps) 
                                 <Card>
                                     <CardHeader>
                                         <CardTitle className="flex items-center gap-2">
-                                            <FileText className="h-5 w-5 text-gray-500"/>
+                                            <FileText className="h-5 w-5 text-muted-foreground"/>
                                             State Tax Summary ({taxCalculation.state || 'N/A'})
                                         </CardTitle>
                                     </CardHeader>

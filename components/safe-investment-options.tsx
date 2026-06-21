@@ -53,7 +53,7 @@ export default function SafeInvestmentOptions({ onBack }: SafeInvestmentOptionsP
             case "Medium":
                 return "bg-orange-100 text-orange-700"
             default:
-                return "bg-gray-100 text-gray-700"
+                return "bg-muted text-foreground/80"
         }
     }
 
@@ -65,8 +65,8 @@ export default function SafeInvestmentOptions({ onBack }: SafeInvestmentOptionsP
                     Back
                 </Button>
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Safe Investment Options</h1>
-                    <p className="text-gray-600">Top safest investments with consistent returns</p>
+                    <h1 className="text-2xl font-bold text-foreground">Safe Investment Options</h1>
+                    <p className="text-muted-foreground">Top safest investments with consistent returns</p>
                 </div>
             </div>
             {/* ... (Disclaimer cards) ... */}
@@ -74,7 +74,7 @@ export default function SafeInvestmentOptions({ onBack }: SafeInvestmentOptionsP
                 <CardContent className="p-0">
                     <div className="divide-y divide-gray-100">
                         {safeInvestments.map((investment, index) => (
-                            <div key={index} className="p-4 hover:bg-gray-50 transition-colors">
+                            <div key={index} className="p-4 hover:bg-muted/40 transition-colors">
                                 <div className="grid grid-cols-3 items-center gap-4">
                                     {/* Left side: Info */}
                                     <div className="col-span-2 flex items-center gap-4">
@@ -82,13 +82,13 @@ export default function SafeInvestmentOptions({ onBack }: SafeInvestmentOptionsP
                                             <TrendingUp className="h-5 w-5 text-blue-600" />
                                         </div>
                                         <div>
-                                            <h3 className="font-semibold text-gray-900">{investment.name}</h3>
-                                            <p className="text-sm text-gray-600">{investment.description}</p>
+                                            <h3 className="font-semibold text-foreground">{investment.name}</h3>
+                                            <p className="text-sm text-muted-foreground">{investment.description}</p>
                                             <div className="flex items-center gap-3 mt-1">
                                                 <Badge className={getRiskColor(investment.risk)} variant="secondary">
                                                     {investment.risk}
                                                 </Badge>
-                                                <span className="text-xs text-gray-500">Min: {investment.minInvestment}</span>
+                                                <span className="text-xs text-muted-foreground">Min: {investment.minInvestment}</span>
                                             </div>
                                         </div>
                                     </div>
@@ -97,7 +97,7 @@ export default function SafeInvestmentOptions({ onBack }: SafeInvestmentOptionsP
                                     <div className="text-right flex flex-col items-end gap-2">
                                         <div>
                                             <div className="text-lg font-bold text-green-600">{investment.avgReturn}</div>
-                                            <div className="text-xs text-gray-500">avg return</div>
+                                            <div className="text-xs text-muted-foreground">avg return</div>
                                         </div>
                                         <a href={investment.link} target="_blank" rel="noopener noreferrer">
                                             <Button size="sm">

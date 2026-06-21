@@ -46,7 +46,7 @@ export default function ProfitMarginCalculator() {
   }
 
   return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-muted/40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="mb-8">
             <Button variant="outline" onClick={() => router.back()} className="flex items-center gap-2">
@@ -76,7 +76,7 @@ export default function ProfitMarginCalculator() {
                           value={revenue}
                           onChange={(e) => setRevenue(e.target.value)}
                       />
-                      <p className="text-xs text-gray-500 mt-1">Total sales revenue</p>
+                      <p className="text-xs text-muted-foreground mt-1">Total sales revenue</p>
                     </div>
                     <div>
                       <Label htmlFor="costOfGoodsSold">Cost of Goods Sold ($)</Label>
@@ -87,7 +87,7 @@ export default function ProfitMarginCalculator() {
                           value={costOfGoodsSold}
                           onChange={(e) => setCostOfGoodsSold(e.target.value)}
                       />
-                      <p className="text-xs text-gray-500 mt-1">Direct costs to produce goods/services</p>
+                      <p className="text-xs text-muted-foreground mt-1">Direct costs to produce goods/services</p>
                     </div>
                     <div>
                       <Label htmlFor="operatingExpenses">Operating Expenses ($)</Label>
@@ -98,7 +98,7 @@ export default function ProfitMarginCalculator() {
                           value={operatingExpenses}
                           onChange={(e) => setOperatingExpenses(e.target.value)}
                       />
-                      <p className="text-xs text-gray-500 mt-1">Rent, salaries, marketing, etc.</p>
+                      <p className="text-xs text-muted-foreground mt-1">Rent, salaries, marketing, etc.</p>
                     </div>
                   </div>
 
@@ -115,26 +115,26 @@ export default function ProfitMarginCalculator() {
                               <h3 className="text-lg font-semibold text-blue-800">Your Profit Margin Analysis</h3>
                               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div>
-                                  <p className="text-sm text-gray-600">Gross Profit Margin</p>
+                                  <p className="text-sm text-muted-foreground">Gross Profit Margin</p>
                                   <p className="text-2xl font-bold text-green-600">{result.grossMargin.toFixed(2)}%</p>
-                                  <p className="text-sm text-gray-500">${result.grossProfit.toLocaleString()}</p>
+                                  <p className="text-sm text-muted-foreground">${result.grossProfit.toLocaleString()}</p>
                                 </div>
                                 <div>
-                                  <p className="text-sm text-gray-600">Operating Profit Margin</p>
+                                  <p className="text-sm text-muted-foreground">Operating Profit Margin</p>
                                   <p className="text-2xl font-bold text-blue-600">{result.operatingMargin.toFixed(2)}%</p>
                                 </div>
                                 <div>
-                                  <p className="text-sm text-gray-600">Net Profit Margin</p>
+                                  <p className="text-sm text-muted-foreground">Net Profit Margin</p>
                                   <p
                                       className={`text-2xl font-bold ${result.netMargin >= 0 ? "text-purple-600" : "text-red-600"}`}
                                   >
                                     {result.netMargin.toFixed(2)}%
                                   </p>
-                                  <p className="text-sm text-gray-500">${result.netProfit.toLocaleString()}</p>
+                                  <p className="text-sm text-muted-foreground">${result.netProfit.toLocaleString()}</p>
                                 </div>
                               </div>
 
-                              <div className="bg-gray-50 p-4 rounded-lg">
+                              <div className="bg-muted/40 p-4 rounded-lg">
                                 <h4 className="font-semibold mb-3">Profit Breakdown:</h4>
                                 <div className="space-y-2 text-sm">
                                   <div className="flex justify-between">
@@ -171,18 +171,18 @@ export default function ProfitMarginCalculator() {
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                                   <div>
                                     <p className="font-medium">Retail</p>
-                                    <p className="text-gray-600">Gross: 20-50%</p>
-                                    <p className="text-gray-600">Net: 2-6%</p>
+                                    <p className="text-muted-foreground">Gross: 20-50%</p>
+                                    <p className="text-muted-foreground">Net: 2-6%</p>
                                   </div>
                                   <div>
                                     <p className="font-medium">Software</p>
-                                    <p className="text-gray-600">Gross: 70-90%</p>
-                                    <p className="text-gray-600">Net: 15-25%</p>
+                                    <p className="text-muted-foreground">Gross: 70-90%</p>
+                                    <p className="text-muted-foreground">Net: 15-25%</p>
                                   </div>
                                   <div>
                                     <p className="font-medium">Restaurants</p>
-                                    <p className="text-gray-600">Gross: 60-70%</p>
-                                    <p className="text-gray-600">Net: 3-7%</p>
+                                    <p className="text-muted-foreground">Gross: 60-70%</p>
+                                    <p className="text-muted-foreground">Net: 3-7%</p>
                                   </div>
                                 </div>
                               </div>
@@ -214,15 +214,15 @@ export default function ProfitMarginCalculator() {
                   <div className="space-y-3 text-sm">
                     <div>
                       <h4 className="font-semibold">Reduce COGS</h4>
-                      <p className="text-gray-600">Negotiate better supplier rates, improve efficiency</p>
+                      <p className="text-muted-foreground">Negotiate better supplier rates, improve efficiency</p>
                     </div>
                     <div>
                       <h4 className="font-semibold">Optimize Pricing</h4>
-                      <p className="text-gray-600">Test price increases, add premium options</p>
+                      <p className="text-muted-foreground">Test price increases, add premium options</p>
                     </div>
                     <div>
                       <h4 className="font-semibold">Cut Operating Costs</h4>
-                      <p className="text-gray-600">Automate processes, reduce overhead</p>
+                      <p className="text-muted-foreground">Automate processes, reduce overhead</p>
                     </div>
                   </div>
                 </CardContent>

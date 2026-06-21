@@ -184,7 +184,7 @@ export default function LoanCalculator() {
   }
 
   return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-muted/40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="mb-8">
             <Button variant="outline" onClick={() => router.back()} className="flex items-center gap-2">
@@ -462,11 +462,11 @@ export default function LoanCalculator() {
                               {result.type === "payment" && calculationType === "payment" && (
                                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
-                                      <p className="text-sm text-gray-600">Payment per Period</p>
+                                      <p className="text-sm text-muted-foreground">Payment per Period</p>
                                       <p className="text-3xl font-bold text-green-600">${result.basePayment.toFixed(2)}</p>
                                     </div>
                                     <div>
-                                      <p className="text-sm text-gray-600">Total Payment</p>
+                                      <p className="text-sm text-muted-foreground">Total Payment</p>
                                       <p className="text-2xl font-bold text-blue-600">
                                         $
                                         {result.totalPayment.toLocaleString(undefined, {
@@ -476,7 +476,7 @@ export default function LoanCalculator() {
                                       </p>
                                     </div>
                                     <div>
-                                      <p className="text-sm text-gray-600">Total Interest</p>
+                                      <p className="text-sm text-muted-foreground">Total Interest</p>
                                       <p className="text-2xl font-bold text-red-600">
                                         $
                                         {result.totalInterest.toLocaleString(undefined, {
@@ -486,7 +486,7 @@ export default function LoanCalculator() {
                                       </p>
                                     </div>
                                     <div>
-                                      <p className="text-sm text-gray-600">Principal Amount</p>
+                                      <p className="text-sm text-muted-foreground">Principal Amount</p>
                                       <p className="text-2xl font-bold text-purple-600">${result.principal.toLocaleString()}</p>
                                     </div>
                                   </div>
@@ -495,11 +495,11 @@ export default function LoanCalculator() {
                               {result.type === "apr" && calculationType === "apr" && (
                                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
-                                      <p className="text-sm text-gray-600">Annual Percentage Rate (APR)</p>
+                                      <p className="text-sm text-muted-foreground">Annual Percentage Rate (APR)</p>
                                       <p className="text-3xl font-bold text-green-600">{result.apr.toFixed(2)}%</p>
                                     </div>
                                     <div>
-                                      <p className="text-sm text-gray-600">Total Cost of Loan</p>
+                                      <p className="text-sm text-muted-foreground">Total Cost of Loan</p>
                                       <p className="text-2xl font-bold text-red-600">${result.totalCost.toLocaleString()}</p>
                                     </div>
                                   </div>
@@ -508,13 +508,13 @@ export default function LoanCalculator() {
                               {result.type === "loanAmount" && calculationType === "loanAmount" && (
                                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
-                                      <p className="text-sm text-gray-600">Maximum Loan Amount</p>
+                                      <p className="text-sm text-muted-foreground">Maximum Loan Amount</p>
                                       <p className="text-3xl font-bold text-green-600">
                                         ${result.maxLoanAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                       </p>
                                     </div>
                                     <div>
-                                      <p className="text-sm text-gray-600">Monthly Payment</p>
+                                      <p className="text-sm text-muted-foreground">Monthly Payment</p>
                                       <p className="text-2xl font-bold text-blue-600">${result.payment.toLocaleString()}</p>
                                     </div>
                                   </div>
@@ -523,21 +523,21 @@ export default function LoanCalculator() {
                               {result.type === "remaining" && calculationType === "remaining" && (
                                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
-                                      <p className="text-sm text-gray-600">Remaining Balance</p>
+                                      <p className="text-sm text-muted-foreground">Remaining Balance</p>
                                       <p className="text-3xl font-bold text-green-600">
                                         ${result.remainingBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                       </p>
                                     </div>
                                     <div>
-                                      <p className="text-sm text-gray-600">Remaining Payments</p>
+                                      <p className="text-sm text-muted-foreground">Remaining Payments</p>
                                       <p className="text-2xl font-bold text-blue-600">{result.remainingPayments}</p>
                                     </div>
                                     <div>
-                                      <p className="text-sm text-gray-600">Total Paid So Far</p>
+                                      <p className="text-sm text-muted-foreground">Total Paid So Far</p>
                                       <p className="text-2xl font-bold text-purple-600">${result.totalPaid.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                                     </div>
                                     <div>
-                                      <p className="text-sm text-gray-600">Monthly Payment</p>
+                                      <p className="text-sm text-muted-foreground">Monthly Payment</p>
                                       <p className="text-2xl font-bold text-orange-600">${result.monthlyPayment.toFixed(2)}</p>
                                     </div>
                                   </div>
