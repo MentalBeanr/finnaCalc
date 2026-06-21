@@ -184,16 +184,25 @@ export default function BudgetingPage() {
     const [budgetType, setBudgetType] = useState<'personal' | 'business'>('personal');
     const [mounted, setMounted] = useState(false);
 
-    const initialFormState = {
+    interface BudgetFormState {
+        category: string
+        subcategory: string
+        amount: string
+        frequency: BudgetItem["frequency"]
+        type: BudgetItem["type"]
+        isFixed: boolean
+    }
+
+    const initialFormState: BudgetFormState = {
         category: "",
         subcategory: "",
         amount: "",
-        frequency: "monthly" as const,
-        type: "expense" as const,
+        frequency: "monthly",
+        type: "expense",
         isFixed: false,
     }
 
-    const [newItem, setNewItem] = useState(initialFormState)
+    const [newItem, setNewItem] = useState<BudgetFormState>(initialFormState)
 
     const [newGoal, setNewGoal] = useState({
         name: "",
@@ -305,6 +314,7 @@ export default function BudgetingPage() {
             },
             cancel: {
                 label: "Cancel",
+                onClick: () => undefined,
             },
         });
     }
@@ -341,6 +351,7 @@ export default function BudgetingPage() {
             },
             cancel: {
                 label: "Cancel",
+                onClick: () => undefined,
             },
         });
     }
@@ -435,6 +446,7 @@ export default function BudgetingPage() {
             },
             cancel: {
                 label: "Cancel",
+                onClick: () => undefined,
             },
         });
     };
@@ -591,9 +603,7 @@ export default function BudgetingPage() {
     };
 
     const parsePdfStatement = async (file: File): Promise<BudgetItem[]> => {
-        // Dynamically import the library and set worker source
-        const pdfjsLib = await import('pdfjs-dist/build/pdf');
-        // @ts-ignore
+        const pdfjsLib = await import('pdfjs-dist');
         pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
         const arrayBuffer = await file.arrayBuffer();
@@ -602,7 +612,9 @@ export default function BudgetingPage() {
         for (let i = 1; i <= pdf.numPages; i++) {
             const page = await pdf.getPage(i);
             const textContent = await page.getTextContent();
-            fullText += textContent.items.map(item => ('str' in item ? item.str : '')).join(' ');
+            fullText += textContent.items
+                .map((item): string => ('str' in item ? item.str : ''))
+                .join(' ');
         }
 
         // This regex is a generic attempt and might need tuning for specific PDF layouts

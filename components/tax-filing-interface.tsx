@@ -199,7 +199,7 @@ export default function TaxFilingInterface({ onBack }: TaxFilingInterfaceProps) 
 
     const calculateTaxes = () => {
         // Federal calculation only - State logic would go here if implemented
-        const grossIncome = (
+        const totalIncome = (
             (Number.parseFloat(formData.w2Income) || 0) +
             (Number.parseFloat(formData.income1099) || 0) +
             (Number.parseFloat(formData.interestIncome) || 0) +
@@ -212,7 +212,7 @@ export default function TaxFilingInterface({ onBack }: TaxFilingInterfaceProps) 
 
 
         const studentLoanInterest = Math.min(Number.parseFloat(formData.studentLoanInterest) || 0, 2500); // 2024 limit
-        const agi = grossIncome - studentLoanInterest;
+        const agi = totalIncome - studentLoanInterest;
 
 
         // 2024 Standard Deductions
