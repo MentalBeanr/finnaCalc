@@ -14,7 +14,7 @@ export function AprForm({ value, onChange, errors }: AprFormProps) {
         onChange({ ...value, [key]: next })
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-stack-lg">
             <FormField
                 id="aprLoanAmount"
                 label="Loan Amount ($)"

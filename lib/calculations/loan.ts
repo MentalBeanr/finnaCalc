@@ -1,5 +1,6 @@
 import { D, Decimal, ONE, ZERO } from "@/lib/money/decimal"
 import type {
+    AmortizationPeriod,
     AprInput,
     AprResult,
     LoanAmountInput,
@@ -156,4 +157,55 @@ export function calculateRemainingBalance(
         monthlyPayment,
         totalPaid,
     }
+}
+
+/**
+ * Build a per-period amortization schedule for an amortizing loan.
+ *
+ * Each period:
+ *   interest_t = balance_{t-1} * r
+ *   principal_t = payment - interest_t
+ *   balance_t = balance_{t-1} - principal_t
+ *
+ * The final period's principal is adjusted so balance lands exactly at 0
+ * (absorbs any sub-cent residue from periodic rounding so the schedule
+ * closes cleanly). Zero-rate loans amortize as straight-line.
+ */
+export function buildAmortizationSchedule(input: PaymentInput): AmortizationPeriod[] {
+    const result = calculatePayment(input)
+    const totalPeriods = result.periods.toNumber()
+    if (totalPeriods <= 0) return []
+
+    const periodsPerYear = D(PERIODS_PER_YEAR[input.frequency])
+    const periodicRate = input.interestRate.div(100).div(periodsPerYear)
+
+    const schedule: AmortizationPeriod[] = []
+    let balance = result.principal
+    let cumulativeInterest = ZERO
+    let cumulativePrincipal = ZERO
+
+    for (let t = 1; t <= totalPeriods; t++) {
+        const interest = periodicRate.isZero() ? ZERO : balance.times(periodicRate)
+        let principal =
+            t === totalPeriods ? balance : result.paymentPerPeriod.minus(interest)
+        if (principal.lt(ZERO)) principal = ZERO
+
+        const periodPayment = principal.plus(interest)
+        balance = balance.minus(principal)
+        if (balance.lt(ZERO)) balance = ZERO
+        cumulativeInterest = cumulativeInterest.plus(interest)
+        cumulativePrincipal = cumulativePrincipal.plus(principal)
+
+        schedule.push({
+            period: t,
+            payment: periodPayment,
+            interest,
+            principal,
+            balance,
+            cumulativeInterest,
+            cumulativePrincipal,
+        })
+    }
+
+    return schedule
 }

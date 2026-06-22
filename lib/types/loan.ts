@@ -85,6 +85,16 @@ export type LoanResult =
 
 export type CalculationMode = LoanResult["kind"]
 
+export interface AmortizationPeriod {
+    period: number
+    payment: Decimal
+    interest: Decimal
+    principal: Decimal
+    balance: Decimal
+    cumulativeInterest: Decimal
+    cumulativePrincipal: Decimal
+}
+
 export const PERIODS_PER_YEAR: Record<PaymentFrequency, number> = {
     monthly: 12,
     biweekly: 26,
