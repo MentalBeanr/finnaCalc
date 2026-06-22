@@ -1,296 +1,120 @@
 "use client"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { Calculator, Share2, Download, ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { CalculatorPageShell } from "@/components/ds/calculator-page-shell"
+import {
+    FormErrorBanner,
+    ResultEmptyState,
+} from "@/components/ds/calculator-result"
+import { calculateBreakEven } from "@/lib/calculations/break-even"
+import type { BreakEvenInput, BreakEvenResult } from "@/lib/types/break-even"
+import {
+    type BreakEvenFormState,
+    validateBreakEvenInput,
+} from "@/lib/validators/break-even"
+import { BreakEvenChart } from "./_components/break-even-chart"
+import {
+    BREAK_EVEN_FAQ,
+    BreakEvenEducation,
+} from "./_components/break-even-content"
+import { BreakEvenForm } from "./_components/break-even-form"
+import { BreakEvenFormula } from "./_components/break-even-formula"
+import { BreakEvenResultDisplay } from "./_components/break-even-result"
 
-export default function BreakEvenCalculator() {
-  const router = useRouter()
-  const [fixedCosts, setFixedCosts] = useState("")
-  const [variableCostPerUnit, setVariableCostPerUnit] = useState("")
-  const [pricePerUnit, setPricePerUnit] = useState("")
-  const [salesMix, setSalesMix] = useState("single")
-  const [seasonalityFactor, setSeasonalityFactor] = useState("0")
-  const [targetProfit, setTargetProfit] = useState("20")
-  const [result, setResult] = useState<any>(null)
+const INITIAL_FORM: BreakEvenFormState = {
+    fixedCosts: "",
+    variableCostPerUnit: "",
+    pricePerUnit: "",
+    businessType: "single",
+    seasonalityPercent: "0",
+    targetProfitPercent: "20",
+}
 
-  const calculateBreakEven = () => {
-    const fixed = Number.parseFloat(fixedCosts) || 0
-    const variableCost = Number.parseFloat(variableCostPerUnit) || 0
-    const price = Number.parseFloat(pricePerUnit) || 0
-    const seasonality = Number.parseFloat(seasonalityFactor) || 0
-    const profitMargin = Number.parseFloat(targetProfit) || 0
+export default function BreakEvenCalculatorPage() {
+    const [form, setForm] = useState<BreakEvenFormState>(INITIAL_FORM)
+    const [errors, setErrors] = useState<Record<string, string>>({})
+    const [resolved, setResolved] = useState<{
+        input: BreakEvenInput
+        result: BreakEvenResult
+    } | null>(null)
+    const formError = errors._form
 
-    if (price <= variableCost) {
-      setResult({ error: "Price per unit must be greater than variable cost per unit" })
-      return
+    const calculate = () => {
+        const validated = validateBreakEvenInput(form)
+        if (!validated.ok) {
+            setErrors(validated.errors)
+            setResolved(null)
+            return
+        }
+        setErrors({})
+        setResolved({
+            input: validated.data,
+            result: calculateBreakEven(validated.data),
+        })
     }
 
-    const contributionMargin = price - variableCost
-    const breakEvenUnits = fixed / contributionMargin
-    const breakEvenRevenue = breakEvenUnits * price
-    const contributionMarginRatio = (contributionMargin / price) * 100
+    const hasSeasonality =
+        resolved !== null && !resolved.input.seasonalityPercent.isZero()
 
-    // Calculate units needed for target profit
-    const targetProfitAmount = fixed * (profitMargin / 100)
-    const unitsForTargetProfit = (fixed + targetProfitAmount) / contributionMargin
-
-    // Adjust for seasonality
-    const seasonalBreakEven = breakEvenUnits * (1 + seasonality / 100)
-    const seasonalTargetUnits = unitsForTargetProfit * (1 + seasonality / 100)
-
-    setResult({
-      breakEvenUnits: Math.ceil(breakEvenUnits),
-      breakEvenRevenue,
-      contributionMargin,
-      contributionMarginRatio,
-      unitsForTargetProfit: Math.ceil(unitsForTargetProfit),
-      seasonalBreakEven: Math.ceil(seasonalBreakEven),
-      seasonalTargetUnits: Math.ceil(seasonalTargetUnits),
-      marginOfSafety: breakEvenUnits > 0 ? ((unitsForTargetProfit - breakEvenUnits) / unitsForTargetProfit) * 100 : 0,
-    })
-  }
-
-  const getUnitLabel = () => {
-    return salesMix === "service" ? "services" : "units"
-  }
-
-  return (
-      <div className="min-h-screen bg-muted/40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="mb-8">
-            <Button variant="outline" onClick={() => router.back()} className="flex items-center gap-2">
-              <ArrowLeft className="h-4 w-4" />
-              Back
-            </Button>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-1 gap-8">
-            <div>
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Calculator className="h-6 w-6 text-blue-600" />
-                    Break-Even Point Calculator
-                  </CardTitle>
-                  <CardDescription>Calculate how many {getUnitLabel()} you need to sell to break even</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="fixedCosts">Fixed Costs per Month ($)</Label>
-                      <Input
-                          id="fixedCosts"
-                          type="number"
-                          placeholder="10000"
-                          value={fixedCosts}
-                          onChange={(e) => setFixedCosts(e.target.value)}
-                      />
-                      <p className="text-xs text-muted-foreground mt-1">Rent, salaries, insurance, etc.</p>
-                    </div>
-                    <div>
-                      <Label htmlFor="variableCostPerUnit">
-                        Variable Cost per {salesMix === "service" ? "Service" : "Unit"} ($)
-                      </Label>
-                      <Input
-                          id="variableCostPerUnit"
-                          type="number"
-                          placeholder="25"
-                          value={variableCostPerUnit}
-                          onChange={(e) => setVariableCostPerUnit(e.target.value)}
-                      />
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {salesMix === "service" ? "Direct costs per service" : "Materials, labor per unit"}
-                      </p>
-                    </div>
-                    <div>
-                      <Label htmlFor="pricePerUnit">Price per {salesMix === "service" ? "Service" : "Unit"} ($)</Label>
-                      <Input
-                          id="pricePerUnit"
-                          type="number"
-                          placeholder="50"
-                          value={pricePerUnit}
-                          onChange={(e) => setPricePerUnit(e.target.value)}
-                      />
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {salesMix === "service" ? "Service fee charged" : "Selling price per unit"}
-                      </p>
-                    </div>
-                    <div>
-                      <Label htmlFor="salesMix">Business Type</Label>
-                      <Select value={salesMix} onValueChange={setSalesMix}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select business type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="single">Single Product</SelectItem>
-                          <SelectItem value="multiple">Multiple Products</SelectItem>
-                          <SelectItem value="service">Service Business</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label htmlFor="seasonalityFactor">Seasonality Factor (%)</Label>
-                      <Input
-                          id="seasonalityFactor"
-                          type="number"
-                          placeholder="0"
-                          value={seasonalityFactor}
-                          onChange={(e) => setSeasonalityFactor(e.target.value)}
-                      />
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Adjust for seasonal variations (+ for peak, - for low season)
-                      </p>
-                    </div>
-                    <div>
-                      <Label htmlFor="targetProfit">Target Profit Margin (%)</Label>
-                      <Input
-                          id="targetProfit"
-                          type="number"
-                          placeholder="20"
-                          value={targetProfit}
-                          onChange={(e) => setTargetProfit(e.target.value)}
-                      />
-                    </div>
-                  </div>
-
-                  <Button onClick={calculateBreakEven} className="w-full bg-blue-600 hover:bg-blue-700" size="lg">
-                    Calculate Break-Even Point
-                  </Button>
-
-                  {result && (
-                      <div className="calculator-result space-y-4">
-                        {result.error ? (
-                            <div className="text-red-600 font-semibold">{result.error}</div>
-                        ) : (
-                            <>
-                              <h3 className="text-lg font-semibold text-blue-800">Your Break-Even Analysis</h3>
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                  <p className="text-sm text-muted-foreground">
-                                    Break-Even {getUnitLabel().charAt(0).toUpperCase() + getUnitLabel().slice(1)}
-                                  </p>
-                                  <p className="text-2xl font-bold text-green-600">
-                                    {result.breakEvenUnits.toLocaleString()} {getUnitLabel()}
-                                  </p>
-                                </div>
-                                <div>
-                                  <p className="text-sm text-muted-foreground">Break-Even Revenue</p>
-                                  <p className="text-2xl font-bold text-blue-600">
-                                    ${result.breakEvenRevenue.toLocaleString()}
-                                  </p>
-                                </div>
-                                <div>
-                                  <p className="text-sm text-muted-foreground">Contribution Margin</p>
-                                  <p className="text-2xl font-bold text-purple-600">
-                                    ${result.contributionMargin.toFixed(2)}
-                                  </p>
-                                </div>
-                                <div>
-                                  <p className="text-sm text-muted-foreground">Contribution Margin %</p>
-                                  <p className="text-2xl font-bold text-orange-600">
-                                    {result.contributionMarginRatio.toFixed(1)}%
-                                  </p>
-                                </div>
-                                <div>
-                                  <p className="text-sm text-muted-foreground">
-                                    {getUnitLabel().charAt(0).toUpperCase() + getUnitLabel().slice(1)} for Target Profit
-                                  </p>
-                                  <p className="text-2xl font-bold text-teal-600">
-                                    {result.unitsForTargetProfit.toLocaleString()} {getUnitLabel()}
-                                  </p>
-                                </div>
-                                <div>
-                                  <p className="text-sm text-muted-foreground">
-                                    Seasonal Break-Even {getUnitLabel().charAt(0).toUpperCase() + getUnitLabel().slice(1)}
-                                  </p>
-                                  <p className="text-2xl font-bold text-lime-600">
-                                    {result.seasonalBreakEven.toLocaleString()} {getUnitLabel()}
-                                  </p>
-                                </div>
-                                <div>
-                                  <p className="text-sm text-muted-foreground">
-                                    Seasonal {getUnitLabel().charAt(0).toUpperCase() + getUnitLabel().slice(1)} for Target
-                                    Profit
-                                  </p>
-                                  <p className="text-2xl font-bold text-amber-600">
-                                    {result.seasonalTargetUnits.toLocaleString()} {getUnitLabel()}
-                                  </p>
-                                </div>
-                                <div>
-                                  <p className="text-sm text-muted-foreground">Margin of Safety</p>
-                                  <p className="text-2xl font-bold text-rose-600">
-                                    {result.marginOfSafety ? result.marginOfSafety.toFixed(1) : 0}%
-                                  </p>
-                                </div>
-                              </div>
-
-                              <div className="bg-muted/40 p-4 rounded-lg">
-                                <h4 className="font-semibold mb-2">What this means:</h4>
-                                <p className="text-sm text-foreground/80">
-                                  You need to sell{" "}
-                                  <strong>
-                                    {result.breakEvenUnits.toLocaleString()} {getUnitLabel()}
-                                  </strong>{" "}
-                                  to cover all your costs. Each {salesMix === "service" ? "service" : "unit"} sold contributes{" "}
-                                  <strong>${result.contributionMargin.toFixed(2)}</strong> toward covering your fixed costs.
-                                </p>
-                              </div>
-
-                              <div className="flex gap-2 pt-4">
-                                <Button variant="outline" className="flex items-center gap-2 bg-transparent">
-                                  <Share2 className="h-4 w-4" />
-                                  Share Results
-                                </Button>
-                                <Button variant="outline" className="flex items-center gap-2 bg-transparent">
-                                  <Download className="h-4 w-4" />
-                                  Download PDF
-                                </Button>
-                              </div>
-                            </>
-                        )}
-                      </div>
-                  )}
-                </CardContent>
-              </Card>
+    const formContent = (
+        <div className="flex flex-col gap-stack-lg p-6 md:p-10">
+            <BreakEvenForm value={form} onChange={setForm} errors={errors} />
+            <div className="flex flex-col gap-stack-md pt-stack-md border-t border-outline-variant/20">
+                {formError ? <FormErrorBanner message={formError} /> : null}
+                <Button onClick={calculate} size="lg" className="w-full">
+                    Calculate Break-Even
+                </Button>
             </div>
-          </div>
-
-          {/* SEO Content */}
-          <div className="mt-12 prose max-w-none">
-            <h2>Understanding Break-Even Analysis</h2>
-            <p>
-              Break-even analysis is a critical financial tool that helps business owners determine the minimum number of
-              units they need to sell to cover all their costs. This calculation is essential for pricing decisions,
-              business planning, and profitability analysis.
-            </p>
-
-            <h3>Key Components of Break-Even Analysis</h3>
-            <ul>
-              <li>
-                <strong>Fixed Costs:</strong> Expenses that don't change with production volume (rent, salaries,
-                insurance)
-              </li>
-              <li>
-                <strong>Variable Costs:</strong> Costs that change with each unit produced (materials, direct labor)
-              </li>
-              <li>
-                <strong>Contribution Margin:</strong> The amount each unit contributes to covering fixed costs
-              </li>
-            </ul>
-
-            <h3>How to Use Break-Even Analysis</h3>
-            <p>
-              Use break-even analysis to make informed decisions about pricing, production levels, and business viability.
-              It helps you understand the minimum sales volume needed to avoid losses and plan for profitability.
-            </p>
-          </div>
         </div>
-      </div>
-  )
+    )
+
+    const resultContent =
+        resolved && !formError ? (
+            <BreakEvenResultDisplay
+                result={resolved.result}
+                hasSeasonality={hasSeasonality}
+            />
+        ) : (
+            <ResultEmptyState
+                title="Your break-even analysis will appear here"
+                description="Enter fixed costs, price, and variable cost per unit — we'll find the volume that covers all your costs and the volume that hits your target profit."
+                icon="query_stats"
+            />
+        )
+
+    return (
+        <CalculatorPageShell
+            eyebrow="Business"
+            title="Break-Even Calculator"
+            description="Find the unit volume and revenue at which a business covers its costs — plus the volume for any target profit and margin of safety."
+            category="Business"
+            estimatedMinutes={2}
+            backHref="/"
+            form={formContent}
+            result={resultContent}
+            chart={
+                resolved ? (
+                    <BreakEvenChart input={resolved.input} result={resolved.result} />
+                ) : null
+            }
+            formula={{
+                eyebrow: "Formula",
+                title: "The math behind break-even",
+                children: <BreakEvenFormula />,
+            }}
+            education={{
+                eyebrow: "Background",
+                title: "How to read a break-even curve",
+                children: <BreakEvenEducation />,
+            }}
+            faq={{
+                eyebrow: "FAQ",
+                title: "Common break-even questions",
+                description:
+                    "Fixed vs variable, ceiling rounding, margin of safety, and multi-product extensions.",
+                items: BREAK_EVEN_FAQ,
+            }}
+        />
+    )
 }
