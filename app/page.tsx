@@ -1,270 +1,239 @@
-"use client"
-
-import { useState } from "react"
-import { Calculator, TrendingUp, DollarSign, PieChart, Building2, Users, FileText, GraduationCap } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
+import { Container } from "@/components/ds/container"
+import { Section } from "@/components/ds/section"
+import { Eyebrow } from "@/components/ds/eyebrow"
+import { SectionHeading } from "@/components/ds/section-heading"
+import { CalculatorCard } from "@/components/ds/calculator-card"
+import { HeroGrowthChart } from "@/components/ds/hero-growth-chart"
+import { MaterialIcon } from "@/components/ds/material-icon"
+import { FaqItem } from "@/components/ds/faq-item"
+import { Button } from "@/components/ui/button"
+import {
+    CATEGORY_GROUPS,
+    FEATURED_CALCULATORS,
+    POPULAR_CALCULATORS,
+} from "@/lib/calculators"
+
+const EDUCATION_ARTICLES = [
+    {
+        title: "How Compound Interest Actually Works",
+        description:
+            "Why time-in-market beats market-timing — and how to read the curve underneath every projection.",
+        icon: "trending_up",
+        href: "/education",
+        readMinutes: 6,
+    },
+    {
+        title: "Reading a Loan Amortization Schedule",
+        description:
+            "What the principal and interest split tells you, and how extra payments change the picture.",
+        icon: "account_balance",
+        href: "/education",
+        readMinutes: 8,
+    },
+    {
+        title: "Pre-Tax vs Post-Tax Contributions",
+        description:
+            "A practical framework for choosing between traditional and Roth accounts under real constraints.",
+        icon: "receipt_long",
+        href: "/education",
+        readMinutes: 7,
+    },
+] as const
 
 export default function HomePage() {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-
-  const calculators = [
-    {
-      title: "Emergency Fund Calculator",
-      description: "Calculate how much you need in your emergency fund",
-      icon: <DollarSign className="h-6 w-6" />,
-      href: "/emergency-fund-calculator",
-      category: "Personal Finance",
-    },
-    {
-      title: "Break-Even Point Calculator",
-      description: "Find out when your business will become profitable",
-      icon: <TrendingUp className="h-6 w-6" />,
-      href: "/break-even-calculator",
-      category: "Business",
-    },
-    {
-      title: "Startup Cost Estimator",
-      description: "Estimate the total cost to start your business",
-      icon: <Building2 className="h-6 w-6" />,
-      href: "/startup-cost-calculator",
-      category: "Business",
-    },
-    {
-      title: "Cash Flow Projector",
-      description: "Project your business cash flow over time",
-      icon: <TrendingUp className="h-6 w-6" />,
-      href: "/cash-flow-calculator",
-      category: "Business",
-    },
-    {
-      title: "Loan Calculator",
-      description: "Calculate payments, APR, and loan amounts for any type of loan",
-      icon: <Calculator className="h-6 w-6" />,
-      href: "/loan-calculator",
-      category: "Loans",
-    },
-    {
-      title: "Pricing Calculator",
-      description: "Set the right price for your products and services",
-      icon: <DollarSign className="h-6 w-6" />,
-      href: "/pricing-calculator",
-      category: "Business",
-    },
-    {
-      title: "ROI Calculator",
-      description: "Calculate return on investment for any project",
-      icon: <PieChart className="h-6 w-6" />,
-      href: "/roi-calculator",
-      category: "Investment",
-    },
-    {
-      title: "Tax Savings Calculator",
-      description: "Estimate your potential tax savings",
-      icon: <Calculator className="h-6 w-6" />,
-      href: "/tax-calculator",
-      category: "Tax",
-    },
-    {
-      title: "Employee vs Contractor Calculator",
-      description: "Compare costs of hiring employees vs contractors",
-      icon: <Users className="h-6 w-6" />,
-      href: "/employee-contractor-calculator",
-      category: "Business",
-    },
-    {
-      title: "Profit Margin Calculator",
-      description: "Calculate your business profit margins",
-      icon: <TrendingUp className="h-6 w-6" />,
-      href: "/profit-margin-calculator",
-      category: "Business",
-    },
-  ]
-
-  return (
-      <div className="min-h-screen bg-background">
-
-
-        {/* Hero Section */}
-        <section className="bg-gradient-to-br from-blue-50 to-white dark:from-blue-950/30 dark:to-background py-12 sm:py-20">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center">
-              <h1 className="text-3xl sm:text-4xl md:text-6xl font-bold text-foreground mb-4 sm:mb-6">
-                Professional <span className="text-blue-600 dark:text-blue-400">Financial Calculators</span> and <span className="text-blue-600 dark:text-blue-400"> Personal Finance</span> Tools
-              </h1>
-              <p className="text-lg sm:text-xl text-muted-foreground mb-6 sm:mb-8 max-w-3xl mx-auto px-4">
-                Free, accurate, and easy-to-use financial calculators and personal finance planning tools for individuals, small business
-                owners, entrepreneurs, and anyone looking to make informed financial decisions with professional tools.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        {/* Calculator Grid */}
-        <section className="py-12 sm:py-16 bg-muted/40" id="calculators">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-8 sm:mb-12">
-              <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-4">Choose Your Calculator</h2>
-              <p className="text-base sm:text-lg text-muted-foreground px-4">
-                Professional financial tools to help individuals and businesses make better financial decisions
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-              {calculators.map((calc, index) => (
-                  <Card key={index} className="transition-all duration-200 hover:shadow-lg hover:-translate-y-1 cursor-pointer">
-                    <Link href={calc.href}>
-                      <CardHeader className="pb-3">
-                        <div className="flex items-start gap-3">
-                          <div className="p-2 bg-blue-100 dark:bg-blue-950/50 rounded-lg text-blue-600 dark:text-blue-400 flex-shrink-0">{calc.icon}</div>
-                          <div className="min-w-0 flex-1">
-                            <CardTitle className="text-base sm:text-lg leading-tight">{calc.title}</CardTitle>
-                            <span className="text-sm text-blue-600 dark:text-blue-400 font-medium">{calc.category}</span>
-                          </div>
+    return (
+        <div className="flex flex-col">
+            {/* HERO */}
+            <Section spacing="loose" className="pt-section-gap-sm md:pt-section-gap-sm">
+                <Container className="grid grid-cols-1 md:grid-cols-12 gap-gutter items-center">
+                    <div className="md:col-span-6 flex flex-col gap-stack-lg">
+                        <Eyebrow>Financial Calculators</Eyebrow>
+                        <h1 className="font-headline-display text-headline-lg-mobile md:text-headline-display text-primary">
+                            Calculate Smarter.
+                            <br />
+                            Plan Better.
+                            <br />
+                            Grow Confidently.
+                        </h1>
+                        <p className="font-body-lg text-body-lg text-on-surface-variant max-w-prose">
+                            Editorial-grade financial tools built on deterministic, decimal-safe
+                            math. Loans, investing, taxes, and business — calculated with the
+                            precision investors and operators expect.
+                        </p>
+                        <div className="flex flex-wrap gap-stack-md pt-stack-sm">
+                            <Button asChild size="lg">
+                                <Link href="#featured">Explore Calculators</Link>
+                            </Button>
+                            <Button asChild variant="outline" size="lg">
+                                <Link href="/education">Learn the Methods</Link>
+                            </Button>
                         </div>
-                      </CardHeader>
-                      <CardContent className="pt-0">
-                        <CardDescription className="text-muted-foreground text-sm leading-relaxed">
-                          {calc.description}
-                        </CardDescription>
-                      </CardContent>
-                    </Link>
-                  </Card>
-              ))}
-            </div>
-          </div>
-        </section>
+                    </div>
+                    <div className="md:col-span-6">
+                        <HeroGrowthChart />
+                    </div>
+                </Container>
+            </Section>
 
-        {/* Features Section */}
-        <section className="py-12 sm:py-16 bg-background">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-12 items-center">
-              <div>
-                <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-6">Why Choose FinnaCalc?</h2>
-                <div className="space-y-4">
-                  <div className="flex items-start gap-3">
-                    <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
-                      <span className="text-white text-sm">✓</span>
+            {/* CATEGORIES */}
+            <Section spacing="default">
+                <Container className="flex flex-col gap-stack-lg">
+                    <SectionHeading
+                        eyebrow="Core Calculators"
+                        title="Built for every financial decision"
+                    />
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-gutter">
+                        {CATEGORY_GROUPS.map((group) => (
+                            <Link
+                                key={group.id}
+                                href={group.href}
+                                className="group flex flex-col gap-stack-md border border-outline-variant/30 rounded-lg bg-surface-container-lowest p-8 md:p-10 transition-colors duration-200 hover:border-primary/40"
+                            >
+                                <MaterialIcon
+                                    name={group.icon}
+                                    size={32}
+                                    className="text-primary"
+                                />
+                                <h3 className="font-headline-md text-headline-md text-primary">
+                                    {group.title}
+                                </h3>
+                                <p className="font-body-md text-body-md text-on-surface-variant flex-grow">
+                                    {group.description}
+                                </p>
+                                <span className="inline-flex items-center gap-stack-sm pt-stack-sm font-ui-button text-ui-button uppercase tracking-[0.05em] text-primary">
+                                    Explore
+                                    <MaterialIcon
+                                        name="arrow_forward"
+                                        size={16}
+                                        className="transition-transform duration-200 group-hover:translate-x-0.5"
+                                    />
+                                </span>
+                            </Link>
+                        ))}
                     </div>
-                    <div>
-                      <h3 className="font-semibold text-foreground">All basic calculations and free personal finance tools are free</h3>
-                      <p className="text-muted-foreground">No hidden fees or premium requirements for essential financial calculations</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
-                      <span className="text-white text-sm">✓</span>
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-foreground">Accurate Results</h3>
-                      <p className="text-muted-foreground">
-                        Professional-grade calculations you can trust for important decisions
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
-                      <span className="text-white text-sm">✓</span>
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-foreground">Save & Share Results</h3>
-                      <p className="text-muted-foreground">Export your calculations and share them with your team or advisors</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="ad-space h-48 sm:h-64 hidden">
-                <p>Advertisement Space - Affiliate Products</p>
-                <p className="text-sm mt-2">Business Credit Cards, Accounting Software, etc.</p>
-              </div>
-            </div>
-          </div>
-        </section>
+                </Container>
+            </Section>
 
-        {/* CTA Section */}
-        <section className="py-12 sm:py-16 bg-blue-600">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4">Ready to Take Control of Your Finances?</h2>
-            <p className="text-lg sm:text-xl text-blue-100 mb-6 sm:mb-8 px-4">
-              Join thousands of business owners who can trust FinnaCalc for their financial planning
-            </p>
-            <div className="flex justify-center">
-              <Link href="#calculators">
-                <Button className="bg-background text-blue-600 hover:bg-muted px-6 sm:px-8 py-3">
-                  Explore Our Calculators
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </section>
+            {/* FEATURED CALCULATORS */}
+            <Section id="featured" spacing="default">
+                <Container className="flex flex-col gap-stack-lg">
+                    <SectionHeading
+                        eyebrow="Featured"
+                        title="Where most people start"
+                        cta={{ label: "View All", href: "#popular" }}
+                    />
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter">
+                        {FEATURED_CALCULATORS.map((calc) => (
+                            <CalculatorCard
+                                key={calc.slug}
+                                title={calc.title}
+                                description={calc.description}
+                                href={calc.href}
+                                icon={calc.icon}
+                                estimatedMinutes={calc.estimatedMinutes}
+                            />
+                        ))}
+                    </div>
+                </Container>
+            </Section>
 
-        {/* Footer */}
-        <footer className="bg-gray-900 text-white py-8 sm:py-12">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8">
-              <div className="sm:col-span-2 md:col-span-1">
-                <div className="flex items-center mb-4">
-                  <Calculator className="h-6 w-6 text-blue-400" />
-                  <span className="ml-2 text-lg font-bold">FinnaCalc</span>
-                </div>
-                <p className="text-gray-400">
-                  Professional financial calculators and personal finance planning tools for smart business decisions.
-                </p>
-              </div>
-              <div>
-                <h3 className="font-semibold mb-4">Calculators</h3>
-                <ul className="space-y-2 text-gray-400">
-                  <li>
-                    <Link href="/loan-calculator" className="hover:text-white">
-                      Loan Calculator
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="/roi-calculator" className="hover:text-white">
-                      ROI Calculator
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="/break-even-calculator" className="hover:text-white">
-                      Break-Even Calculator
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="/emergency-fund-calculator" className="hover:text-white">
-                      Emergency Fund
-                    </Link>
-                  </li>
-                </ul>
-              </div>
-              <div>
-                <h3 className="font-semibold mb-4">Company</h3>
-                <ul className="space-y-2 text-gray-400">
-                  <li>
-                    <Link href="/about" className="hover:text-white">
-                      About Us
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="/privacy" className="hover:text-white">
-                      Privacy Policy
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="/terms" className="hover:text-white">
-                      Terms of Service
-                    </Link>
-                  </li>
-                </ul>
-              </div>
-            </div>
-            <div className="border-t border-gray-800 mt-6 sm:mt-8 pt-6 sm:pt-8 text-center text-gray-400">
-              <p>
-                &copy; 2024 FinnaCalc. All rights reserved. Professional Financial Calculators and Personal Finance Tools
-              </p>
-            </div>
-          </div>
-        </footer>
-      </div>
-  )
+            {/* POPULAR CALCULATORS — compact list */}
+            <Section id="popular" spacing="default">
+                <Container className="flex flex-col gap-stack-lg">
+                    <SectionHeading eyebrow="Popular" title="Calculators in active use" />
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-gutter">
+                        {POPULAR_CALCULATORS.map((calc) => (
+                            <CalculatorCard
+                                key={calc.slug}
+                                title={calc.title}
+                                description={calc.description}
+                                href={calc.href}
+                                icon={calc.icon}
+                                variant="compact"
+                            />
+                        ))}
+                    </div>
+                </Container>
+            </Section>
+
+            {/* EDUCATIONAL CONTENT */}
+            <Section spacing="default">
+                <Container className="flex flex-col gap-stack-lg">
+                    <SectionHeading
+                        eyebrow="Education"
+                        title="Understand the math before you trust it"
+                        cta={{ label: "All Articles", href: "/education" }}
+                    />
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-gutter">
+                        {EDUCATION_ARTICLES.map((article) => (
+                            <Link
+                                key={article.title}
+                                href={article.href}
+                                className="group flex flex-col gap-stack-md border border-outline-variant/30 rounded-lg bg-surface-container-lowest p-8 md:p-10 transition-colors duration-200 hover:border-primary/40"
+                            >
+                                <MaterialIcon
+                                    name={article.icon}
+                                    size={24}
+                                    className="text-primary"
+                                />
+                                <h3 className="font-headline-md text-[24px] leading-[1.3] text-primary">
+                                    {article.title}
+                                </h3>
+                                <p className="font-body-md text-body-md text-on-surface-variant flex-grow">
+                                    {article.description}
+                                </p>
+                                <span className="font-label-caps text-label-caps uppercase tracking-[0.15em] text-secondary pt-stack-sm">
+                                    {article.readMinutes} min read
+                                </span>
+                            </Link>
+                        ))}
+                    </div>
+                </Container>
+            </Section>
+
+            {/* FAQ */}
+            <Section spacing="default">
+                <Container className="grid grid-cols-1 md:grid-cols-12 gap-gutter">
+                    <div className="md:col-span-4 flex flex-col gap-stack-md">
+                        <Eyebrow>FAQ</Eyebrow>
+                        <h2 className="font-headline-lg text-headline-lg-mobile md:text-headline-lg text-primary">
+                            Common questions
+                        </h2>
+                        <p className="font-body-md text-body-md text-on-surface-variant max-w-prose">
+                            How FinnaCalc approaches accuracy, privacy, and the difference between
+                            calculation and advice.
+                        </p>
+                    </div>
+                    <div className="md:col-span-8">
+                        <FaqItem
+                            question="Are the calculations accurate enough for real decisions?"
+                            defaultOpen
+                        >
+                            Every calculator runs deterministic, decimal-safe math (no JavaScript
+                            float drift). Formulas are textbook and the loan calculator is
+                            test-covered against published reference cases. Results are precise to
+                            the cent — the limits are your inputs, not our arithmetic.
+                        </FaqItem>
+                        <FaqItem question="Is my financial data stored anywhere?">
+                            Calculator inputs stay in your browser. We don&apos;t transmit or
+                            persist them on our servers. If you sign in, only your account profile
+                            is stored — calculations remain local.
+                        </FaqItem>
+                        <FaqItem question="Is this financial advice?">
+                            No. FinnaCalc is a set of calculators and educational tools. They model
+                            the math behind common financial decisions, but choosing what to do
+                            with that information is yours — and for material decisions, worth
+                            running by a qualified advisor.
+                        </FaqItem>
+                        <FaqItem question="What does &ldquo;deterministic&rdquo; actually mean here?">
+                            Given the same inputs, you get exactly the same outputs — every time,
+                            on every device. No randomness, no quietly-changing defaults, no
+                            floating-point drift. The math is the math.
+                        </FaqItem>
+                    </div>
+                </Container>
+            </Section>
+        </div>
+    )
 }
