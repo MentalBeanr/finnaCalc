@@ -57,7 +57,7 @@ export default function LoanCalculatorPage() {
         calculator.result.kind === "payment"
 
     const form = (
-        <div className="flex flex-col gap-stack-lg p-6 md:p-10">
+        <div className="flex flex-col gap-stack-lg p-10">
             <Tabs
                 value={calculator.mode}
                 onValueChange={(value) => calculator.setMode(value as CalculationMode)}

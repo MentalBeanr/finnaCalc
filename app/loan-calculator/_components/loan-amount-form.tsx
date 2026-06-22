@@ -14,7 +14,7 @@ export function LoanAmountForm({ value, onChange, errors }: LoanAmountFormProps)
         onChange({ ...value, [key]: next })
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-stack-lg">
+        <div className="grid grid-cols-2 gap-stack-lg">
             <FormField
                 id="monthlyPayment"
                 label="Monthly Payment ($)"

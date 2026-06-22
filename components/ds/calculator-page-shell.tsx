@@ -57,7 +57,7 @@ export function CalculatorPageShell({
 }: CalculatorPageShellProps) {
     return (
         <div className="flex flex-col">
-            <Section spacing="default" className="pt-section-gap-sm md:pt-section-gap-sm pb-0">
+            <Section spacing="default" className="pt-section-gap-sm pb-0">
                 <Container className="flex flex-col gap-stack-lg">
                     {backHref ? (
                         <Link
@@ -69,7 +69,7 @@ export function CalculatorPageShell({
                         </Link>
                     ) : null}
                     {eyebrow ? <Eyebrow>{eyebrow}</Eyebrow> : null}
-                    <h1 className="font-headline-display text-headline-lg-mobile md:text-[64px] md:leading-[1.1] md:tracking-[-0.02em] text-primary max-w-4xl">
+                    <h1 className="font-headline-display text-[64px] leading-[1.1] tracking-[-0.02em] text-primary max-w-4xl">
                         {title}
                     </h1>
                     <p className="font-body-lg text-body-lg text-on-surface-variant max-w-prose">
@@ -87,13 +87,13 @@ export function CalculatorPageShell({
             </Section>
 
             <Section spacing="default">
-                <Container className="grid grid-cols-1 lg:grid-cols-12 gap-gutter items-stretch">
-                    <div className="lg:col-span-7">
+                <Container className="grid grid-cols-12 gap-gutter items-stretch">
+                    <div className="col-span-7">
                         <div className="border border-outline-variant/30 rounded-lg bg-surface-container-lowest h-full">
                             {form}
                         </div>
                     </div>
-                    <div className="lg:col-span-5">
+                    <div className="col-span-5">
                         <div className="border border-outline-variant/30 rounded-lg bg-surface-container-lowest h-full">
                             {result}
                         </div>
@@ -135,10 +135,10 @@ export function CalculatorPageShell({
 
             {faq ? (
                 <Section spacing="default">
-                    <Container className="grid grid-cols-1 md:grid-cols-12 gap-gutter">
-                        <div className="md:col-span-4 flex flex-col gap-stack-md">
+                    <Container className="grid grid-cols-12 gap-gutter">
+                        <div className="col-span-4 flex flex-col gap-stack-md">
                             <Eyebrow>{faq.eyebrow ?? "FAQ"}</Eyebrow>
-                            <h2 className="font-headline-lg text-headline-lg-mobile md:text-headline-lg text-primary">
+                            <h2 className="font-headline-lg text-headline-lg text-primary">
                                 {faq.title ?? "Common questions"}
                             </h2>
                             {faq.description ? (
@@ -147,7 +147,7 @@ export function CalculatorPageShell({
                                 </p>
                             ) : null}
                         </div>
-                        <div className="md:col-span-8">
+                        <div className="col-span-8">
                             {faq.items.map((item, idx) => (
                                 <FaqItem
                                     key={item.question}

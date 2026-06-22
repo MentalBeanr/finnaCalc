@@ -15,15 +15,13 @@ export function SectionHeading({ eyebrow, title, cta, className }: SectionHeadin
     return (
         <div
             className={cn(
-                "flex flex-col gap-stack-md md:flex-row md:items-end md:justify-between border-b border-outline-variant/20 pb-stack-sm",
+                "flex items-end justify-between gap-stack-md border-b border-outline-variant/20 pb-stack-sm",
                 className,
             )}
         >
             <div className="flex flex-col gap-stack-sm">
                 {eyebrow ? <Eyebrow>{eyebrow}</Eyebrow> : null}
-                <h2 className="font-headline-lg text-headline-lg-mobile md:text-headline-lg text-primary">
-                    {title}
-                </h2>
+                <h2 className="font-headline-lg text-headline-lg text-primary">{title}</h2>
             </div>
             {cta ? (
                 <Link

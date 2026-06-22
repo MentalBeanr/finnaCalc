@@ -11,11 +11,11 @@ export function FormulaDisplay({ children, caption, className }: FormulaDisplayP
     return (
         <figure
             className={cn(
-                "flex flex-col items-center gap-stack-md border border-outline-variant/30 bg-surface-container-low rounded-lg px-6 py-8 md:px-10 md:py-10",
+                "flex flex-col items-center gap-stack-md border border-outline-variant/30 bg-surface-container-low rounded-lg px-10 py-10",
                 className,
             )}
         >
-            <div className="font-serif text-[24px] md:text-[28px] leading-[1.4] text-primary text-center tabular-nums">
+            <div className="font-serif text-[28px] leading-[1.4] text-primary text-center tabular-nums">
                 {children}
             </div>
             {caption ? (
@@ -36,7 +36,7 @@ export function FormulaLegend({ items, className }: FormulaLegendProps) {
     return (
         <dl
             className={cn(
-                "grid grid-cols-1 sm:grid-cols-2 gap-x-gutter gap-y-stack-md",
+                "grid grid-cols-2 gap-x-gutter gap-y-stack-md",
                 className,
             )}
         >

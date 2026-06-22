@@ -45,11 +45,11 @@ export default function HomePage() {
     return (
         <div className="flex flex-col">
             {/* HERO */}
-            <Section spacing="loose" className="pt-section-gap-sm md:pt-section-gap-sm">
-                <Container className="grid grid-cols-1 md:grid-cols-12 gap-gutter items-center">
-                    <div className="md:col-span-6 flex flex-col gap-stack-lg">
+            <Section spacing="loose" className="pt-section-gap-sm">
+                <Container className="grid grid-cols-12 gap-gutter items-center">
+                    <div className="col-span-6 flex flex-col gap-stack-lg">
                         <Eyebrow>Financial Calculators</Eyebrow>
-                        <h1 className="font-headline-display text-headline-lg-mobile md:text-headline-display text-primary">
+                        <h1 className="font-headline-display text-headline-display text-primary">
                             Calculate Smarter.
                             <br />
                             Plan Better.
@@ -70,7 +70,7 @@ export default function HomePage() {
                             </Button>
                         </div>
                     </div>
-                    <div className="md:col-span-6">
+                    <div className="col-span-6">
                         <HeroGrowthChart />
                     </div>
                 </Container>
@@ -83,12 +83,12 @@ export default function HomePage() {
                         eyebrow="Core Calculators"
                         title="Built for every financial decision"
                     />
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-gutter">
+                    <div className="grid grid-cols-3 gap-gutter">
                         {CATEGORY_GROUPS.map((group) => (
                             <Link
                                 key={group.id}
                                 href={group.href}
-                                className="group flex flex-col gap-stack-md border border-outline-variant/30 rounded-lg bg-surface-container-lowest p-8 md:p-10 transition-colors duration-200 hover:border-primary/40"
+                                className="group flex flex-col gap-stack-md border border-outline-variant/30 rounded-lg bg-surface-container-lowest p-10 transition-colors duration-200 hover:border-primary/40"
                             >
                                 <MaterialIcon
                                     name={group.icon}
@@ -123,7 +123,7 @@ export default function HomePage() {
                         title="Where most people start"
                         cta={{ label: "View All", href: "#popular" }}
                     />
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter">
+                    <div className="grid grid-cols-3 gap-gutter">
                         {FEATURED_CALCULATORS.map((calc) => (
                             <CalculatorCard
                                 key={calc.slug}
@@ -142,7 +142,7 @@ export default function HomePage() {
             <Section id="popular" spacing="default">
                 <Container className="flex flex-col gap-stack-lg">
                     <SectionHeading eyebrow="Popular" title="Calculators in active use" />
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-gutter">
+                    <div className="grid grid-cols-4 gap-gutter">
                         {POPULAR_CALCULATORS.map((calc) => (
                             <CalculatorCard
                                 key={calc.slug}
@@ -165,12 +165,12 @@ export default function HomePage() {
                         title="Understand the math before you trust it"
                         cta={{ label: "All Articles", href: "/education" }}
                     />
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-gutter">
+                    <div className="grid grid-cols-3 gap-gutter">
                         {EDUCATION_ARTICLES.map((article) => (
                             <Link
                                 key={article.title}
                                 href={article.href}
-                                className="group flex flex-col gap-stack-md border border-outline-variant/30 rounded-lg bg-surface-container-lowest p-8 md:p-10 transition-colors duration-200 hover:border-primary/40"
+                                className="group flex flex-col gap-stack-md border border-outline-variant/30 rounded-lg bg-surface-container-lowest p-10 transition-colors duration-200 hover:border-primary/40"
                             >
                                 <MaterialIcon
                                     name={article.icon}
@@ -194,10 +194,10 @@ export default function HomePage() {
 
             {/* FAQ */}
             <Section spacing="default">
-                <Container className="grid grid-cols-1 md:grid-cols-12 gap-gutter">
-                    <div className="md:col-span-4 flex flex-col gap-stack-md">
+                <Container className="grid grid-cols-12 gap-gutter">
+                    <div className="col-span-4 flex flex-col gap-stack-md">
                         <Eyebrow>FAQ</Eyebrow>
-                        <h2 className="font-headline-lg text-headline-lg-mobile md:text-headline-lg text-primary">
+                        <h2 className="font-headline-lg text-headline-lg text-primary">
                             Common questions
                         </h2>
                         <p className="font-body-md text-body-md text-on-surface-variant max-w-prose">
@@ -205,7 +205,7 @@ export default function HomePage() {
                             calculation and advice.
                         </p>
                     </div>
-                    <div className="md:col-span-8">
+                    <div className="col-span-8">
                         <FaqItem
                             question="Are the calculations accurate enough for real decisions?"
                             defaultOpen

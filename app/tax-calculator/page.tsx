@@ -96,7 +96,7 @@ export default function TaxCalculatorPage() {
     }
 
     const formContent = (
-        <div className="flex flex-col gap-stack-lg p-6 md:p-10">
+        <div className="flex flex-col gap-stack-lg p-10">
             <Tabs value={mode} onValueChange={handleModeChange}>
                 <TabsList>
                     <TabsTrigger value="individual">Individual</TabsTrigger>

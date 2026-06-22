@@ -30,7 +30,7 @@ export function PaymentForm({
         onChange({ ...value, [key]: next })
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-stack-lg">
+        <div className="grid grid-cols-2 gap-stack-lg">
             <SelectFieldShell id="loanType" label="Loan Type">
                 <Select value={loanType} onValueChange={(v) => onLoanTypeChange(v as LoanType)}>
                     <SelectTrigger id="loanType">

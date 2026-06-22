@@ -42,9 +42,9 @@ const FOOTER_NAV = [
 
 export function SiteFooter() {
     return (
-        <footer className="mt-auto border-t border-outline-variant/20 bg-surface-container-low pt-section-gap-sm md:pt-section-gap pb-10">
-            <Container className="grid grid-cols-2 md:grid-cols-5 gap-gutter mb-stack-xl">
-                <div className="col-span-2 md:col-span-1 flex flex-col gap-stack-sm">
+        <footer className="mt-auto border-t border-outline-variant/20 bg-surface-container-low pt-section-gap pb-10">
+            <Container className="grid grid-cols-5 gap-gutter mb-stack-xl">
+                <div className="flex flex-col gap-stack-sm">
                     <div className="font-headline-md text-[24px] leading-none text-primary">
                         FinnaCalc
                     </div>
@@ -69,7 +69,7 @@ export function SiteFooter() {
                 ))}
             </Container>
 
-            <Container className="border-t border-outline-variant/15 pt-stack-lg flex flex-col md:flex-row md:items-center md:justify-between gap-stack-sm">
+            <Container className="border-t border-outline-variant/15 pt-stack-lg flex items-center justify-between gap-stack-sm">
                 <p className="font-body-md text-sm text-on-surface-variant">
                     &copy; {new Date().getFullYear()} FinnaCalc. All rights reserved.
                 </p>

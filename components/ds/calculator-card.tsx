@@ -30,7 +30,7 @@ export function CalculatorCard({
             href={href}
             className={cn(
                 "group flex flex-col gap-stack-md border border-outline-variant/30 rounded-lg bg-surface-container-lowest transition-colors duration-200 hover:border-primary/40",
-                isCompact ? "p-6" : "p-8 md:p-10",
+                isCompact ? "p-6" : "p-10",
                 className,
             )}
         >
