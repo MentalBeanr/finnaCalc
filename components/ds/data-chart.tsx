@@ -5,6 +5,7 @@ import {
     CartesianGrid,
     Line,
     LineChart,
+    ReferenceLine,
     ResponsiveContainer,
     Tooltip,
     XAxis,
@@ -16,6 +17,15 @@ export interface DataChartPoint {
     y: number
 }
 
+export interface DataChartReferenceLine {
+    /** Orientation: horizontal references a Y value, vertical references an X value. */
+    axis: "x" | "y"
+    value: number
+    /** Optional label rendered along the reference line. */
+    label?: string
+    tone?: "primary" | "muted"
+}
+
 interface DataChartProps {
     data: ReadonlyArray<DataChartPoint>
     formatY?: (value: number) => string
@@ -25,6 +35,7 @@ interface DataChartProps {
     showGrid?: boolean
     showTooltip?: boolean
     ariaLabel?: string
+    referenceLines?: ReadonlyArray<DataChartReferenceLine>
 }
 
 const NAVY = "#00061a"
@@ -47,6 +58,7 @@ export function DataChart({
     showGrid = true,
     showTooltip = true,
     ariaLabel,
+    referenceLines,
 }: DataChartProps) {
     return (
         <div className="w-full" style={{ height }} aria-label={ariaLabel} role="img">
@@ -100,6 +112,33 @@ export function DataChart({
                             cursor={{ stroke: OUTLINE_VARIANT, strokeOpacity: 0.6, strokeWidth: 1 }}
                         />
                     ) : null}
+                    {referenceLines
+                        ?.filter((ref) => ref.axis === "y")
+                        .map((ref, i) => {
+                            const stroke = ref.tone === "primary" ? NAVY : OUTLINE_VARIANT
+                            const strokeOpacity = ref.tone === "primary" ? 0.6 : 0.5
+                            return (
+                                <ReferenceLine
+                                    key={i}
+                                    y={ref.value}
+                                    stroke={stroke}
+                                    strokeOpacity={strokeOpacity}
+                                    strokeDasharray="4 4"
+                                    label={
+                                        ref.label
+                                            ? {
+                                                  value: ref.label,
+                                                  fill: SURFACE_VARIANT,
+                                                  fontSize: 11,
+                                                  fontFamily: "Hanken Grotesk",
+                                                  position: "insideTopRight",
+                                                  offset: 8,
+                                              }
+                                            : undefined
+                                    }
+                                />
+                            )
+                        })}
                     <Line
                         type="monotone"
                         dataKey="y"

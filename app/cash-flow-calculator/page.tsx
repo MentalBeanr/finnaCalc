@@ -1,199 +1,103 @@
 "use client"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { Share2, Download, TrendingUp, ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { CalculatorPageShell } from "@/components/ds/calculator-page-shell"
+import {
+    FormErrorBanner,
+    ResultEmptyState,
+} from "@/components/ds/calculator-result"
+import { calculateCashFlow } from "@/lib/calculations/cash-flow"
+import type { CashFlowResult } from "@/lib/types/cash-flow"
+import {
+    type CashFlowFormState,
+    validateCashFlowInput,
+} from "@/lib/validators/cash-flow"
+import { CashFlowChart } from "./_components/cash-flow-chart"
+import {
+    CASH_FLOW_FAQ,
+    CashFlowEducation,
+} from "./_components/cash-flow-content"
+import { CashFlowForm } from "./_components/cash-flow-form"
+import { CashFlowFormula } from "./_components/cash-flow-formula"
+import { CashFlowResultDisplay } from "./_components/cash-flow-result"
 
-export default function CashFlowCalculator() {
-  const router = useRouter()
-  const [monthlyRevenue, setMonthlyRevenue] = useState("")
-  const [monthlyExpenses, setMonthlyExpenses] = useState("")
-  const [startingCash, setStartingCash] = useState("")
-  const [growthRate, setGrowthRate] = useState("5")
-  const [months, setMonths] = useState("12")
-  const [result, setResult] = useState<any>(null)
+const INITIAL_FORM: CashFlowFormState = {
+    monthlyRevenue: "",
+    monthlyExpenses: "",
+    startingCash: "",
+    monthlyGrowthPercent: "5",
+    months: "12",
+}
 
-  const calculateCashFlow = () => {
-    const revenue = Number.parseFloat(monthlyRevenue) || 0
-    const expenses = Number.parseFloat(monthlyExpenses) || 0
-    const cash = Number.parseFloat(startingCash) || 0
-    const growth = Number.parseFloat(growthRate) || 0
-    const period = Number.parseInt(months) || 12
+export default function CashFlowCalculatorPage() {
+    const [form, setForm] = useState<CashFlowFormState>(INITIAL_FORM)
+    const [errors, setErrors] = useState<Record<string, string>>({})
+    const [result, setResult] = useState<CashFlowResult | null>(null)
+    const formError = errors._form
 
-    const projections = []
-    let currentCash = cash
-    let currentRevenue = revenue
-
-    for (let month = 1; month <= period; month++) {
-      const monthlyNetCashFlow = currentRevenue - expenses
-      currentCash += monthlyNetCashFlow
-
-      projections.push({
-        month,
-        revenue: currentRevenue,
-        expenses,
-        netCashFlow: monthlyNetCashFlow,
-        cumulativeCash: currentCash,
-      })
-
-      // Apply growth rate for next month
-      currentRevenue = currentRevenue * (1 + growth / 100)
+    const calculate = () => {
+        const validated = validateCashFlowInput(form)
+        if (!validated.ok) {
+            setErrors(validated.errors)
+            setResult(null)
+            return
+        }
+        setErrors({})
+        setResult(calculateCashFlow(validated.data))
     }
 
-    const totalRevenue = projections.reduce((sum, p) => sum + p.revenue, 0)
-    const totalExpenses = projections.reduce((sum, p) => sum + p.expenses, 0)
-    const finalCash = projections[projections.length - 1]?.cumulativeCash || 0
-
-    setResult({
-      projections,
-      totalRevenue,
-      totalExpenses,
-      finalCash,
-      netCashFlow: totalRevenue - totalExpenses,
-    })
-  }
-
-  return (
-      <div className="min-h-screen bg-muted/40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="mb-8">
-            <Button variant="outline" onClick={() => router.back()} className="flex items-center gap-2">
-              <ArrowLeft className="h-4 w-4" />
-              Back
-            </Button>
-          </div>
-
-          <div className="grid grid-cols-1 gap-8">
-            <div>
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <TrendingUp className="h-6 w-6 text-blue-600" />
-                    Cash Flow Projector
-                  </CardTitle>
-                  <CardDescription>Project your business cash flow over time</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="monthlyRevenue">Monthly Revenue ($)</Label>
-                      <Input
-                          id="monthlyRevenue"
-                          type="number"
-                          placeholder="25000"
-                          value={monthlyRevenue}
-                          onChange={(e) => setMonthlyRevenue(e.target.value)}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="monthlyExpenses">Monthly Expenses ($)</Label>
-                      <Input
-                          id="monthlyExpenses"
-                          type="number"
-                          placeholder="20000"
-                          value={monthlyExpenses}
-                          onChange={(e) => setMonthlyExpenses(e.target.value)}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="startingCash">Starting Cash Balance ($)</Label>
-                      <Input
-                          id="startingCash"
-                          type="number"
-                          placeholder="50000"
-                          value={startingCash}
-                          onChange={(e) => setStartingCash(e.target.value)}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="growthRate">Monthly Growth Rate (%)</Label>
-                      <Input
-                          id="growthRate"
-                          type="number"
-                          step="0.1"
-                          placeholder="5"
-                          value={growthRate}
-                          onChange={(e) => setGrowthRate(e.target.value)}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="months">Projection Period (months)</Label>
-                      <Input
-                          id="months"
-                          type="number"
-                          placeholder="12"
-                          value={months}
-                          onChange={(e) => setMonths(e.target.value)}
-                      />
-                    </div>
-                  </div>
-
-                  <Button onClick={calculateCashFlow} className="w-full bg-blue-600 hover:bg-blue-700" size="lg">
-                    Calculate Cash Flow Projection
-                  </Button>
-
-                  {result && (
-                      <div className="calculator-result space-y-4">
-                        <h3 className="text-lg font-semibold text-blue-800">Your Cash Flow Projection</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                          <div>
-                            <p className="text-sm text-muted-foreground">Final Cash Balance</p>
-                            <p
-                                className={`text-2xl font-bold ${result.finalCash >= 0 ? "text-green-600" : "text-red-600"}`}
-                            >
-                              ${result.finalCash.toLocaleString()}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-muted-foreground">Total Revenue</p>
-                            <p className="text-2xl font-bold text-blue-600">${result.totalRevenue.toLocaleString()}</p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-muted-foreground">Net Cash Flow</p>
-                            <p
-                                className={`text-2xl font-bold ${result.netCashFlow >= 0 ? "text-green-600" : "text-red-600"}`}
-                            >
-                              ${result.netCashFlow.toLocaleString()}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="bg-muted/40 p-4 rounded-lg max-h-64 overflow-y-auto">
-                          <h4 className="font-semibold mb-3">Monthly Breakdown:</h4>
-                          <div className="space-y-2 text-sm">
-                            {result.projections.slice(0, 12).map((month: any) => (
-                                <div key={month.month} className="flex justify-between items-center">
-                                  <span>Month {month.month}:</span>
-                                  <div className="text-right">
-                                    <span className="text-muted-foreground">Rev: ${month.revenue.toLocaleString()}</span>
-                                    <span className="ml-2 text-muted-foreground">Cash: ${month.cumulativeCash.toLocaleString()}</span>
-                                  </div>
-                                </div>
-                            ))}
-                          </div>
-                        </div>
-
-                        <div className="flex gap-2 pt-4">
-                          <Button variant="outline" className="flex items-center gap-2 bg-transparent">
-                            <Share2 className="h-4 w-4" />
-                            Share Results
-                          </Button>
-                          <Button variant="outline" className="flex items-center gap-2 bg-transparent">
-                            <Download className="h-4 w-4" />
-                            Download Full Report
-                          </Button>
-                        </div>
-                      </div>
-                  )}
-                </CardContent>
-              </Card>
+    const formContent = (
+        <div className="flex flex-col gap-stack-lg p-6 md:p-10">
+            <CashFlowForm value={form} onChange={setForm} errors={errors} />
+            <div className="flex flex-col gap-stack-md pt-stack-md border-t border-outline-variant/20">
+                {formError ? <FormErrorBanner message={formError} /> : null}
+                <Button onClick={calculate} size="lg" className="w-full">
+                    Project Cash Flow
+                </Button>
             </div>
-          </div>
         </div>
-      </div>
-  )
+    )
+
+    const resultContent =
+        result && !formError ? (
+            <CashFlowResultDisplay result={result} />
+        ) : (
+            <ResultEmptyState
+                title="Your cash flow projection will appear here"
+                description="Enter your monthly revenue, expenses, and starting balance — we'll project the cash trajectory and find your runway if you have one."
+                icon="monitoring"
+            />
+        )
+
+    return (
+        <CalculatorPageShell
+            eyebrow="Business"
+            title="Cash Flow Projector"
+            description="Model month-by-month cash inflows, outflows, and runway across a rolling horizon. See where the balance goes — and when it might go to zero."
+            category="Business"
+            estimatedMinutes={3}
+            backHref="/"
+            form={formContent}
+            result={resultContent}
+            chart={result ? <CashFlowChart result={result} /> : null}
+            formula={{
+                eyebrow: "Formula",
+                title: "How the projection is built",
+                children: <CashFlowFormula />,
+            }}
+            education={{
+                eyebrow: "Background",
+                title: "How to read a cash trajectory",
+                children: <CashFlowEducation />,
+            }}
+            faq={{
+                eyebrow: "FAQ",
+                title: "Common projection questions",
+                description:
+                    "What runway means, why expenses stay flat, and how to use this to stress-test the business.",
+                items: CASH_FLOW_FAQ,
+            }}
+        />
+    )
 }
