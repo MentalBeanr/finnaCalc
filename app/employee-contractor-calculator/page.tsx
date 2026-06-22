@@ -1,255 +1,94 @@
 "use client"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { Calculator, Share2, Download, Users, ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { CalculatorPageShell } from "@/components/ds/calculator-page-shell"
+import {
+    FormErrorBanner,
+    ResultEmptyState,
+} from "@/components/ds/calculator-result"
+import { calculateEmployeeContractor } from "@/lib/calculations/employee-contractor"
+import type { EmployeeContractorResult } from "@/lib/types/employee-contractor"
+import {
+    INITIAL_EC_FORM,
+    type EmployeeContractorFormState,
+    validateEmployeeContractorInput,
+} from "@/lib/validators/employee-contractor"
+import {
+    EMPLOYEE_CONTRACTOR_FAQ,
+    EmployeeContractorEducation,
+} from "./_components/employee-contractor-content"
+import { EmployeeContractorForm } from "./_components/employee-contractor-form"
+import { EmployeeContractorFormula } from "./_components/employee-contractor-formula"
+import { EmployeeContractorResultDisplay } from "./_components/employee-contractor-result"
 
-export default function EmployeeContractorCalculator() {
-  const router = useRouter()
-  const [salary, setSalary] = useState("")
-  const [contractorRate, setContractorRate] = useState("")
-  const [hoursPerWeek, setHoursPerWeek] = useState("40")
-  const [weeksPerYear, setWeeksPerYear] = useState("50")
-  const [result, setResult] = useState<any>(null)
+export default function EmployeeContractorCalculatorPage() {
+    const [form, setForm] = useState<EmployeeContractorFormState>(INITIAL_EC_FORM)
+    const [errors, setErrors] = useState<Record<string, string>>({})
+    const [result, setResult] = useState<EmployeeContractorResult | null>(null)
+    const formError = errors._form
 
-  const calculateComparison = () => {
-    const annualSalary = Number.parseFloat(salary) || 0
-    const hourlyRate = Number.parseFloat(contractorRate) || 0
-    const hours = Number.parseFloat(hoursPerWeek) || 40
-    const weeks = Number.parseFloat(weeksPerYear) || 50
+    const calculate = () => {
+        const validated = validateEmployeeContractorInput(form)
+        if (!validated.ok) {
+            setErrors(validated.errors)
+            setResult(null)
+            return
+        }
+        setErrors({})
+        setResult(calculateEmployeeContractor(validated.data))
+    }
 
-    const employeeBenefits = annualSalary * 0.25
-    const payrollTaxes = annualSalary * 0.0765
-    const workersComp = annualSalary * 0.02
-    const unemployment = Math.min(annualSalary * 0.006, 420)
-    const totalEmployeeCost = annualSalary + employeeBenefits + payrollTaxes + workersComp + unemployment
-
-    const contractorAnnualCost = hourlyRate * hours * weeks
-    const contractorHourlyEquivalent = totalEmployeeCost / (hours * weeks)
-
-    const savings = totalEmployeeCost - contractorAnnualCost
-    const savingsPercentage = (savings / totalEmployeeCost) * 100
-
-    setResult({
-      employee: {
-        salary: annualSalary,
-        benefits: employeeBenefits,
-        payrollTaxes,
-        workersComp,
-        unemployment,
-        totalCost: totalEmployeeCost,
-      },
-      contractor: {
-        hourlyRate,
-        annualCost: contractorAnnualCost,
-        equivalentHourlyRate: contractorHourlyEquivalent,
-      },
-      comparison: {
-        savings,
-        savingsPercentage,
-        recommendation: savings > 0 ? "contractor" : "employee",
-      },
-    })
-  }
-
-  return (
-      <div className="min-h-screen bg-muted/40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="mb-8">
-            <Button variant="outline" onClick={() => router.back()} className="flex items-center gap-2">
-              <ArrowLeft className="h-4 w-4" />
-              Back
-            </Button>
-          </div>
-
-          <div className="grid grid-cols-1 gap-8">
-            <div>
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Users className="h-6 w-6 text-blue-600" />
-                    Employee vs Contractor Calculator
-                  </CardTitle>
-                  <CardDescription>Compare the total costs of hiring employees vs contractors</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="salary">Employee Annual Salary ($)</Label>
-                      <Input
-                          id="salary"
-                          type="number"
-                          placeholder="60000"
-                          value={salary}
-                          onChange={(e) => setSalary(e.target.value)}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="contractorRate">Contractor Hourly Rate ($)</Label>
-                      <Input
-                          id="contractorRate"
-                          type="number"
-                          placeholder="40"
-                          value={contractorRate}
-                          onChange={(e) => setContractorRate(e.target.value)}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="hoursPerWeek">Hours per Week</Label>
-                      <Input
-                          id="hoursPerWeek"
-                          type="number"
-                          placeholder="40"
-                          value={hoursPerWeek}
-                          onChange={(e) => setHoursPerWeek(e.target.value)}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="weeksPerYear">Weeks per Year</Label>
-                      <Input
-                          id="weeksPerYear"
-                          type="number"
-                          placeholder="50"
-                          value={weeksPerYear}
-                          onChange={(e) => setWeeksPerYear(e.target.value)}
-                      />
-                    </div>
-                  </div>
-
-                  <Button onClick={calculateComparison} className="w-full bg-blue-600 hover:bg-blue-700" size="lg">
-                    Compare Costs
-                  </Button>
-
-                  {result && (
-                      <div className="calculator-result space-y-4">
-                        <h3 className="text-lg font-semibold text-blue-800">Cost Comparison Analysis</h3>
-
-                        <Tabs defaultValue="comparison" className="w-full">
-                          <TabsList className="grid w-full grid-cols-3">
-                            <TabsTrigger value="comparison">Comparison</TabsTrigger>
-                            <TabsTrigger value="employee">Employee</TabsTrigger>
-                            <TabsTrigger value="contractor">Contractor</TabsTrigger>
-                          </TabsList>
-
-                          <TabsContent value="comparison" className="space-y-4">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              <div>
-                                <p className="text-sm text-muted-foreground">Total Employee Cost</p>
-                                <p className="text-2xl font-bold text-red-600">
-                                  ${result.employee.totalCost.toLocaleString()}
-                                </p>
-                              </div>
-                              <div>
-                                <p className="text-sm text-muted-foreground">Total Contractor Cost</p>
-                                <p className="text-2xl font-bold text-blue-600">
-                                  ${result.contractor.annualCost.toLocaleString()}
-                                </p>
-                              </div>
-                              <div>
-                                <p className="text-sm text-muted-foreground">Annual Savings</p>
-                                <p
-                                    className={`text-2xl font-bold ${result.comparison.savings >= 0 ? "text-green-600" : "text-red-600"}`}
-                                >
-                                  ${Math.abs(result.comparison.savings).toLocaleString()}
-                                </p>
-                              </div>
-                              <div>
-                                <p className="text-sm text-muted-foreground">Savings Percentage</p>
-                                <p
-                                    className={`text-2xl font-bold ${result.comparison.savingsPercentage >= 0 ? "text-green-600" : "text-red-600"}`}
-                                >
-                                  {Math.abs(result.comparison.savingsPercentage).toFixed(1)}%
-                                </p>
-                              </div>
-                            </div>
-
-                            <div
-                                className={`p-4 rounded-lg ${result.comparison.recommendation === "contractor" ? "bg-green-50" : "bg-blue-50"}`}
-                            >
-                              <h4 className="font-semibold mb-2">Recommendation:</h4>
-                              <p className="text-sm">
-                                {result.comparison.recommendation === "contractor"
-                                    ? `Hiring a contractor could save you $${result.comparison.savings.toLocaleString()} annually (${result.comparison.savingsPercentage.toFixed(1)}% savings).`
-                                    : `Hiring an employee might be more cost-effective despite higher upfront costs, providing better long-term value and control.`}
-                              </p>
-                            </div>
-                          </TabsContent>
-
-                          <TabsContent value="employee" className="space-y-4">
-                            <div className="bg-muted/40 p-4 rounded-lg">
-                              <h4 className="font-semibold mb-3">Employee Cost Breakdown:</h4>
-                              <div className="space-y-2 text-sm">
-                                <div className="flex justify-between">
-                                  <span>Base Salary:</span>
-                                  <span>${result.employee.salary.toLocaleString()}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span>Benefits (25%):</span>
-                                  <span>${result.employee.benefits.toLocaleString()}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span>Payroll Taxes:</span>
-                                  <span>${result.employee.payrollTaxes.toLocaleString()}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span>Workers Comp:</span>
-                                  <span>${result.employee.workersComp.toLocaleString()}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span>Unemployment:</span>
-                                  <span>${result.employee.unemployment.toLocaleString()}</span>
-                                </div>
-                                <div className="flex justify-between border-t pt-2 font-semibold">
-                                  <span>Total Cost:</span>
-                                  <span>${result.employee.totalCost.toLocaleString()}</span>
-                                </div>
-                              </div>
-                            </div>
-                          </TabsContent>
-
-                          <TabsContent value="contractor" className="space-y-4">
-                            <div className="bg-muted/40 p-4 rounded-lg">
-                              <h4 className="font-semibold mb-3">Contractor Cost Analysis:</h4>
-                              <div className="space-y-2 text-sm">
-                                <div className="flex justify-between">
-                                  <span>Hourly Rate:</span>
-                                  <span>${result.contractor.hourlyRate}/hour</span>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span>Annual Cost:</span>
-                                  <span>${result.contractor.annualCost.toLocaleString()}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span>Equivalent Employee Rate:</span>
-                                  <span>${result.contractor.equivalentHourlyRate.toFixed(2)}/hour</span>
-                                </div>
-                              </div>
-                            </div>
-                          </TabsContent>
-                        </Tabs>
-
-                        <div className="flex gap-2 pt-4">
-                          <Button variant="outline" className="flex items-center gap-2">
-                            <Share2 className="h-4 w-4" />
-                            Share Results
-                          </Button>
-                          <Button variant="outline" className="flex items-center gap-2">
-                            <Download className="h-4 w-4" />
-                            Download Analysis
-                          </Button>
-                        </div>
-                      </div>
-                  )}
-                </CardContent>
-              </Card>
+    const formContent = (
+        <div className="flex flex-col gap-stack-lg p-10">
+            <EmployeeContractorForm value={form} onChange={setForm} errors={errors} />
+            <div className="flex flex-col gap-stack-md pt-stack-md border-t border-outline-variant/20">
+                {formError ? <FormErrorBanner message={formError} /> : null}
+                <Button onClick={calculate} size="lg" className="w-full">
+                    Compare Employee vs Contractor
+                </Button>
             </div>
-          </div>
         </div>
-      </div>
-  )
+    )
+
+    const resultContent =
+        result && !formError ? (
+            <EmployeeContractorResultDisplay result={result} />
+        ) : (
+            <ResultEmptyState
+                title="Your comparison will appear here"
+                description="Enter the role's salary and a contractor rate — we'll fully load the employee cost (benefits, payroll tax, workers' comp, unemployment) and compare it dollar-for-dollar to the contractor."
+                icon="groups"
+            />
+        )
+
+    return (
+        <CalculatorPageShell
+            eyebrow="Business"
+            title="Employee vs Contractor"
+            description="Compare the fully-loaded annual cost of a W-2 employee against a 1099 contractor for the same role — and find the breakeven contractor rate."
+            category="Business"
+            estimatedMinutes={2}
+            backHref="/"
+            form={formContent}
+            result={resultContent}
+            formula={{
+                eyebrow: "Formula",
+                title: "How the two are built",
+                children: <EmployeeContractorFormula />,
+            }}
+            education={{
+                eyebrow: "Background",
+                title: "How to read a comparison",
+                children: <EmployeeContractorEducation />,
+            }}
+            faq={{
+                eyebrow: "FAQ",
+                title: "Common employee vs contractor questions",
+                description:
+                    "What the benefits load actually includes, why contractors aren't always cheaper, and how to avoid misclassification.",
+                items: EMPLOYEE_CONTRACTOR_FAQ,
+            }}
+        />
+    )
 }
