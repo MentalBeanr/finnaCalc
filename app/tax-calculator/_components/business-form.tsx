@@ -32,7 +32,7 @@ export function BusinessForm({ value, onChange, errors }: BusinessFormProps) {
 
             <div className="flex flex-col gap-stack-lg">
                 <Eyebrow>Deductions</Eyebrow>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-stack-lg">
+                <div className="grid grid-cols-2 gap-stack-lg">
                     <FormField
                         id="businessExpenses"
                         label="Business Expenses ($)"

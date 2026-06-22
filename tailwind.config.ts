@@ -87,7 +87,6 @@ const config: Config = {
                 sans: ["var(--font-hanken)", "Hanken Grotesk", "system-ui", "sans-serif"],
                 "headline-display": ["var(--font-libre-caslon)", "Libre Caslon Text", "serif"],
                 "headline-lg": ["var(--font-libre-caslon)", "Libre Caslon Text", "serif"],
-                "headline-lg-mobile": ["var(--font-libre-caslon)", "Libre Caslon Text", "serif"],
                 "headline-md": ["var(--font-libre-caslon)", "Libre Caslon Text", "serif"],
                 "body-lg": ["var(--font-hanken)", "Hanken Grotesk", "system-ui", "sans-serif"],
                 "body-md": ["var(--font-hanken)", "Hanken Grotesk", "system-ui", "sans-serif"],
@@ -97,7 +96,6 @@ const config: Config = {
             fontSize: {
                 "headline-display": ["72px", { lineHeight: "1.1", letterSpacing: "-0.02em", fontWeight: "400" }],
                 "headline-lg": ["48px", { lineHeight: "1.2", fontWeight: "400" }],
-                "headline-lg-mobile": ["36px", { lineHeight: "1.2", fontWeight: "400" }],
                 "headline-md": ["32px", { lineHeight: "1.3", fontWeight: "400" }],
                 "body-lg": ["18px", { lineHeight: "1.6", letterSpacing: "0.01em", fontWeight: "400" }],
                 "body-md": ["16px", { lineHeight: "1.6", fontWeight: "400" }],
@@ -105,8 +103,7 @@ const config: Config = {
                 "ui-button": ["14px", { lineHeight: "1", letterSpacing: "0.05em", fontWeight: "500" }],
             },
             spacing: {
-                "margin-desktop": "80px",
-                "margin-mobile": "24px",
+                "page-gutter": "80px",
                 "section-gap": "120px",
                 "section-gap-sm": "64px",
                 "container-max": "1280px",

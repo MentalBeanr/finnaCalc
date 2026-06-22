@@ -24,7 +24,7 @@ export function EmergencyForm({ value, onChange, errors }: EmergencyFormProps) {
     ) => onChange({ ...value, [key]: next })
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-stack-lg">
+        <div className="grid grid-cols-2 gap-stack-lg">
             <FormField
                 id="monthlyExpenses"
                 label="Monthly Expenses ($)"

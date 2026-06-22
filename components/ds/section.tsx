@@ -7,7 +7,7 @@ interface SectionProps extends React.HTMLAttributes<HTMLElement> {
 
 const spacingMap = {
     compact: "py-section-gap-sm",
-    default: "py-section-gap-sm md:py-section-gap",
+    default: "py-section-gap",
     loose: "py-section-gap",
 } as const
 

@@ -16,7 +16,7 @@ export function CashFlowForm({ value, onChange, errors }: CashFlowFormProps) {
     ) => onChange({ ...value, [key]: next })
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-stack-lg">
+        <div className="grid grid-cols-2 gap-stack-lg">
             <FormField
                 id="monthlyRevenue"
                 label="Monthly Revenue ($)"
@@ -61,7 +61,7 @@ export function CashFlowForm({ value, onChange, errors }: CashFlowFormProps) {
                 placeholder="12"
                 helperText="Up to 120 months (10 years)"
                 error={errors.months}
-                className="md:col-span-2"
+                className="col-span-2"
             />
         </div>
     )

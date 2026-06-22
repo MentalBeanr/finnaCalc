@@ -49,8 +49,8 @@ export function BreakEvenChart({ input, result }: BreakEvenChartProps) {
         result.businessType === "service" ? "services" : "units"
 
     return (
-        <div className="flex flex-col gap-stack-lg border border-outline-variant/30 rounded-lg bg-surface-container-lowest p-6 md:p-10">
-            <div className="flex flex-col gap-stack-md md:flex-row md:items-end md:justify-between border-b border-outline-variant/20 pb-stack-md">
+        <div className="flex flex-col gap-stack-lg border border-outline-variant/30 rounded-lg bg-surface-container-lowest p-10">
+            <div className="flex flex-row items-end justify-between gap-stack-md border-b border-outline-variant/20 pb-stack-md">
                 <div className="flex flex-col gap-stack-sm">
                     <Eyebrow>Cost-Volume-Profit</Eyebrow>
                     <h3 className="font-headline-md text-headline-md text-primary">

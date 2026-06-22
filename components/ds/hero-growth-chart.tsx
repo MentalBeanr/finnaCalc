@@ -36,7 +36,7 @@ export function HeroGrowthChart() {
     const totalReturnPct = ((final - INITIAL) / INITIAL) * 100
 
     return (
-        <div className="flex flex-col gap-stack-md rounded-xl border border-outline-variant/30 bg-surface-container-lowest p-6 md:p-8 h-full">
+        <div className="flex flex-col gap-stack-md rounded-xl border border-outline-variant/30 bg-surface-container-lowest p-8 h-full">
             <div className="flex items-start justify-between gap-stack-md">
                 <div className="flex flex-col gap-1">
                     <span className="font-ui-button text-ui-button uppercase tracking-[0.05em] text-on-surface-variant">

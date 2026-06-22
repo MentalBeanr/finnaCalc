@@ -33,7 +33,7 @@ export function IndividualForm({ value, onChange, errors }: IndividualFormProps)
         <div className="flex flex-col gap-stack-xl">
             <div className="flex flex-col gap-stack-lg">
                 <Eyebrow>Income & Filing</Eyebrow>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-stack-lg">
+                <div className="grid grid-cols-2 gap-stack-lg">
                     <SelectFieldShell id="filingStatus" label="Filing Status">
                         <Select
                             value={value.filingStatus}
@@ -76,7 +76,7 @@ export function IndividualForm({ value, onChange, errors }: IndividualFormProps)
 
             <div className="flex flex-col gap-stack-lg">
                 <Eyebrow>Deductions</Eyebrow>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-stack-lg">
+                <div className="grid grid-cols-2 gap-stack-lg">
                     <FormField
                         id="mortgageInterest"
                         label="Mortgage Interest ($)"
@@ -119,7 +119,7 @@ export function IndividualForm({ value, onChange, errors }: IndividualFormProps)
                         placeholder="2000"
                         helperText="Capped at $2,500"
                         error={errors.studentLoanInterest}
-                        className="md:col-span-2"
+                        className="col-span-2"
                     />
                 </div>
             </div>

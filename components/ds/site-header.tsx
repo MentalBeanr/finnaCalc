@@ -7,7 +7,6 @@ import { cn } from "@/lib/utils"
 import { useAuth } from "@/lib/auth"
 import { Container } from "@/components/ds/container"
 import { Button } from "@/components/ui/button"
-import { MaterialIcon } from "@/components/ds/material-icon"
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -26,7 +25,6 @@ const NAV_LINKS = [
 ] as const
 
 export function SiteHeader() {
-    const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false)
     const [mounted, setMounted] = React.useState(false)
     const pathname = usePathname()
     const router = useRouter()
@@ -38,7 +36,6 @@ export function SiteHeader() {
 
     const handleSignOut = () => {
         signOut()
-        setMobileMenuOpen(false)
         router.push("/")
     }
 
@@ -48,15 +45,16 @@ export function SiteHeader() {
                 <Link
                     href="/"
                     className="font-headline-md text-[28px] leading-none tracking-tight text-primary"
-                    onClick={() => setMobileMenuOpen(false)}
                 >
                     FinnaCalc
                 </Link>
 
-                <nav className="hidden md:flex items-center gap-stack-lg">
+                <nav className="flex items-center gap-stack-lg">
                     {NAV_LINKS.map((link) => {
                         const isActive =
-                            link.href === "/" ? pathname === "/" : pathname?.startsWith(link.href)
+                            link.href === "/"
+                                ? pathname === "/"
+                                : pathname?.startsWith(link.href)
                         return (
                             <Link
                                 key={link.href}
@@ -74,7 +72,7 @@ export function SiteHeader() {
                     })}
                 </nav>
 
-                <div className="hidden md:flex items-center gap-stack-md">
+                <div className="flex items-center gap-stack-md">
                     {mounted && user ? (
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -110,73 +108,7 @@ export function SiteHeader() {
                         </>
                     )}
                 </div>
-
-                <button
-                    type="button"
-                    className="md:hidden text-primary p-2 -mr-2"
-                    onClick={() => setMobileMenuOpen((open) => !open)}
-                    aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
-                    aria-expanded={mobileMenuOpen}
-                >
-                    <MaterialIcon name={mobileMenuOpen ? "close" : "menu"} size={28} />
-                </button>
             </Container>
-
-            {mobileMenuOpen ? (
-                <div className="md:hidden border-t border-outline-variant/20 bg-surface">
-                    <Container className="flex flex-col gap-stack-sm py-stack-md">
-                        {NAV_LINKS.map((link) => {
-                            const isActive =
-                                link.href === "/"
-                                    ? pathname === "/"
-                                    : pathname?.startsWith(link.href)
-                            return (
-                                <Link
-                                    key={link.href}
-                                    href={link.href}
-                                    onClick={() => setMobileMenuOpen(false)}
-                                    className={cn(
-                                        "py-3 font-ui-button text-ui-button uppercase tracking-[0.05em] border-b border-outline-variant/15",
-                                        isActive ? "text-primary" : "text-on-surface-variant",
-                                    )}
-                                >
-                                    {link.label}
-                                </Link>
-                            )
-                        })}
-                        {mounted && !user ? (
-                            <div className="flex flex-col gap-stack-sm pt-stack-md">
-                                <Button asChild variant="outline" size="default">
-                                    <Link
-                                        href="/sign-in"
-                                        onClick={() => setMobileMenuOpen(false)}
-                                    >
-                                        Sign In
-                                    </Link>
-                                </Button>
-                                <Button asChild size="default">
-                                    <Link
-                                        href="/sign-up"
-                                        onClick={() => setMobileMenuOpen(false)}
-                                    >
-                                        Get Started
-                                    </Link>
-                                </Button>
-                            </div>
-                        ) : null}
-                        {mounted && user ? (
-                            <div className="flex flex-col gap-stack-sm pt-stack-md">
-                                <div className="font-body-md text-body-md text-on-surface-variant">
-                                    Signed in as <span className="text-primary">{user.email}</span>
-                                </div>
-                                <Button variant="outline" size="default" onClick={handleSignOut}>
-                                    Sign Out
-                                </Button>
-                            </div>
-                        ) : null}
-                    </Container>
-                </div>
-            ) : null}
         </header>
     )
 }

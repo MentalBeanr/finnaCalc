@@ -14,7 +14,7 @@ export function ResultPrimary({ label, value, sublabel, className }: ResultPrima
     return (
         <div className={cn("flex flex-col gap-stack-sm", className)}>
             <Eyebrow>{label}</Eyebrow>
-            <div className="font-headline-display text-[44px] md:text-[56px] leading-[1.05] tracking-[-0.02em] text-primary tabular-nums break-words">
+            <div className="font-headline-display text-[56px] leading-[1.05] tracking-[-0.02em] text-primary tabular-nums break-words">
                 {value}
             </div>
             {sublabel ? (
@@ -58,7 +58,7 @@ export function ResultMetricsGrid({
         <div
             className={cn(
                 "grid gap-stack-lg pt-stack-md border-t border-outline-variant/30",
-                columns === 2 ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1 sm:grid-cols-3",
+                columns === 2 ? "grid-cols-2" : "grid-cols-3",
                 className,
             )}
         >
@@ -74,7 +74,7 @@ interface ResultPanelProps {
 
 export function ResultPanel({ children, className }: ResultPanelProps) {
     return (
-        <div className={cn("flex flex-col gap-stack-lg p-8 md:p-10 h-full", className)}>
+        <div className={cn("flex flex-col gap-stack-lg p-10 h-full", className)}>
             {children}
         </div>
     )
@@ -92,7 +92,7 @@ export function ResultEmptyState({
     icon = "calculate",
 }: ResultEmptyStateProps) {
     return (
-        <div className="flex flex-col gap-stack-md p-8 md:p-10 h-full items-start justify-center">
+        <div className="flex flex-col gap-stack-md p-10 h-full items-start justify-center">
             <MaterialIcon name={icon} size={32} className="text-on-surface-variant" />
             <div className="font-headline-md text-[24px] leading-[1.3] text-on-surface-variant">
                 {title}

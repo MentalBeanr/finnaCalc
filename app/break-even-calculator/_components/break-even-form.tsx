@@ -30,7 +30,7 @@ export function BreakEvenForm({ value, onChange, errors }: BreakEvenFormProps) {
     const unit = unitNoun(value.businessType)
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-stack-lg">
+        <div className="grid grid-cols-2 gap-stack-lg">
             <SelectFieldShell id="businessType" label="Business Type">
                 <Select
                     value={value.businessType}

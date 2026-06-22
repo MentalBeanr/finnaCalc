@@ -58,7 +58,7 @@ export default function BreakEvenCalculatorPage() {
         resolved !== null && !resolved.input.seasonalityPercent.isZero()
 
     const formContent = (
-        <div className="flex flex-col gap-stack-lg p-6 md:p-10">
+        <div className="flex flex-col gap-stack-lg p-10">
             <BreakEvenForm value={form} onChange={setForm} errors={errors} />
             <div className="flex flex-col gap-stack-md pt-stack-md border-t border-outline-variant/20">
                 {formError ? <FormErrorBanner message={formError} /> : null}
