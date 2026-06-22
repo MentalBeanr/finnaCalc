@@ -1,159 +1,154 @@
 "use client"
 
-import { useRouter } from "next/navigation"
-import { ArrowLeft, Calculator } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { CalculatorPageShell } from "@/components/ds/calculator-page-shell"
+import {
+    FormErrorBanner,
+    ResultEmptyState,
+} from "@/components/ds/calculator-result"
 import { useLoanCalculator } from "@/hooks/use-loan-calculator"
 import type { CalculationMode } from "@/lib/types/loan"
 import { AprForm } from "./_components/apr-form"
 import { LoanAmountForm } from "./_components/loan-amount-form"
+import { LoanChart } from "./_components/loan-chart"
+import { LoanFormula } from "./_components/loan-formula"
+import { LOAN_FAQ, LoanEducation } from "./_components/loan-content"
 import { PaymentForm } from "./_components/payment-form"
 import { RemainingForm } from "./_components/remaining-form"
-import { FormErrorBanner, ResultDisplay } from "./_components/result-display"
+import { ResultDisplay } from "./_components/result-display"
 
 const MODE_LABEL: Record<CalculationMode, string> = {
     payment: "Payment",
     apr: "APR",
     loanAmount: "Loan Amount",
-    remaining: "Remaining Balance",
+    remaining: "Remaining",
+}
+
+const MODE_EMPTY_STATE: Record<CalculationMode, { title: string; description: string }> = {
+    payment: {
+        title: "Your payment will appear here",
+        description:
+            "Enter the loan amount, rate, and term — we'll compute the periodic payment and total interest over the life of the loan.",
+    },
+    apr: {
+        title: "APR estimate will appear here",
+        description:
+            "Enter the principal, total interest paid, fees, and term — we'll return the simple-interest APR approximation.",
+    },
+    loanAmount: {
+        title: "Maximum loan amount will appear here",
+        description:
+            "Enter what you can afford monthly along with rate and term — we'll invert the PMT formula to find the largest loan that fits.",
+    },
+    remaining: {
+        title: "Remaining balance will appear here",
+        description:
+            "Enter the original loan terms and how many payments you've made — we'll compute the outstanding balance and payments left.",
+    },
 }
 
 export default function LoanCalculatorPage() {
-    const router = useRouter()
     const calculator = useLoanCalculator()
     const formError = calculator.errors._form
+    const showChart =
+        calculator.mode === "payment" &&
+        calculator.result !== null &&
+        calculator.result.kind === "payment"
 
-    return (
-        <div className="min-h-screen bg-muted/40">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <div className="mb-8">
-                    <Button variant="outline" onClick={() => router.back()} className="flex items-center gap-2">
-                        <ArrowLeft className="h-4 w-4" />
-                        Back
-                    </Button>
-                </div>
+    const form = (
+        <div className="flex flex-col gap-stack-lg p-6 md:p-10">
+            <Tabs
+                value={calculator.mode}
+                onValueChange={(value) => calculator.setMode(value as CalculationMode)}
+            >
+                <TabsList>
+                    <TabsTrigger value="payment">Payment</TabsTrigger>
+                    <TabsTrigger value="apr">APR</TabsTrigger>
+                    <TabsTrigger value="loanAmount">Loan Amount</TabsTrigger>
+                    <TabsTrigger value="remaining">Remaining</TabsTrigger>
+                </TabsList>
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <Calculator className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-                            Loan Calculator
-                        </CardTitle>
-                        <CardDescription>
-                            Calculate payments, APR, loan amounts, and remaining balances for any type of loan.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <Tabs
-                            value={calculator.mode}
-                            onValueChange={(value) => calculator.setMode(value as CalculationMode)}
-                            className="w-full"
-                        >
-                            <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 mb-6">
-                                <TabsTrigger value="payment" className="text-xs sm:text-sm">Payment</TabsTrigger>
-                                <TabsTrigger value="apr" className="text-xs sm:text-sm">APR</TabsTrigger>
-                                <TabsTrigger value="loanAmount" className="text-xs sm:text-sm">Loan Amount</TabsTrigger>
-                                <TabsTrigger value="remaining" className="text-xs sm:text-sm">Remaining</TabsTrigger>
-                            </TabsList>
+                <TabsContent value="payment" className="pt-stack-lg">
+                    <PaymentForm
+                        value={calculator.payment}
+                        onChange={calculator.setPayment}
+                        loanType={calculator.loanType}
+                        onLoanTypeChange={calculator.setLoanType}
+                        errors={calculator.errors}
+                    />
+                </TabsContent>
+                <TabsContent value="apr" className="pt-stack-lg">
+                    <AprForm
+                        value={calculator.apr}
+                        onChange={calculator.setApr}
+                        errors={calculator.errors}
+                    />
+                </TabsContent>
+                <TabsContent value="loanAmount" className="pt-stack-lg">
+                    <LoanAmountForm
+                        value={calculator.loanAmount}
+                        onChange={calculator.setLoanAmount}
+                        errors={calculator.errors}
+                    />
+                </TabsContent>
+                <TabsContent value="remaining" className="pt-stack-lg">
+                    <RemainingForm
+                        value={calculator.remaining}
+                        onChange={calculator.setRemaining}
+                        errors={calculator.errors}
+                    />
+                </TabsContent>
+            </Tabs>
 
-                            <TabsContent value="payment" className="space-y-6">
-                                <PaymentForm
-                                    value={calculator.payment}
-                                    onChange={calculator.setPayment}
-                                    loanType={calculator.loanType}
-                                    onLoanTypeChange={calculator.setLoanType}
-                                    errors={calculator.errors}
-                                />
-                            </TabsContent>
-
-                            <TabsContent value="apr" className="space-y-6">
-                                <AprForm
-                                    value={calculator.apr}
-                                    onChange={calculator.setApr}
-                                    errors={calculator.errors}
-                                />
-                            </TabsContent>
-
-                            <TabsContent value="loanAmount" className="space-y-6">
-                                <LoanAmountForm
-                                    value={calculator.loanAmount}
-                                    onChange={calculator.setLoanAmount}
-                                    errors={calculator.errors}
-                                />
-                            </TabsContent>
-
-                            <TabsContent value="remaining" className="space-y-6">
-                                <RemainingForm
-                                    value={calculator.remaining}
-                                    onChange={calculator.setRemaining}
-                                    errors={calculator.errors}
-                                />
-                            </TabsContent>
-                        </Tabs>
-
-                        <Button
-                            onClick={calculator.calculate}
-                            className="w-full bg-blue-600 hover:bg-blue-700 mt-6"
-                            size="lg"
-                        >
-                            Calculate {MODE_LABEL[calculator.mode]}
-                        </Button>
-
-                        {formError && (
-                            <div className="mt-6">
-                                <FormErrorBanner message={formError} />
-                            </div>
-                        )}
-
-                        {calculator.result && !formError && (
-                            <div className="calculator-result mt-6">
-                                <ResultDisplay result={calculator.result} />
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
-
-                <div className="mt-12 prose dark:prose-invert max-w-none">
-                    <h2>How to Use the Loan Calculator</h2>
-                    <p>
-                        Our comprehensive loan calculator helps you determine monthly payments, APR, maximum loan amounts, and
-                        remaining balances for various types of loans including personal loans, business loans, auto loans,
-                        mortgages, and student loans. Understanding your loan details is crucial for budgeting and financial
-                        planning.
-                    </p>
-
-                    <h3>Calculator Features</h3>
-                    <ul>
-                        <li>
-                            <strong>Payment Calculator:</strong> Calculate periodic payments based on loan amount, interest rate, and term.
-                        </li>
-                        <li>
-                            <strong>APR Calculator:</strong> Determine the true annual percentage rate including fees.
-                        </li>
-                        <li>
-                            <strong>Loan Amount Calculator:</strong> Find out how much you can borrow based on your budget.
-                        </li>
-                        <li>
-                            <strong>Remaining Balance:</strong> Calculate how much you still owe on an existing loan.
-                        </li>
-                    </ul>
-
-                    <h3>Factors That Affect Your Loan</h3>
-                    <p>
-                        Your loan terms depend on several factors: the loan amount (principal), the interest rate, the loan term,
-                        and any additional fees. Generally, longer terms result in lower monthly payments but higher total interest
-                        costs. Understanding APR helps you compare loans with different fee structures.
-                    </p>
-                </div>
+            <div className="flex flex-col gap-stack-md pt-stack-md border-t border-outline-variant/20">
+                {formError ? <FormErrorBanner message={formError} /> : null}
+                <Button onClick={calculator.calculate} size="lg" className="w-full">
+                    Calculate {MODE_LABEL[calculator.mode]}
+                </Button>
             </div>
         </div>
+    )
+
+    const result =
+        calculator.result && !formError ? (
+            <ResultDisplay result={calculator.result} />
+        ) : (
+            <ResultEmptyState
+                title={MODE_EMPTY_STATE[calculator.mode].title}
+                description={MODE_EMPTY_STATE[calculator.mode].description}
+                icon="calculate"
+            />
+        )
+
+    return (
+        <CalculatorPageShell
+            eyebrow="Loans"
+            title="Loan Calculator"
+            description="Solve for payment, APR, maximum loan amount, or remaining balance with deterministic, decimal-safe math."
+            category="Loans"
+            estimatedMinutes={2}
+            backHref="/"
+            form={form}
+            result={result}
+            chart={showChart ? <LoanChart paymentForm={calculator.payment} /> : null}
+            formula={{
+                eyebrow: "Formula",
+                title: "The math behind the result",
+                children: <LoanFormula mode={calculator.mode} />,
+            }}
+            education={{
+                eyebrow: "Background",
+                title: "How to think about loans",
+                children: <LoanEducation />,
+            }}
+            faq={{
+                eyebrow: "FAQ",
+                title: "Common loan questions",
+                description:
+                    "Answers to the questions that come up most when people work through these calculations.",
+                items: LOAN_FAQ,
+            }}
+        />
     )
 }

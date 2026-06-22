@@ -7,10 +7,9 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select"
-import { Label } from "@/components/ui/label"
 import type { LoanType, PaymentFrequency } from "@/lib/types/loan"
 import type { PaymentFormState } from "@/lib/validators/loan"
-import { FormField } from "./form-field"
+import { FormField, SelectFieldShell } from "./form-field"
 
 interface PaymentFormProps {
     value: PaymentFormState
@@ -31,9 +30,8 @@ export function PaymentForm({
         onChange({ ...value, [key]: next })
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-                <Label htmlFor="loanType">Loan Type</Label>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-stack-lg">
+            <SelectFieldShell id="loanType" label="Loan Type">
                 <Select value={loanType} onValueChange={(v) => onLoanTypeChange(v as LoanType)}>
                     <SelectTrigger id="loanType">
                         <SelectValue placeholder="Select loan type" />
@@ -46,7 +44,7 @@ export function PaymentForm({
                         <SelectItem value="student">Student Loan</SelectItem>
                     </SelectContent>
                 </Select>
-            </div>
+            </SelectFieldShell>
 
             <FormField
                 id="loanAmount"
@@ -74,8 +72,7 @@ export function PaymentForm({
                 error={errors.termMonths}
             />
 
-            <div>
-                <Label htmlFor="frequency">Payment Frequency</Label>
+            <SelectFieldShell id="frequency" label="Payment Frequency">
                 <Select
                     value={value.frequency}
                     onValueChange={(v) => set("frequency", v as PaymentFrequency)}
@@ -91,7 +88,7 @@ export function PaymentForm({
                         <SelectItem value="annually">Annually</SelectItem>
                     </SelectContent>
                 </Select>
-            </div>
+            </SelectFieldShell>
 
             <FormField
                 id="downPayment"

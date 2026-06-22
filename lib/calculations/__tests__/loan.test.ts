@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { D } from "@/lib/money/decimal"
 import {
+    buildAmortizationSchedule,
     calculateApr,
     calculateMaxLoanAmount,
     calculatePayment,
@@ -185,5 +186,52 @@ describe("calculateRemainingBalance", () => {
         expect(result.monthlyPayment.toString()).toBe("500")
         expect(result.remainingBalance.toString()).toBe("6000")
         expect(result.totalPaid.toString()).toBe("6000")
+    })
+})
+
+describe("buildAmortizationSchedule", () => {
+    it("produces one row per period and closes the balance to zero on the textbook mortgage", () => {
+        const schedule = buildAmortizationSchedule({
+            loanAmount: D(200000),
+            interestRate: D(6),
+            termMonths: D(360),
+            downPayment: D(0),
+            frequency: "monthly",
+        })
+        expect(schedule.length).toBe(360)
+        expect(schedule[359].balance.toString()).toBe("0")
+        // Period 1: interest = 200000 * 0.005 = 1000.00; principal = 1199.10 - 1000.00 ≈ 199.10
+        expect(round(schedule[0].interest, 2)).toBe("1000.00")
+        expect(round(schedule[0].principal, 2)).toBe("199.10")
+        // Cumulative interest at the end matches the total interest on the loan
+        expect(round(schedule[359].cumulativeInterest, 0)).toBe("231676")
+    })
+
+    it("amortizes a zero-interest loan as straight-line", () => {
+        const schedule = buildAmortizationSchedule({
+            loanAmount: D(12000),
+            interestRate: D(0),
+            termMonths: D(24),
+            downPayment: D(0),
+            frequency: "monthly",
+        })
+        expect(schedule.length).toBe(24)
+        expect(schedule.every((p) => p.interest.toString() === "0")).toBe(true)
+        expect(schedule.every((p) => round(p.principal, 2) === "500.00")).toBe(true)
+        expect(schedule[23].balance.toString()).toBe("0")
+    })
+
+    it("monotonically decreases balance and increases cumulative principal", () => {
+        const schedule = buildAmortizationSchedule({
+            loanAmount: D(30000),
+            interestRate: D(5),
+            termMonths: D(60),
+            downPayment: D(0),
+            frequency: "monthly",
+        })
+        for (let i = 1; i < schedule.length; i++) {
+            expect(schedule[i].balance.lte(schedule[i - 1].balance)).toBe(true)
+            expect(schedule[i].cumulativePrincipal.gte(schedule[i - 1].cumulativePrincipal)).toBe(true)
+        }
     })
 })

@@ -2,6 +2,7 @@
 
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { cn } from "@/lib/utils"
 
 interface FormFieldProps {
     id: string
@@ -12,6 +13,8 @@ interface FormFieldProps {
     type?: string
     step?: string
     error?: string
+    inputMode?: "numeric" | "decimal" | "text"
+    className?: string
 }
 
 export function FormField({
@@ -23,25 +26,58 @@ export function FormField({
     type = "number",
     step,
     error,
+    inputMode = "decimal",
+    className,
 }: FormFieldProps) {
     return (
-        <div>
+        <div className={cn("flex flex-col gap-stack-sm", className)}>
             <Label htmlFor={id}>{label}</Label>
             <Input
                 id={id}
                 type={type}
                 step={step}
+                inputMode={inputMode}
                 placeholder={placeholder}
                 value={value}
                 onChange={(event) => onChange(event.target.value)}
                 aria-invalid={error ? true : undefined}
                 aria-describedby={error ? `${id}-error` : undefined}
+                className={error ? "border-error focus-visible:border-error" : undefined}
             />
-            {error && (
-                <p id={`${id}-error`} className="mt-1 text-xs text-red-500">
+            {error ? (
+                <p
+                    id={`${id}-error`}
+                    className="font-body-md text-sm text-error"
+                >
                     {error}
                 </p>
-            )}
+            ) : null}
+        </div>
+    )
+}
+
+interface SelectFieldShellProps {
+    id: string
+    label: string
+    children: React.ReactNode
+    error?: string
+    className?: string
+}
+
+export function SelectFieldShell({
+    id,
+    label,
+    children,
+    error,
+    className,
+}: SelectFieldShellProps) {
+    return (
+        <div className={cn("flex flex-col gap-stack-sm", className)}>
+            <Label htmlFor={id}>{label}</Label>
+            {children}
+            {error ? (
+                <p className="font-body-md text-sm text-error">{error}</p>
+            ) : null}
         </div>
     )
 }
