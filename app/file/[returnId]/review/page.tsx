@@ -8,6 +8,7 @@ import {
     buildFederalBreakdown,
     federalReviewDiagnostics,
 } from "@/lib/federal-support-shared"
+import { computeStateReturn, isSupportedState, stateName } from "@/tax-engine"
 import { formatCents } from "@/lib/returns-shared"
 import { Container } from "@/components/ds/container"
 import { Section } from "@/components/ds/section"
@@ -57,6 +58,17 @@ export default async function ReviewPage({
     const hasErrors = diagnostics.some((d) => d.severity === "error")
     const breakdown = result ? buildFederalBreakdown(result) : []
     const owes = result ? result.refundOrDueCents < 0 : false
+
+    const stateResult =
+        result && ret.stateOfResidence && isSupportedState(ret.stateOfResidence)
+            ? computeStateReturn({
+                  stateCode: ret.stateOfResidence,
+                  agiCents: result.agiCents,
+                  taxableIncomeCents: result.taxableIncomeCents,
+              })
+            : null
+    const stateUnsupported =
+        Boolean(ret.stateOfResidence) && !isSupportedState(ret.stateOfResidence)
     const alreadyReadyToFile = ["ready_to_file", "signed", "submitted", "accepted"].includes(
         ret.state,
     )
@@ -171,6 +183,36 @@ export default async function ReviewPage({
                         canAdvance={!hasErrors && Boolean(result)}
                         alreadyReadyToFile={alreadyReadyToFile}
                     />
+
+                    {/* State summary */}
+                    {stateResult && (
+                        <div className="border border-outline-variant/30 rounded-lg bg-surface-container-lowest p-10 flex flex-col gap-stack-md">
+                            <h2 className="font-headline-md text-headline-md text-primary">
+                                {stateResult.stateName} state tax
+                            </h2>
+                            <div className="flex items-center justify-between">
+                                <span className="font-body-md text-body-md text-on-surface-variant">
+                                    Estimated state tax
+                                </span>
+                                <span className="font-body-md text-body-md text-on-surface font-semibold">
+                                    {formatCents(stateResult.stateTaxCents)}
+                                </span>
+                            </div>
+                            <p className="font-label-caps uppercase tracking-[0.15em] text-[10px] text-on-surface-variant">
+                                Resident estimate · {stateResult.stateName}
+                            </p>
+                        </div>
+                    )}
+                    {stateUnsupported && ret.stateOfResidence && (
+                        <div className="border border-outline-variant/30 rounded-lg bg-surface-container p-8 flex items-start gap-stack-md">
+                            <MaterialIcon name="info" size={20} className="text-on-surface-variant mt-0.5" />
+                            <p className="font-body-md text-body-md text-on-surface-variant">
+                                State filing for {stateName(ret.stateOfResidence)} isn&apos;t supported
+                                yet — your federal return is unaffected. We&apos;ll let you know when
+                                your state is available.
+                            </p>
+                        </div>
+                    )}
 
                     {/* Continue to payment */}
                     <Link

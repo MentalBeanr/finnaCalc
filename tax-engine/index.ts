@@ -14,4 +14,11 @@ export { indexNodes, detectCycles, assertCyclesDeclared } from "./core/graph"
 export { FEDERAL_TY2024 } from "./rulesets/federal/ty2024"
 export { computeFederalReturn } from "./federal"
 export type { FederalReturnInput, FederalReturnResult, FilingStatus } from "./federal"
+export {
+    computeStateReturn,
+    isSupportedState,
+    stateName,
+    SUPPORTED_STATE_CODES,
+} from "./state"
+export type { StateReturnInput, StateReturnResult } from "./state"
 export { ENGINE_VERSION } from "./version"
