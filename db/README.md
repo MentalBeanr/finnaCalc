@@ -76,8 +76,8 @@ IdP"), the `users` table is keyed to an external identity provider by
 - `getCurrentUser()` resolves the authenticated identity to the `users` row,
   provisioning it on first sign-in.
 - The default provider is a no-op (build/CI/dev run with nobody signed in).
-- [`lib/server/auth-clerk.ts`](../lib/server/auth-clerk.ts) is the production Clerk
-  adapter, activated at startup with `setIdentityProvider(new ClerkIdentityProvider())`.
+- [`lib/server/auth-supabase.ts`](../lib/server/auth-supabase.ts) is the production
+  Supabase adapter, activated at startup with `setIdentityProvider(new SupabaseIdentityProvider())`.
 
 ## Deferred to later phases
 
