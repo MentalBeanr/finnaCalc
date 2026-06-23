@@ -115,3 +115,15 @@ export const auditActorKind = pgEnum("audit_actor_kind", [
     "partner",
     "irs",
 ])
+
+/** Money flows: filing fee (PSP) vs. IRS-rail balance-due/refund (database-design.md §9.2). */
+export const paymentKind = pgEnum("payment_kind", ["filing_fee", "balance_due", "refund_ref"])
+
+export const paymentStatus = pgEnum("payment_status", [
+    "pending",
+    "authorized",
+    "captured",
+    "failed",
+    "refunded",
+    "settled",
+])

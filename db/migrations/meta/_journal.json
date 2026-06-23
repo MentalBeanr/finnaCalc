@@ -8,6 +8,13 @@
       "when": 1782192568987,
       "tag": "0000_nebulous_captain_universe",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1782200972782,
+      "tag": "0001_slippery_gamma_corps",
+      "breakpoints": true
     }
   ]
 }
