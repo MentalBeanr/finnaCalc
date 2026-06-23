@@ -6,9 +6,11 @@
  * not an identity store of its own.
  *
  * - `IdentityProvider` is the interface a concrete IdP adapter implements.
- * - The default provider is a no-op so `next build`, CI, and local dev run without
- *   any IdP configured (and without keys). Activate the real adapter at startup
- *   via `setIdentityProvider(new SupabaseIdentityProvider())` (lib/server/auth-supabase.ts).
+ * - When Supabase env is configured, the seam defaults to the Supabase adapter
+ *   (lib/server/auth-supabase.ts), imported lazily so `next build`, CI, and local
+ *   dev run without keys (and without ever loading Supabase). With no env and no
+ *   explicit provider, the seam resolves to a no-op (nobody signed in).
+ * - `setIdentityProvider()` overrides the default (for tests or an alternate IdP).
  * - `getCurrentUser()` resolves the authenticated identity to the DB `users` row,
  *   provisioning it on first sign-in.
  */
@@ -30,22 +32,44 @@ export interface IdentityProvider {
     getIdentity(): Promise<AuthIdentity | null>
 }
 
-/** Build/CI/dev default: nobody is signed in until a real provider is set. */
-class NullIdentityProvider implements IdentityProvider {
-    async getIdentity(): Promise<AuthIdentity | null> {
+/** Build/CI/dev fallback: nobody is signed in. */
+const nullProvider: IdentityProvider = {
+    async getIdentity() {
         return null
-    }
+    },
 }
 
-let provider: IdentityProvider = new NullIdentityProvider()
+let explicitProvider: IdentityProvider | null = null
 
-/** Install the active identity provider (call once at server startup). */
-export function setIdentityProvider(next: IdentityProvider): void {
-    provider = next
+/** Override the identity provider (tests or an alternate IdP). Pass null to reset. */
+export function setIdentityProvider(next: IdentityProvider | null): void {
+    explicitProvider = next
+}
+
+/** True when the Supabase env needed by the default adapter is present. */
+function supabaseConfigured(): boolean {
+    return Boolean(
+        process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
+    )
+}
+
+/**
+ * Resolve the active provider: an explicit override, else the Supabase adapter
+ * when configured, else the no-op. Supabase is imported lazily so the static
+ * build graph never requires it.
+ */
+async function resolveProvider(): Promise<IdentityProvider> {
+    if (explicitProvider) return explicitProvider
+    if (supabaseConfigured()) {
+        const { SupabaseIdentityProvider } = await import("./auth-supabase")
+        return new SupabaseIdentityProvider()
+    }
+    return nullProvider
 }
 
 /** The raw identity from the active provider (no DB access). */
 export async function getCurrentIdentity(): Promise<AuthIdentity | null> {
+    const provider = await resolveProvider()
     return provider.getIdentity()
 }
 
