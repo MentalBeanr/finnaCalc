@@ -3,7 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Calculator } from "lucide-react"
+import { MaterialIcon } from "@/components/ds/material-icon"
 import { useAuth } from "@/lib/auth"
 
 export default function SignUpPage() {
@@ -36,41 +36,45 @@ export default function SignUpPage() {
     }
 
     return (
-        <div className="min-h-[calc(100vh-4rem)] bg-background flex items-center justify-center px-4 py-12">
+        <div className="min-h-screen bg-surface flex items-center justify-center px-4 py-12">
             <div className="w-full max-w-md">
                 <div className="flex justify-center mb-8">
-                    <div className="w-12 h-12 rounded-full bg-foreground text-background flex items-center justify-center">
-                        <Calculator className="h-6 w-6" />
+                    <div className="w-12 h-12 rounded-full bg-primary text-on-primary flex items-center justify-center">
+                        <MaterialIcon name="calculate" size={24} />
                     </div>
                 </div>
-                <h1 className="text-3xl font-bold text-foreground mb-2">Create your account</h1>
-                <p className="text-muted-foreground mb-8">Save your calculations and progress across devices.</p>
+                <h1 className="font-headline-display text-[40px] leading-[1.1] tracking-[-0.02em] text-primary mb-2">
+                    Create your account
+                </h1>
+                <p className="font-body-lg text-body-lg text-on-surface-variant mb-8">
+                    Save your calculations and progress across devices.
+                </p>
 
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form onSubmit={handleSubmit} className="flex flex-col gap-stack-md">
                     <FloatingInput label="Name" value={name} onChange={setName} autoComplete="name" autoFocus />
                     <FloatingInput label="Email" value={email} onChange={setEmail} type="email" autoComplete="email" />
                     <FloatingInput label="Password" value={password} onChange={setPassword} type="password" autoComplete="new-password" />
 
-                    <p className="text-xs text-muted-foreground">
+                    <p className="font-body-md text-body-md text-on-surface-variant">
                         By signing up, you agree to our{" "}
-                        <Link href="/terms" className="text-blue-500 hover:underline">Terms</Link>
+                        <Link href="/terms" className="text-primary hover:underline">Terms</Link>
                         {" "}and{" "}
-                        <Link href="/privacy" className="text-blue-500 hover:underline">Privacy Policy</Link>.
+                        <Link href="/privacy" className="text-primary hover:underline">Privacy Policy</Link>.
                     </p>
 
-                    {error && <p className="text-sm text-red-500">{error}</p>}
+                    {error && <p className="font-body-md text-body-md text-error">{error}</p>}
 
                     <button
                         type="submit"
                         disabled={submitting}
-                        className="w-full rounded-full bg-foreground text-background font-bold py-3 hover:bg-foreground/90 transition-colors disabled:opacity-60"
+                        className="w-full rounded-full bg-primary text-on-primary font-ui-button text-ui-button uppercase tracking-[0.05em] py-3 hover:opacity-90 transition-opacity disabled:opacity-40"
                     >
                         {submitting ? "Creating account..." : "Sign up"}
                     </button>
 
-                    <p className="text-sm text-muted-foreground text-center pt-2">
+                    <p className="font-body-md text-body-md text-on-surface-variant text-center pt-2">
                         Already have an account?{" "}
-                        <Link href="/sign-in" className="text-blue-500 hover:underline">
+                        <Link href="/sign-in" className="text-primary hover:underline">
                             Sign in
                         </Link>
                     </p>
@@ -100,10 +104,16 @@ function FloatingInput({
     const floated = focused || value.length > 0
 
     return (
-        <div className={`relative rounded-md border bg-background transition-colors ${focused ? "border-blue-500 ring-1 ring-blue-500" : "border-border"}`}>
+        <div
+            className={`relative rounded-lg border bg-surface transition-colors ${
+                focused ? "border-primary ring-1 ring-primary" : "border-outline-variant/40"
+            }`}
+        >
             <label
                 htmlFor={id}
-                className={`absolute left-3 pointer-events-none transition-all ${floated ? "top-1.5 text-xs text-muted-foreground" : "top-4 text-base text-muted-foreground"} ${focused ? "text-blue-500" : ""}`}
+                className={`absolute left-3 pointer-events-none transition-all font-body-md ${
+                    floated ? "top-1.5 text-xs text-on-surface-variant" : "top-4 text-base text-on-surface-variant"
+                } ${focused ? "text-primary" : ""}`}
             >
                 {label}
             </label>
@@ -116,7 +126,7 @@ function FloatingInput({
                 onChange={(e) => onChange(e.target.value)}
                 onFocus={() => setFocused(true)}
                 onBlur={() => setFocused(false)}
-                className="w-full bg-transparent outline-none px-3 pt-6 pb-2 text-foreground"
+                className="w-full bg-transparent outline-none px-3 pt-6 pb-2 font-body-md text-body-md text-on-surface"
             />
         </div>
     )
