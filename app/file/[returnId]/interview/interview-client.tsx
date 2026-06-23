@@ -6,8 +6,10 @@ import { useRouter } from "next/navigation"
 import { MaterialIcon } from "@/components/ds/material-icon"
 import { FILING_STATUS_OPTIONS, formatCents } from "@/lib/returns-shared"
 import { INCOME_TYPE_OPTIONS, incomeTypeLabel } from "@/lib/interview-shared"
+import type { IncomeSuggestion } from "@/lib/extraction-shared"
 import {
     addIncomeAction,
+    extractFromDocumentAction,
     removeIncomeAction,
     setChildrenAction,
     setFilingStatusAction,
@@ -117,6 +119,8 @@ export function InterviewClient(props: InterviewProps) {
                         </div>
                     )}
 
+                    <ExtractSection returnId={props.returnId} />
+
                     <AddIncomeForm
                         disabled={pending}
                         onAdd={(input) => run(() => addIncomeAction(props.returnId, input))}
@@ -156,6 +160,114 @@ export function InterviewClient(props: InterviewProps) {
                     </Link>
                 )}
             </aside>
+        </div>
+    )
+}
+
+function ExtractSection({ returnId }: { returnId: string }) {
+    const router = useRouter()
+    const inputRef = React.useRef<HTMLInputElement>(null)
+    const [suggestions, setSuggestions] = React.useState<IncomeSuggestion[]>([])
+    const [busy, setBusy] = React.useState(false)
+    const [message, setMessage] = React.useState<string | null>(null)
+
+    const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        e.target.value = ""
+        if (!file) return
+        setBusy(true)
+        setMessage(null)
+        setSuggestions([])
+        const fd = new FormData()
+        fd.set("file", file)
+        const result = await extractFromDocumentAction(returnId, fd)
+        setBusy(false)
+        if (!result.ok) {
+            setMessage(result.error)
+            return
+        }
+        if (result.suggestions.length === 0) {
+            setMessage("No income fields detected. Enter them manually below.")
+            return
+        }
+        setSuggestions(result.suggestions)
+    }
+
+    const confirm = async (s: IncomeSuggestion) => {
+        setBusy(true)
+        await addIncomeAction(returnId, {
+            type: s.type,
+            amount: String(s.amountCents / 100),
+            withholding: s.withholdingCents ? String(s.withholdingCents / 100) : undefined,
+        })
+        setSuggestions((prev) => prev.filter((x) => x !== s))
+        setBusy(false)
+        router.refresh()
+    }
+
+    return (
+        <div className="border border-outline-variant/20 rounded-lg p-6 flex flex-col gap-stack-md">
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-stack-sm">
+                    <MaterialIcon name="auto_awesome" size={18} className="text-primary" />
+                    <p className="font-body-md text-body-md text-on-surface font-medium">
+                        Auto-fill from a photo
+                    </p>
+                </div>
+                <input
+                    ref={inputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={onFile}
+                    disabled={busy}
+                />
+                <button
+                    onClick={() => inputRef.current?.click()}
+                    disabled={busy}
+                    className="inline-flex items-center gap-stack-sm px-4 py-2 rounded-full border border-outline-variant/40 font-ui-button text-ui-button uppercase tracking-[0.05em] text-on-surface-variant hover:border-primary/40 hover:text-primary transition-colors disabled:opacity-50"
+                >
+                    <MaterialIcon name="photo_camera" size={16} />
+                    {busy ? "Reading…" : "Upload image"}
+                </button>
+            </div>
+
+            {message && (
+                <p className="font-body-md text-body-md text-on-surface-variant">{message}</p>
+            )}
+
+            {suggestions.length > 0 && (
+                <div className="flex flex-col gap-stack-sm">
+                    <p className="font-label-caps uppercase tracking-[0.15em] text-[10px] text-on-surface-variant">
+                        Detected — confirm to add
+                    </p>
+                    {suggestions.map((s, i) => (
+                        <div
+                            key={i}
+                            className="flex items-center justify-between p-3 rounded-lg border border-outline-variant/30"
+                        >
+                            <span className="font-body-md text-body-md text-on-surface">
+                                {s.label} · {formatCents(s.amountCents)}
+                                {s.withholdingCents > 0
+                                    ? ` · ${formatCents(s.withholdingCents)} withheld`
+                                    : ""}
+                            </span>
+                            <button
+                                onClick={() => confirm(s)}
+                                disabled={busy}
+                                className="inline-flex items-center gap-1 px-4 py-1.5 rounded-full bg-primary text-on-primary font-ui-button text-ui-button uppercase tracking-[0.05em] hover:opacity-90 transition-opacity disabled:opacity-50"
+                            >
+                                <MaterialIcon name="add" size={14} />
+                                Add
+                            </button>
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            <p className="font-label-caps uppercase tracking-[0.15em] text-[10px] text-on-surface-variant">
+                AI suggestions — always review before adding.
+            </p>
         </div>
     )
 }
