@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache"
 import { getCurrentUser } from "@/lib/server/auth"
 import { recordConsents, recordSignature, submitFederalReturn } from "@/lib/server/filing"
+import { transitionReturn } from "@/lib/server/returns"
 import { validateSignatureInput } from "@/lib/filing-shared"
 
 export type ActionResult = { ok: true } | { ok: false; error: string }
@@ -46,6 +47,19 @@ export async function submitAction(returnId: string): Promise<ActionResult> {
     if (!user) return { ok: false, error: "You must be signed in." }
     const result = await submitFederalReturn(user.id, returnId)
     if (!result.ok) return result
+    revalidate(returnId)
+    return { ok: true }
+}
+
+/** Reopen a rejected return for correction by transitioning it back to draft. */
+export async function reopenAction(returnId: string): Promise<ActionResult> {
+    const user = await getCurrentUser()
+    if (!user) return { ok: false, error: "You must be signed in." }
+    try {
+        await transitionReturn(user.id, returnId, "draft")
+    } catch {
+        return { ok: false, error: "Unable to reopen this return for correction." }
+    }
     revalidate(returnId)
     return { ok: true }
 }

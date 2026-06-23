@@ -2,12 +2,12 @@ import Link from "next/link"
 import { notFound } from "next/navigation"
 import { getCurrentUser } from "@/lib/server/auth"
 import { getReturn } from "@/lib/server/returns"
-import { getConsents, getESignature, getLatestFiling } from "@/lib/server/filing"
+import { getConsents, getLatestFiling } from "@/lib/server/filing"
 import { CONSENT_ITEMS, filingStateLabel, rejectMessage } from "@/lib/filing-shared"
 import { Container } from "@/components/ds/container"
 import { Section } from "@/components/ds/section"
 import { MaterialIcon } from "@/components/ds/material-icon"
-import { ConsentStep, SignStep, SubmitStep } from "./filing-client"
+import { ConsentStep, ReopenButton, SignStep, SubmitStep } from "./filing-client"
 
 export const dynamic = "force-dynamic"
 
@@ -41,11 +41,12 @@ export default async function FilingPage({
     if (!ret) notFound()
 
     const consents = await getConsents(user.id, returnId)
-    const signature = await getESignature(user.id, returnId)
     const filing = await getLatestFiling(user.id, returnId)
 
     const consentsDone = consents.length >= CONSENT_ITEMS.length
-    const terminal = ["submitted", "accepted", "rejected"].includes(ret.state) || filing != null
+    // Use return state only — a reopened-after-rejection return goes back to draft
+    // and its old filing record must not keep it in a terminal display.
+    const terminal = ["submitted", "accepted", "rejected"].includes(ret.state)
 
     return (
         <div className="flex flex-col">
@@ -90,7 +91,7 @@ export default async function FilingPage({
                         </div>
                     ) : !consentsDone ? (
                         <ConsentStep returnId={ret.id} />
-                    ) : !signature ? (
+                    ) : ret.state !== "signed" ? (
                         <SignStep returnId={ret.id} />
                     ) : (
                         <SubmitStep returnId={ret.id} />
@@ -142,19 +143,34 @@ function FilingStatus({
                     </p>
                 )}
                 {rejected && (
-                    <div className="flex flex-col gap-stack-sm">
-                        {(rejectCodes ?? []).map((r) => (
-                            <p key={r.code} className="font-body-md text-body-md text-on-surface">
-                                {rejectMessage(r.code)}
-                            </p>
-                        ))}
-                        <Link
-                            href={`/file/${returnId}/interview`}
-                            className="inline-flex items-center gap-stack-sm self-start px-6 py-3 rounded-full border border-outline-variant/40 font-ui-button text-ui-button uppercase tracking-[0.05em] text-on-surface-variant hover:border-primary/40 hover:text-primary transition-colors mt-stack-sm"
-                        >
-                            Fix &amp; resubmit
-                            <MaterialIcon name="arrow_forward" size={16} />
-                        </Link>
+                    <div className="flex flex-col gap-stack-md">
+                        <p className="font-body-md text-body-md text-on-surface-variant">
+                            The IRS found issues with your return. Correct the errors below and
+                            resubmit — you&apos;ll go through the sign &amp; file steps again.
+                        </p>
+                        <ul className="flex flex-col gap-stack-sm">
+                            {(rejectCodes ?? []).map((r) => (
+                                <li
+                                    key={r.code}
+                                    className="flex gap-stack-md items-start rounded-lg border border-error/20 bg-error/5 p-4"
+                                >
+                                    <MaterialIcon
+                                        name="report"
+                                        size={18}
+                                        className="text-error shrink-0 mt-0.5"
+                                    />
+                                    <div className="flex flex-col gap-0.5">
+                                        <p className="font-ui-button text-ui-button uppercase tracking-[0.05em] text-error">
+                                            {r.code}
+                                        </p>
+                                        <p className="font-body-md text-body-md text-on-surface">
+                                            {rejectMessage(r.code)}
+                                        </p>
+                                    </div>
+                                </li>
+                            ))}
+                        </ul>
+                        <ReopenButton returnId={returnId} />
                     </div>
                 )}
             </div>
