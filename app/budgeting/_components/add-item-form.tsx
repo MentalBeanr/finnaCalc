@@ -15,31 +15,9 @@ import {
     SelectFieldShell,
 } from "@/components/ds/form-field"
 import { Eyebrow } from "@/components/ds/eyebrow"
-import type {
-    BudgetFrequency,
-    BudgetItem,
-    BudgetItemType,
-    BudgetType,
-} from "@/lib/types/budget"
+import type { BudgetFrequency, BudgetItemType, BudgetType } from "@/lib/types/budget"
 import { BUSINESS_CATEGORIES, PERSONAL_CATEGORIES } from "@/lib/types/budget"
-
-export interface ItemFormState {
-    category: string
-    subcategory: string
-    amount: string
-    frequency: BudgetFrequency
-    type: BudgetItemType
-    isFixed: boolean
-}
-
-export const INITIAL_ITEM_FORM: ItemFormState = {
-    category: "",
-    subcategory: "",
-    amount: "",
-    frequency: "monthly",
-    type: "expense",
-    isFixed: false,
-}
+import type { ItemFormState } from "@/lib/validators/budget"
 
 interface AddItemFormProps {
     value: ItemFormState
@@ -48,7 +26,7 @@ interface AddItemFormProps {
     onCancel?: () => void
     budgetType: BudgetType
     editing: boolean
-    error?: string
+    errors: Record<string, string>
 }
 
 export function AddItemForm({
@@ -58,7 +36,7 @@ export function AddItemForm({
     onCancel,
     budgetType,
     editing,
-    error,
+    errors,
 }: AddItemFormProps) {
     const categories =
         budgetType === "personal" ? PERSONAL_CATEGORIES : BUSINESS_CATEGORIES
@@ -107,7 +85,12 @@ export function AddItemForm({
                     </Select>
                 </SelectFieldShell>
 
-                <SelectFieldShell id="category" label="Category" className="col-span-2">
+                <SelectFieldShell
+                    id="category"
+                    label="Category"
+                    className="col-span-2"
+                    error={errors.category}
+                >
                     <Select
                         value={value.category}
                         onValueChange={(v) => set("category", v)}
@@ -143,7 +126,7 @@ export function AddItemForm({
                     onChange={(v) => set("amount", v)}
                     placeholder="0.00"
                     step="0.01"
-                    error={error}
+                    error={errors.amount}
                     className="col-span-2"
                 />
 
@@ -173,23 +156,4 @@ export function AddItemForm({
             </div>
         </div>
     )
-}
-
-export function itemFromForm(
-    form: ItemFormState,
-    budgetType: BudgetType,
-    existingId?: string,
-): BudgetItem | null {
-    const amount = parseFloat(form.amount)
-    if (!form.category || !Number.isFinite(amount) || amount <= 0) return null
-    return {
-        id: existingId ?? Date.now().toString(),
-        category: form.category,
-        subcategory: form.subcategory,
-        amount,
-        frequency: form.frequency,
-        type: form.type,
-        isFixed: form.isFixed,
-        budgetType,
-    }
 }

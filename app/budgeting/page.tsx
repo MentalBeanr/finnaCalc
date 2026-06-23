@@ -19,11 +19,12 @@ import type {
     SavingsGoal,
 } from "@/lib/types/budget"
 import {
-    AddItemForm,
+    budgetItemFromDraft,
     INITIAL_ITEM_FORM,
-    itemFromForm,
+    validateBudgetItemInput,
     type ItemFormState,
-} from "./_components/add-item-form"
+} from "@/lib/validators/budget"
+import { AddItemForm } from "./_components/add-item-form"
 import { AnalysisFeedback } from "./_components/analysis-feedback"
 import { BudgetEducation, BudgetFaq } from "./_components/budget-content"
 import { BudgetItemsList } from "./_components/budget-items-list"
@@ -43,7 +44,7 @@ export default function BudgetingPage() {
     const [budgetType, setBudgetType] = React.useState<BudgetType>("personal")
     const [form, setForm] = React.useState<ItemFormState>(INITIAL_ITEM_FORM)
     const [editingId, setEditingId] = React.useState<string | null>(null)
-    const [formError, setFormError] = React.useState<string | null>(null)
+    const [errors, setErrors] = React.useState<Record<string, string>>({})
 
     const items = React.useMemo(
         () => allItems.filter((item) => item.budgetType === budgetType),
@@ -67,12 +68,13 @@ export default function BudgetingPage() {
     )
 
     const submitItem = () => {
-        const next = itemFromForm(form, budgetType, editingId ?? undefined)
-        if (!next) {
-            setFormError("Pick a category and enter an amount greater than 0.")
+        const validated = validateBudgetItemInput(form)
+        if (!validated.ok) {
+            setErrors(validated.errors)
             return
         }
-        setFormError(null)
+        setErrors({})
+        const next = budgetItemFromDraft(validated.data, budgetType, editingId ?? undefined)
         if (editingId) {
             setAllItems(allItems.map((i) => (i.id === editingId ? next : i)))
             setEditingId(null)
@@ -97,7 +99,7 @@ export default function BudgetingPage() {
     const cancelEdit = () => {
         setEditingId(null)
         setForm(INITIAL_ITEM_FORM)
-        setFormError(null)
+        setErrors({})
     }
 
     const deleteItem = (id: string) => {
@@ -187,7 +189,7 @@ export default function BudgetingPage() {
                                             onCancel={editingId ? cancelEdit : undefined}
                                             budgetType={budgetType}
                                             editing={editingId !== null}
-                                            error={formError ?? undefined}
+                                            errors={errors}
                                         />
                                     </div>
                                     <div className="col-span-5">
