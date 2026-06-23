@@ -3,7 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Calculator } from "lucide-react"
+import { MaterialIcon } from "@/components/ds/material-icon"
 import { useAuth } from "@/lib/auth"
 
 export default function SignInPage() {
@@ -44,19 +44,19 @@ export default function SignInPage() {
     }
 
     return (
-        <div className="min-h-[calc(100vh-4rem)] bg-background flex items-center justify-center px-4 py-12">
+        <div className="min-h-screen bg-surface flex items-center justify-center px-4 py-12">
             <div className="w-full max-w-md">
                 <div className="flex justify-center mb-8">
-                    <div className="w-12 h-12 rounded-full bg-foreground text-background flex items-center justify-center">
-                        <Calculator className="h-6 w-6" />
+                    <div className="w-12 h-12 rounded-full bg-primary text-on-primary flex items-center justify-center">
+                        <MaterialIcon name="calculate" size={24} />
                     </div>
                 </div>
-                <h1 className="text-3xl font-bold text-foreground mb-8">
+                <h1 className="font-headline-display text-[40px] leading-[1.1] tracking-[-0.02em] text-primary mb-8">
                     {step === "email" ? "Sign in to FinnaCalc" : "Enter your password"}
                 </h1>
 
                 {step === "email" ? (
-                    <form onSubmit={handleNext} className="space-y-6">
+                    <form onSubmit={handleNext} className="flex flex-col gap-stack-lg">
                         <FloatingInput
                             label="Email"
                             type="email"
@@ -66,27 +66,27 @@ export default function SignInPage() {
                             onChange={(v) => setEmail(v)}
                         />
 
-                        {error && <p className="text-sm text-red-500">{error}</p>}
+                        {error && <p className="font-body-md text-body-md text-error">{error}</p>}
 
                         <button
                             type="submit"
-                            className="w-full rounded-full bg-foreground text-background font-bold py-3 hover:bg-foreground/90 transition-colors"
+                            className="w-full rounded-full bg-primary text-on-primary font-ui-button text-ui-button uppercase tracking-[0.05em] py-3 hover:opacity-90 transition-opacity"
                         >
                             Next
                         </button>
 
                         <SocialButtons />
 
-                        <p className="text-sm text-muted-foreground text-center">
-                            Don't have an account?{" "}
-                            <Link href="/sign-up" className="text-blue-500 hover:underline">
+                        <p className="font-body-md text-body-md text-on-surface-variant text-center">
+                            Don&apos;t have an account?{" "}
+                            <Link href="/sign-up" className="text-primary hover:underline">
                                 Sign up
                             </Link>
                         </p>
                     </form>
                 ) : (
-                    <form onSubmit={handleSignIn} className="space-y-6">
-                        <div className="rounded-md border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+                    <form onSubmit={handleSignIn} className="flex flex-col gap-stack-lg">
+                        <div className="rounded-lg border border-outline-variant/40 bg-surface-container px-4 py-3 font-body-md text-body-md text-on-surface-variant">
                             {email}
                         </div>
                         <FloatingInput
@@ -98,12 +98,12 @@ export default function SignInPage() {
                             onChange={(v) => setPassword(v)}
                         />
 
-                        {error && <p className="text-sm text-red-500">{error}</p>}
+                        {error && <p className="font-body-md text-body-md text-error">{error}</p>}
 
                         <button
                             type="submit"
                             disabled={submitting}
-                            className="w-full rounded-full bg-foreground text-background font-bold py-3 hover:bg-foreground/90 transition-colors disabled:opacity-60"
+                            className="w-full rounded-full bg-primary text-on-primary font-ui-button text-ui-button uppercase tracking-[0.05em] py-3 hover:opacity-90 transition-opacity disabled:opacity-40"
                         >
                             {submitting ? "Signing in..." : "Log in"}
                         </button>
@@ -111,14 +111,14 @@ export default function SignInPage() {
                         <button
                             type="button"
                             onClick={() => { setStep("email"); setError(null); setPassword("") }}
-                            className="w-full rounded-full border border-border font-bold py-3 hover:bg-accent transition-colors"
+                            className="w-full rounded-full border border-outline-variant/40 font-ui-button text-ui-button uppercase tracking-[0.05em] py-3 text-on-surface-variant hover:border-primary/40 hover:text-primary transition-colors"
                         >
                             Use a different email
                         </button>
 
-                        <p className="text-sm text-muted-foreground text-center">
-                            Don't have an account?{" "}
-                            <Link href="/sign-up" className="text-blue-500 hover:underline">
+                        <p className="font-body-md text-body-md text-on-surface-variant text-center">
+                            Don&apos;t have an account?{" "}
+                            <Link href="/sign-up" className="text-primary hover:underline">
                                 Sign up
                             </Link>
                         </p>
@@ -149,10 +149,16 @@ function FloatingInput({
     const floated = focused || value.length > 0
 
     return (
-        <div className={`relative rounded-md border bg-background transition-colors ${focused ? "border-blue-500 ring-1 ring-blue-500" : "border-border"}`}>
+        <div
+            className={`relative rounded-lg border bg-surface transition-colors ${
+                focused ? "border-primary ring-1 ring-primary" : "border-outline-variant/40"
+            }`}
+        >
             <label
                 htmlFor={id}
-                className={`absolute left-3 pointer-events-none transition-all ${floated ? "top-1.5 text-xs text-muted-foreground" : "top-4 text-base text-muted-foreground"} ${focused ? "text-blue-500" : ""}`}
+                className={`absolute left-3 pointer-events-none transition-all font-body-md ${
+                    floated ? "top-1.5 text-xs text-on-surface-variant" : "top-4 text-base text-on-surface-variant"
+                } ${focused ? "text-primary" : ""}`}
             >
                 {label}
             </label>
@@ -165,7 +171,7 @@ function FloatingInput({
                 onChange={(e) => onChange(e.target.value)}
                 onFocus={() => setFocused(true)}
                 onBlur={() => setFocused(false)}
-                className="w-full bg-transparent outline-none px-3 pt-6 pb-2 text-foreground"
+                className="w-full bg-transparent outline-none px-3 pt-6 pb-2 font-body-md text-body-md text-on-surface"
             />
         </div>
     )
@@ -173,16 +179,16 @@ function FloatingInput({
 
 function SocialButtons() {
     return (
-        <div className="space-y-3">
-            <div className="flex items-center gap-3">
-                <div className="flex-1 h-px bg-border" />
-                <span className="text-xs text-muted-foreground uppercase tracking-wide">Or</span>
-                <div className="flex-1 h-px bg-border" />
+        <div className="flex flex-col gap-stack-md">
+            <div className="flex items-center gap-stack-md">
+                <div className="flex-1 h-px bg-outline-variant/30" />
+                <span className="font-label-caps text-label-caps uppercase tracking-[0.15em] text-on-surface-variant">Or</span>
+                <div className="flex-1 h-px bg-outline-variant/30" />
             </div>
             <button
                 type="button"
                 disabled
-                className="w-full rounded-full bg-background border border-border font-bold py-3 hover:bg-accent transition-colors flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                className="w-full rounded-full bg-surface border border-outline-variant/40 font-ui-button text-ui-button uppercase tracking-[0.05em] py-3 text-on-surface-variant hover:border-primary/40 transition-colors flex items-center justify-center gap-stack-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 title="Coming soon"
             >
                 <svg className="h-5 w-5" viewBox="0 0 24 24" aria-hidden="true">
@@ -196,7 +202,7 @@ function SocialButtons() {
             <button
                 type="button"
                 disabled
-                className="w-full rounded-full bg-background border border-border font-bold py-3 hover:bg-accent transition-colors flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                className="w-full rounded-full bg-surface border border-outline-variant/40 font-ui-button text-ui-button uppercase tracking-[0.05em] py-3 text-on-surface-variant hover:border-primary/40 transition-colors flex items-center justify-center gap-stack-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 title="Coming soon"
             >
                 <svg className="h-5 w-5 fill-current" viewBox="0 0 24 24" aria-hidden="true">
