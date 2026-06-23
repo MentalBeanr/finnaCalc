@@ -74,6 +74,29 @@ export default async function AccountPage() {
                         <AccountActions />
                     </div>
 
+                    {/* Documents shortcut */}
+                    <Link
+                        href="/account/documents"
+                        className="border border-outline-variant/30 rounded-lg bg-surface-container-lowest p-8 flex items-center justify-between hover:border-primary/40 transition-colors group"
+                    >
+                        <div className="flex items-center gap-stack-md">
+                            <MaterialIcon name="folder" size={24} className="text-primary" />
+                            <div>
+                                <p className="font-body-md text-body-md text-on-surface font-semibold">
+                                    Documents
+                                </p>
+                                <p className="font-body-md text-body-md text-on-surface-variant">
+                                    Upload and manage your tax documents
+                                </p>
+                            </div>
+                        </div>
+                        <MaterialIcon
+                            name="chevron_right"
+                            size={20}
+                            className="text-on-surface-variant group-hover:text-primary transition-colors"
+                        />
+                    </Link>
+
                     {/* Security shortcut */}
                     <Link
                         href="/account/security"
