@@ -29,6 +29,7 @@ import { AnalysisFeedback } from "./_components/analysis-feedback"
 import { BudgetEducation, BudgetFaq } from "./_components/budget-content"
 import { BudgetItemsList } from "./_components/budget-items-list"
 import { CategoryBreakdown } from "./_components/category-breakdown"
+import { ImportStatementPanel } from "./_components/import-statement-panel"
 import { SavingsGoalsSection } from "./_components/savings-goals-section"
 import { SummaryMetrics } from "./_components/summary-metrics"
 
@@ -106,6 +107,9 @@ export default function BudgetingPage() {
         setAllItems(allItems.filter((i) => i.id !== id))
         if (editingId === id) cancelEdit()
     }
+
+    const importItems = (imported: BudgetItem[]) =>
+        setAllItems([...allItems, ...imported])
 
     const addGoal = (goal: SavingsGoal) => setSavingsGoals([...savingsGoals, goal])
     const removeGoal = (id: string) =>
@@ -196,6 +200,10 @@ export default function BudgetingPage() {
                                         <CategoryBreakdown items={items} />
                                     </div>
                                 </div>
+                                <ImportStatementPanel
+                                    budgetType={budgetType}
+                                    onImport={importItems}
+                                />
                                 <BudgetItemsList
                                     items={items}
                                     onEdit={editItem}
