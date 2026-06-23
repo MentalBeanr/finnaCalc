@@ -120,19 +120,28 @@ export default async function PaymentPage({
                         <PayButton returnId={ret.id} label={`Pay ${formatCents(pricing.totalCents)}`} />
                     )}
 
-                    {/* Filing (built in the filing-workflow phase). */}
-                    <div className="border border-dashed border-outline-variant/40 rounded-lg p-8 flex items-center gap-stack-md">
-                        <MaterialIcon name="send" size={24} className="text-on-surface-variant" />
-                        <div>
-                            <p className="font-body-md text-body-md text-on-surface font-semibold">
-                                E-file your return
-                            </p>
-                            <p className="font-body-md text-body-md text-on-surface-variant">
-                                Consent, signature, and transmission are coming in the filing
-                                workflow.
-                            </p>
+                    {/* Continue to filing */}
+                    <Link
+                        href={`/file/${ret.id}/file`}
+                        className="border border-outline-variant/30 rounded-lg bg-surface-container-lowest p-8 flex items-center justify-between hover:border-primary/40 transition-colors group"
+                    >
+                        <div className="flex items-center gap-stack-md">
+                            <MaterialIcon name="send" size={24} className="text-primary" />
+                            <div>
+                                <p className="font-body-md text-body-md text-on-surface font-semibold">
+                                    Continue to e-file
+                                </p>
+                                <p className="font-body-md text-body-md text-on-surface-variant">
+                                    Consent, sign, and transmit your federal return
+                                </p>
+                            </div>
                         </div>
-                    </div>
+                        <MaterialIcon
+                            name="chevron_right"
+                            size={20}
+                            className="text-on-surface-variant group-hover:text-primary transition-colors"
+                        />
+                    </Link>
                 </Container>
             </Section>
         </div>

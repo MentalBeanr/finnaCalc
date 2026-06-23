@@ -15,6 +15,13 @@
       "when": 1782200972782,
       "tag": "0001_slippery_gamma_corps",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1782201563989,
+      "tag": "0002_bouncy_randall_flagg",
+      "breakpoints": true
     }
   ]
 }
