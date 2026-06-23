@@ -20,6 +20,12 @@ import {
 import { CONSENT_ITEMS, CONSENT_VERSION } from "@/lib/filing-shared"
 import { getReturn, transitionReturn } from "./returns"
 import { computeForReturn, getLatestCalculation, runCalculation } from "./federal-support"
+import { getUserById } from "./users"
+import {
+    sendReturnAcceptedEmail,
+    sendReturnRejectedEmail,
+    sendReturnSubmittedEmail,
+} from "./email"
 
 // ── Transmitter seam ─────────────────────────────────────────────────────────
 
@@ -169,6 +175,8 @@ export async function submitFederalReturn(
     if (ret.state !== "signed") {
         return { ok: false, error: "Sign your return before filing." }
     }
+    const user = await getUserById(userId)
+    const userEmail = user?.email
 
     // Persist the reviewed snapshot and run the reconciliation gate.
     const calc = await runCalculation(userId, returnId)
@@ -200,6 +208,9 @@ export async function submitFederalReturn(
     await recordFilingEvent(filing.id, null, "built", "build", "system")
 
     await transitionReturn(userId, returnId, "submitted")
+    if (userEmail) {
+        sendReturnSubmittedEmail(userEmail, ret.taxYear, returnId).catch(console.error)
+    }
 
     const now = new Date()
     await db
@@ -233,8 +244,21 @@ export async function submitFederalReturn(
     // Advance the return to its terminal state.
     if (result.status === "accepted" || result.status === "imperfect") {
         await transitionReturn(userId, returnId, "accepted")
+        if (userEmail) {
+            sendReturnAcceptedEmail(userEmail, ret.taxYear, returnId, result.ackCode).catch(
+                console.error,
+            )
+        }
     } else {
         await transitionReturn(userId, returnId, "rejected")
+        if (userEmail) {
+            sendReturnRejectedEmail(
+                userEmail,
+                ret.taxYear,
+                returnId,
+                result.rejectCodes ?? [],
+            ).catch(console.error)
+        }
     }
 
     return { ok: true, state: result.status }
