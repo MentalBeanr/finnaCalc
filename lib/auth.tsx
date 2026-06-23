@@ -1,6 +1,20 @@
 "use client"
 
+/**
+ * Client-side auth context, Supabase-backed.
+ *
+ * Replaces the prior localStorage mock. Keeps the same public interface
+ * (`useAuth()` returns `{ user, loading, signIn, signUp, signOut }`) so existing
+ * consumers (sign-in / sign-up pages, the site header) continue to work
+ * unchanged.
+ *
+ * If Supabase env is not configured, the provider degrades to anonymous mode
+ * (no auth) so the calculator surface still runs.
+ */
+
 import * as React from "react"
+import type { SupabaseClient } from "@supabase/supabase-js"
+import { createSupabaseBrowserClient } from "./supabase-browser"
 
 type User = { email: string; name: string }
 
@@ -12,65 +26,82 @@ type AuthContextValue = {
     signOut: () => void
 }
 
-const STORAGE_USER = "finnacalc.user"
-const STORAGE_DB = "finnacalc.users"
-
 const AuthContext = React.createContext<AuthContextValue | null>(null)
 
-type StoredUser = { email: string; name: string; password: string }
-
-function readDb(): StoredUser[] {
-    if (typeof window === "undefined") return []
-    try {
-        return JSON.parse(localStorage.getItem(STORAGE_DB) ?? "[]")
-    } catch {
-        return []
-    }
-}
-
-function writeDb(users: StoredUser[]) {
-    localStorage.setItem(STORAGE_DB, JSON.stringify(users))
+function toUser(
+    raw: { email?: string | null; user_metadata?: Record<string, unknown> } | null | undefined,
+): User | null {
+    if (!raw) return null
+    const meta = raw.user_metadata ?? {}
+    const name = typeof meta.name === "string" ? meta.name : ""
+    return { email: raw.email ?? "", name }
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = React.useState<User | null>(null)
     const [loading, setLoading] = React.useState(true)
 
-    React.useEffect(() => {
+    const supabase = React.useMemo<SupabaseClient | null>(() => {
         try {
-            const raw = localStorage.getItem(STORAGE_USER)
-            if (raw) setUser(JSON.parse(raw))
-        } catch {}
-        setLoading(false)
-    }, [])
-
-    const signIn = React.useCallback(async (email: string, password: string) => {
-        const normalized = email.trim().toLowerCase()
-        const match = readDb().find((u) => u.email === normalized && u.password === password)
-        if (!match) throw new Error("Invalid email or password.")
-        const session = { email: match.email, name: match.name }
-        localStorage.setItem(STORAGE_USER, JSON.stringify(session))
-        setUser(session)
-    }, [])
-
-    const signUp = React.useCallback(async (email: string, password: string, name: string) => {
-        const normalized = email.trim().toLowerCase()
-        const db = readDb()
-        if (db.some((u) => u.email === normalized)) {
-            throw new Error("An account with that email already exists.")
+            return createSupabaseBrowserClient()
+        } catch {
+            return null
         }
-        if (password.length < 6) throw new Error("Password must be at least 6 characters.")
-        db.push({ email: normalized, name: name.trim(), password })
-        writeDb(db)
-        const session = { email: normalized, name: name.trim() }
-        localStorage.setItem(STORAGE_USER, JSON.stringify(session))
-        setUser(session)
     }, [])
+
+    React.useEffect(() => {
+        if (!supabase) {
+            setLoading(false)
+            return
+        }
+        let mounted = true
+
+        supabase.auth.getUser().then(({ data }) => {
+            if (!mounted) return
+            setUser(toUser(data.user))
+            setLoading(false)
+        })
+
+        const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+            setUser(toUser(session?.user ?? null))
+        })
+
+        return () => {
+            mounted = false
+            sub.subscription.unsubscribe()
+        }
+    }, [supabase])
+
+    const signIn = React.useCallback(
+        async (email: string, password: string) => {
+            if (!supabase) throw new Error("Auth is not configured.")
+            const { error } = await supabase.auth.signInWithPassword({
+                email: email.trim().toLowerCase(),
+                password,
+            })
+            if (error) throw new Error(error.message)
+        },
+        [supabase],
+    )
+
+    const signUp = React.useCallback(
+        async (email: string, password: string, name: string) => {
+            if (!supabase) throw new Error("Auth is not configured.")
+            const { error } = await supabase.auth.signUp({
+                email: email.trim().toLowerCase(),
+                password,
+                options: { data: { name: name.trim() } },
+            })
+            if (error) throw new Error(error.message)
+        },
+        [supabase],
+    )
 
     const signOut = React.useCallback(() => {
-        localStorage.removeItem(STORAGE_USER)
-        setUser(null)
-    }, [])
+        if (!supabase) return
+        // Fire-and-forget; onAuthStateChange clears the user.
+        void supabase.auth.signOut()
+    }, [supabase])
 
     const value = React.useMemo(
         () => ({ user, loading, signIn, signUp, signOut }),

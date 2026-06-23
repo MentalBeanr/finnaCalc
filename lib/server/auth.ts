@@ -8,7 +8,7 @@
  * - `IdentityProvider` is the interface a concrete IdP adapter implements.
  * - The default provider is a no-op so `next build`, CI, and local dev run without
  *   any IdP configured (and without keys). Activate the real adapter at startup
- *   via `setIdentityProvider(new ClerkIdentityProvider())` (lib/server/auth-clerk.ts).
+ *   via `setIdentityProvider(new SupabaseIdentityProvider())` (lib/server/auth-supabase.ts).
  * - `getCurrentUser()` resolves the authenticated identity to the DB `users` row,
  *   provisioning it on first sign-in.
  */
