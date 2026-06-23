@@ -2,10 +2,21 @@
 
 import { revalidatePath } from "next/cache"
 import { getCurrentUser } from "@/lib/server/auth"
-import { addIncome, removeIncome, setQualifyingChildren } from "@/lib/server/return-inputs"
+import {
+    addDeduction,
+    addIncome,
+    removeDeduction,
+    removeIncome,
+    setQualifyingChildren,
+} from "@/lib/server/return-inputs"
 import { updateReturnBasics, getReturn } from "@/lib/server/returns"
 import { extractIncomeFromDocument } from "@/lib/server/extraction"
-import { isInterviewIncomeType, parseDollarsToCents } from "@/lib/interview-shared"
+import {
+    isInterviewDeductionType,
+    isInterviewIncomeType,
+    parseDollarsToCents,
+    parseSignedDollarsToCents,
+} from "@/lib/interview-shared"
 import type { IncomeSuggestion } from "@/lib/extraction-shared"
 import { isFilingStatus } from "@/lib/returns-shared"
 
@@ -27,13 +38,22 @@ export async function setFilingStatusAction(returnId: string, status: string): P
 
 export async function addIncomeAction(
     returnId: string,
-    input: { type: string; amount: string; withholding?: string },
+    input: {
+        type: string
+        amount: string
+        withholding?: string
+        metadata?: Record<string, unknown>
+    },
 ): Promise<ActionResult> {
     const user = await getCurrentUser()
     if (!user) return { ok: false, error: "You must be signed in." }
     if (!isInterviewIncomeType(input.type)) return { ok: false, error: "Unknown income type." }
 
-    const amountCents = parseDollarsToCents(input.amount)
+    // Capital gains/losses may be negative; all other types must be non-negative.
+    const isCapGain = input.type === "1099_b"
+    const amountCents = isCapGain
+        ? parseSignedDollarsToCents(input.amount)
+        : parseDollarsToCents(input.amount)
     if (amountCents === null) return { ok: false, error: "Enter a valid amount." }
 
     let withholdingCents = 0
@@ -43,8 +63,42 @@ export async function addIncomeAction(
         withholdingCents = parsed
     }
 
-    const row = await addIncome(user.id, returnId, { type: input.type, amountCents, withholdingCents })
+    const row = await addIncome(user.id, returnId, {
+        type: input.type,
+        amountCents,
+        withholdingCents,
+        metadata: input.metadata,
+    })
     if (!row) return { ok: false, error: "Return not found." }
+    revalidate(returnId)
+    return { ok: true }
+}
+
+export async function addDeductionAction(
+    returnId: string,
+    input: { type: string; amount: string },
+): Promise<ActionResult> {
+    const user = await getCurrentUser()
+    if (!user) return { ok: false, error: "You must be signed in." }
+    if (!isInterviewDeductionType(input.type)) return { ok: false, error: "Unknown deduction type." }
+
+    const amountCents = parseDollarsToCents(input.amount)
+    if (amountCents === null) return { ok: false, error: "Enter a valid amount." }
+
+    const row = await addDeduction(user.id, returnId, { type: input.type, amountCents })
+    if (!row) return { ok: false, error: "Return not found." }
+    revalidate(returnId)
+    return { ok: true }
+}
+
+export async function removeDeductionAction(
+    returnId: string,
+    deductionId: string,
+): Promise<ActionResult> {
+    const user = await getCurrentUser()
+    if (!user) return { ok: false, error: "You must be signed in." }
+    const ok = await removeDeduction(user.id, returnId, deductionId)
+    if (!ok) return { ok: false, error: "Return not found." }
     revalidate(returnId)
     return { ok: true }
 }

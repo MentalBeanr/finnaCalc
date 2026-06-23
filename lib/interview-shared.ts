@@ -7,10 +7,13 @@
  */
 import type { FederalReturnInput, FilingStatus } from "@/tax-engine"
 
-/** Income types the foundational interview collects (a subset of the schema). */
+/** Income types the interview collects. */
 export const INCOME_TYPE_OPTIONS = [
     { value: "w2", label: "W-2 wages" },
+    { value: "1099_nec", label: "Self-employment / freelance (1099-NEC)" },
     { value: "1099_int", label: "Interest income (1099-INT)" },
+    { value: "1099_div", label: "Dividends (1099-DIV)" },
+    { value: "1099_b", label: "Capital gain or loss (1099-B)" },
     { value: "ss", label: "Social Security benefits" },
 ] as const
 
@@ -24,6 +27,24 @@ export function incomeTypeLabel(value: string): string {
     return INCOME_TYPE_OPTIONS.find((o) => o.value === value)?.label ?? value
 }
 
+/** Itemized deduction types the interview collects. */
+export const DEDUCTION_TYPE_OPTIONS = [
+    { value: "mortgage_interest", label: "Mortgage interest (1098)" },
+    { value: "salt", label: "State & local taxes paid" },
+    { value: "charitable", label: "Charitable contributions" },
+    { value: "medical", label: "Medical expenses" },
+] as const
+
+export type InterviewDeductionType = (typeof DEDUCTION_TYPE_OPTIONS)[number]["value"]
+
+export function isInterviewDeductionType(value: string): value is InterviewDeductionType {
+    return DEDUCTION_TYPE_OPTIONS.some((o) => o.value === value)
+}
+
+export function deductionTypeLabel(value: string): string {
+    return DEDUCTION_TYPE_OPTIONS.find((o) => o.value === value)?.label ?? value
+}
+
 /** Parse a user-entered dollar string to integer cents, or null if invalid. */
 export function parseDollarsToCents(input: string): number | null {
     const cleaned = input.trim().replace(/[$,\s]/g, "")
@@ -33,21 +54,39 @@ export function parseDollarsToCents(input: string): number | null {
     return Math.round(dollars * 100)
 }
 
+/**
+ * Like parseDollarsToCents but allows negative values.
+ * Used for capital gains/losses where a net loss is a negative number.
+ */
+export function parseSignedDollarsToCents(input: string): number | null {
+    const cleaned = input.trim().replace(/[$,\s]/g, "")
+    if (cleaned === "" || !/^-?\d*\.?\d+$/.test(cleaned)) return null
+    const dollars = Number(cleaned)
+    if (!Number.isFinite(dollars)) return null
+    return Math.round(dollars * 100)
+}
+
 export interface IncomeLine {
     type: string
     amountCents: number
     withholdingCents: number
+    metadata: Record<string, unknown>
+}
+
+export interface DeductionLine {
+    type: string
+    amountCents: number
 }
 
 /**
  * Map the return's collected inputs to a federal engine input. Returns null when
- * filing status is not yet set (the estimate cannot be computed). Income types
- * the foundational engine does not yet model are ignored.
+ * filing status is not yet set (the estimate cannot be computed).
  */
 export function mapToFederalInput(args: {
     filingStatus: string | null
     income: IncomeLine[]
     numChildren: number
+    deductions: DeductionLine[]
 }): FederalReturnInput | null {
     if (!args.filingStatus) return null
 
@@ -55,11 +94,69 @@ export function mapToFederalInput(args: {
     let interest = 0
     let socialSecurity = 0
     let withholding = 0
+    let schedCNet = 0
+    let shortTermGain = 0
+    let longTermGain = 0
+    let ordinaryDivs = 0
+    let qualifiedDivs = 0
+
     for (const line of args.income) {
         withholding += line.withholdingCents
-        if (line.type === "w2") wages += line.amountCents
-        else if (line.type === "1099_int") interest += line.amountCents
-        else if (line.type === "ss") socialSecurity += line.amountCents
+
+        switch (line.type) {
+            case "w2":
+                wages += line.amountCents
+                break
+            case "1099_nec":
+            case "sch_c":
+                schedCNet += line.amountCents
+                break
+            case "1099_int":
+                interest += line.amountCents
+                break
+            case "1099_div": {
+                ordinaryDivs += line.amountCents
+                const qc = line.metadata?.qualifiedCents
+                if (typeof qc === "number") qualifiedDivs += qc
+                break
+            }
+            case "1099_b": {
+                const term = line.metadata?.term
+                if (term === "short") {
+                    shortTermGain += line.amountCents
+                } else {
+                    // Default long-term if term not specified.
+                    longTermGain += line.amountCents
+                }
+                break
+            }
+            case "ss":
+                socialSecurity += line.amountCents
+                break
+        }
+    }
+
+    let mortgageInterest = 0
+    let saltPaid = 0
+    let charitable = 0
+    let medical = 0
+
+    for (const ded of args.deductions) {
+        switch (ded.type) {
+            case "mortgage_interest":
+                mortgageInterest += ded.amountCents
+                break
+            case "salt":
+            case "property_tax":
+                saltPaid += ded.amountCents
+                break
+            case "charitable":
+                charitable += ded.amountCents
+                break
+            case "medical":
+                medical += ded.amountCents
+                break
+        }
     }
 
     return {
@@ -69,5 +166,14 @@ export function mapToFederalInput(args: {
         socialSecurityCents: socialSecurity,
         withholdingCents: withholding,
         numChildren: args.numChildren,
+        schedCNetProfitCents: schedCNet,
+        shortTermGainCents: shortTermGain,
+        longTermGainCents: longTermGain,
+        ordinaryDividendsCents: ordinaryDivs,
+        qualifiedDividendsCents: qualifiedDivs,
+        mortgageInterestCents: mortgageInterest,
+        saltPaidCents: saltPaid,
+        charitableContributionsCents: charitable,
+        medicalExpensesCents: medical,
     }
 }

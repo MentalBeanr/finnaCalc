@@ -90,3 +90,121 @@ export const CTC_PER_CHILD_CENTS = C(2_000)
 
 /** Deductible IRA contribution cap (simplified — no MAGI phase-out yet). */
 export const IRA_CONTRIBUTION_CAP_CENTS = C(7_000)
+
+// ── Self-employment tax (IRC §1401, Rev. Proc. 2023-34) ───────────────────────
+
+/** Net earnings from SE = 92.35% of Schedule C net profit (before SE deduction). */
+export const SE_NET_EARNINGS_BP = 9235
+
+/** SS portion of SE tax: 12.4% on net earnings up to the wage base. */
+export const SE_SS_RATE_BP = 1240
+
+/** Medicare portion of SE tax: 2.9% on all net earnings. */
+export const SE_MEDICARE_RATE_BP = 290
+
+/** 2024 Social Security wage base for SE tax (Rev. Proc. 2023-34). */
+export const SE_SS_WAGE_BASE_CENTS = C(168_600)
+
+/** AGI deduction for self-employment tax = 50% of total SE tax (IRC §164(f)). */
+export const SE_AGI_DEDUCTION_BP = 5000
+
+// ── Qualified dividends & capital gains (QDCG) rate thresholds ───────────────
+// IRS Rev. Proc. 2023-34 §3.01 — 0% and 15% breakpoints by filing status.
+// Income above the 15% breakpoint is taxed at 20%.
+
+export const QDCG_0_PCT_THRESHOLD_CENTS: Record<StatusCode, number> = {
+    [STATUS.single]: C(47_025),
+    [STATUS.mfj]: C(94_050),
+    [STATUS.mfs]: C(47_025),
+    [STATUS.hoh]: C(63_000),
+    [STATUS.qss]: C(94_050),
+}
+
+export const QDCG_15_PCT_THRESHOLD_CENTS: Record<StatusCode, number> = {
+    [STATUS.single]: C(518_900),
+    [STATUS.mfj]: C(583_750),
+    [STATUS.mfs]: C(291_850),
+    [STATUS.hoh]: C(551_350),
+    [STATUS.qss]: C(583_750),
+}
+
+// ── Capital loss deduction limit (IRC §1211(b)) ───────────────────────────────
+export const CAP_LOSS_LIMIT_CENTS: Record<StatusCode, number> = {
+    [STATUS.single]: C(3_000),
+    [STATUS.mfj]: C(3_000),
+    [STATUS.mfs]: C(1_500),
+    [STATUS.hoh]: C(3_000),
+    [STATUS.qss]: C(3_000),
+}
+
+// ── Itemized deductions ───────────────────────────────────────────────────────
+
+/** SALT cap per TCJA §164(b)(6) — $5k for MFS, $10k for all others. */
+export const SALT_CAP_CENTS: Record<StatusCode, number> = {
+    [STATUS.single]: C(10_000),
+    [STATUS.mfj]: C(10_000),
+    [STATUS.mfs]: C(5_000),
+    [STATUS.hoh]: C(10_000),
+    [STATUS.qss]: C(10_000),
+}
+
+/** Medical expense AGI floor: 7.5% = 750 bp (IRC §213(a)). */
+export const MEDICAL_FLOOR_BP = 750
+
+// ── Earned Income Tax Credit (EITC) — TY2024 ─────────────────────────────────
+// IRS Rev. Proc. 2023-34, §3.06. All money in cents.
+
+/** Investment income disqualification limit for EITC (IRC §32(i)). */
+export const EITC_MAX_INVESTMENT_INCOME_CENTS = C(11_600)
+
+export interface EitcBand {
+    maxCreditCents: number
+    phaseInBp: number
+    phaseInCapCents: number
+    phaseOutStartSingleCents: number
+    phaseOutStartMfjCents: number
+    phaseOutBp: number
+}
+
+/**
+ * EITC parameters by qualifying-child count (index 3 covers 3+ children).
+ * Phase-in and phase-out rates from IRS Rev. Proc. 2023-34, Table 6.
+ */
+export const EITC_BANDS: readonly EitcBand[] = [
+    // 0 children
+    {
+        maxCreditCents: C(632),
+        phaseInBp: 765,
+        phaseInCapCents: C(8_260),
+        phaseOutStartSingleCents: C(10_330),
+        phaseOutStartMfjCents: C(17_250),
+        phaseOutBp: 765,
+    },
+    // 1 child
+    {
+        maxCreditCents: C(4_213),
+        phaseInBp: 3400,
+        phaseInCapCents: C(12_390),
+        phaseOutStartSingleCents: C(23_083),
+        phaseOutStartMfjCents: C(30_000),
+        phaseOutBp: 1598,
+    },
+    // 2 children
+    {
+        maxCreditCents: C(6_960),
+        phaseInBp: 4000,
+        phaseInCapCents: C(17_400),
+        phaseOutStartSingleCents: C(23_083),
+        phaseOutStartMfjCents: C(30_000),
+        phaseOutBp: 2106,
+    },
+    // 3+ children
+    {
+        maxCreditCents: C(7_830),
+        phaseInBp: 4500,
+        phaseInCapCents: C(17_400),
+        phaseOutStartSingleCents: C(23_083),
+        phaseOutStartMfjCents: C(30_000),
+        phaseOutBp: 2106,
+    },
+] as const

@@ -3,12 +3,17 @@ import { notFound } from "next/navigation"
 import { computeFederalReturn } from "@/tax-engine"
 import { getCurrentUser } from "@/lib/server/auth"
 import { getReturn } from "@/lib/server/returns"
-import { getQualifyingChildren, listIncome } from "@/lib/server/return-inputs"
+import { getQualifyingChildren, listDeductions, listIncome } from "@/lib/server/return-inputs"
 import { mapToFederalInput } from "@/lib/interview-shared"
 import { Container } from "@/components/ds/container"
 import { Section } from "@/components/ds/section"
 import { MaterialIcon } from "@/components/ds/material-icon"
-import { InterviewClient, type EstimateView, type IncomeRow } from "./interview-client"
+import {
+    InterviewClient,
+    type DeductionRow,
+    type EstimateView,
+    type IncomeRow,
+} from "./interview-client"
 
 export const dynamic = "force-dynamic"
 
@@ -41,29 +46,45 @@ export default async function InterviewPage({
     const ret = await getReturn(user.id, returnId)
     if (!ret) notFound()
 
-    const incomeRows = await listIncome(user.id, returnId)
-    const numChildren = await getQualifyingChildren(user.id, returnId)
+    const [incomeRows, deductionRows, numChildren] = await Promise.all([
+        listIncome(user.id, returnId),
+        listDeductions(user.id, returnId),
+        getQualifyingChildren(user.id, returnId),
+    ])
 
     const income: IncomeRow[] = incomeRows.map((r) => ({
         id: r.id,
         type: r.type,
         amountCents: r.amountCents,
         withholdingCents: r.withholdingCents,
+        metadata: (r.metadata as Record<string, unknown>) ?? {},
     }))
 
-    // Live estimate, computed server-side via the engine (ephemeral — not persisted).
+    const deductions: DeductionRow[] = deductionRows.map((r) => ({
+        id: r.id,
+        type: r.type,
+        amountCents: r.amountCents,
+    }))
+
+    // Live estimate — computed server-side (ephemeral, not persisted).
     const fedInput = mapToFederalInput({
         filingStatus: ret.filingStatus,
         income,
         numChildren,
+        deductions,
     })
+
     let estimate: EstimateView | null = null
     if (fedInput) {
         const r = computeFederalReturn(fedInput)
         estimate = {
             agiCents: r.agiCents,
             taxableIncomeCents: r.taxableIncomeCents,
+            taxBeforeCreditsCents: r.taxBeforeCreditsCents,
             taxAfterCreditsCents: r.taxAfterCreditsCents,
+            selfEmploymentTaxCents: r.selfEmploymentTaxCents,
+            earnedIncomeCreditCents: r.earnedIncomeCreditCents,
+            usingItemizedDeduction: r.usingItemizedDeduction,
             withholdingCents: r.withholdingCents,
             refundOrDueCents: r.refundOrDueCents,
             marginalRateBp: r.marginalRateBp,
@@ -96,6 +117,7 @@ export default async function InterviewPage({
                         returnId={ret.id}
                         filingStatus={ret.filingStatus}
                         income={income}
+                        deductions={deductions}
                         numChildren={numChildren}
                         estimate={estimate}
                     />
