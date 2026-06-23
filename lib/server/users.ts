@@ -10,6 +10,13 @@ import { eq } from "drizzle-orm"
 import { getDb } from "@/db/client"
 import { users, type User } from "@/db/schema"
 
+/** Look up a user by their primary key. */
+export async function getUserById(userId: string): Promise<User | null> {
+    const db = getDb()
+    const [row] = await db.select().from(users).where(eq(users.id, userId)).limit(1)
+    return row ?? null
+}
+
 /** Look up a user by their stable `provider:subject` reference. */
 export async function getUserByAuthRef(authProviderRef: string): Promise<User | null> {
     const db = getDb()

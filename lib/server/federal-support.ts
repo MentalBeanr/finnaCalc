@@ -25,7 +25,7 @@ import {
 import { mapToFederalInput } from "@/lib/interview-shared"
 import { splitNodeId } from "@/lib/federal-support-shared"
 import { getReturn } from "./returns"
-import { getQualifyingChildren, listIncome } from "./return-inputs"
+import { getQualifyingChildren, listDeductions, listIncome } from "./return-inputs"
 
 export interface BuiltReturn {
     ret: TaxReturn
@@ -40,16 +40,21 @@ export async function buildFederalInputForReturn(
 ): Promise<BuiltReturn | null> {
     const ret = await getReturn(userId, returnId)
     if (!ret) return null
-    const income = await listIncome(userId, returnId)
-    const numChildren = await getQualifyingChildren(userId, returnId)
+    const [income, deductions, numChildren] = await Promise.all([
+        listIncome(userId, returnId),
+        listDeductions(userId, returnId),
+        getQualifyingChildren(userId, returnId),
+    ])
     const input = mapToFederalInput({
         filingStatus: ret.filingStatus,
         income: income.map((r) => ({
             type: r.type,
             amountCents: r.amountCents,
             withholdingCents: r.withholdingCents,
+            metadata: (r.metadata as Record<string, unknown>) ?? {},
         })),
         numChildren,
+        deductions: deductions.map((d) => ({ type: d.type, amountCents: d.amountCents })),
     })
     return { ret, incomeCount: income.length, input }
 }
