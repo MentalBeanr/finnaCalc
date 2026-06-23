@@ -151,6 +151,48 @@ export const SALT_CAP_CENTS: Record<StatusCode, number> = {
 /** Medical expense AGI floor: 7.5% = 750 bp (IRC §213(a)). */
 export const MEDICAL_FLOOR_BP = 750
 
+// ── Student Loan Interest Deduction (IRC §221) ────────────────────────────────
+
+/** Maximum deductible student loan interest (2024). */
+export const STUDENT_LOAN_INTEREST_MAX_CENTS = C(2_500)
+
+export interface PhaseOutRange {
+    start: number
+    end: number
+}
+
+/**
+ * AGI phase-out thresholds for student loan interest deduction (IRS Rev. Proc. 2023-34).
+ * null = filing status is not eligible (MFS).
+ */
+export const SLI_PHASE_OUT: Record<StatusCode, PhaseOutRange | null> = {
+    [STATUS.single]: { start: C(75_000), end: C(90_000) },
+    [STATUS.mfj]: { start: C(155_000), end: C(185_000) },
+    [STATUS.mfs]: null,
+    [STATUS.hoh]: { start: C(75_000), end: C(90_000) },
+    [STATUS.qss]: { start: C(75_000), end: C(90_000) },
+}
+
+// ── American Opportunity Tax Credit (IRC §25A(b)) ────────────────────────────
+
+/** Per-student tier caps and rates for AOTC (2024 — no inflation adjustment). */
+export const AOTC_TIER1_CAP_CENTS = C(2_000)   // 100% rate on first $2k per student
+export const AOTC_TIER2_CAP_CENTS = C(2_000)   // 25% rate on next $2k per student
+export const AOTC_TIER2_RATE_BP = 2_500        // 25%
+export const AOTC_REFUNDABLE_BP = 4_000        // 40% of credit is refundable (IRC §25A(i))
+
+/**
+ * AGI phase-out thresholds for AOTC (IRS Rev. Proc. 2023-34).
+ * null = not eligible (MFS).
+ */
+export const AOTC_PHASE_OUT: Record<StatusCode, PhaseOutRange | null> = {
+    [STATUS.single]: { start: C(80_000), end: C(90_000) },
+    [STATUS.mfj]: { start: C(160_000), end: C(180_000) },
+    [STATUS.mfs]: null,
+    [STATUS.hoh]: { start: C(80_000), end: C(90_000) },
+    [STATUS.qss]: { start: C(80_000), end: C(90_000) },
+}
+
 // ── Earned Income Tax Credit (EITC) — TY2024 ─────────────────────────────────
 // IRS Rev. Proc. 2023-34, §3.06. All money in cents.
 

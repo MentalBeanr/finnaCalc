@@ -43,6 +43,8 @@ export interface EstimateView {
     taxAfterCreditsCents: number
     selfEmploymentTaxCents: number
     earnedIncomeCreditCents: number
+    studentLoanInterestDeductionCents: number
+    aotcCreditCents: number
     usingItemizedDeduction: boolean
     withholdingCents: number
     refundOrDueCents: number
@@ -607,6 +609,18 @@ function EstimatePanel({
                             <EstimateRow
                                 label="Earned Income Credit"
                                 value={`−${formatCents(estimate.earnedIncomeCreditCents)}`}
+                            />
+                        )}
+                        {estimate.studentLoanInterestDeductionCents > 0 && (
+                            <EstimateRow
+                                label="Student loan interest deduction"
+                                value={`−${formatCents(estimate.studentLoanInterestDeductionCents)}`}
+                            />
+                        )}
+                        {estimate.aotcCreditCents > 0 && (
+                            <EstimateRow
+                                label="Education credit (AOTC)"
+                                value={`−${formatCents(estimate.aotcCreditCents)}`}
                             />
                         )}
                         <EstimateRow label="Tax after credits" value={formatCents(estimate.taxAfterCreditsCents)} />

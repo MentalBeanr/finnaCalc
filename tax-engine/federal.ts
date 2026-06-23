@@ -37,6 +37,11 @@ export interface FederalReturnInput {
     saltPaidCents?: number
     charitableContributionsCents?: number
     medicalExpensesCents?: number
+
+    // Education — above-the-line deduction + AOTC credit
+    studentLoanInterestCents?: number
+    qualifiedEducationExpensesCents?: number
+    numEligibleStudents?: number
 }
 
 export interface FederalReturnResult {
@@ -52,6 +57,9 @@ export interface FederalReturnResult {
     taxAfterCreditsCents: number
     selfEmploymentTaxCents: number
     earnedIncomeCreditCents: number
+    studentLoanInterestDeductionCents: number
+    aotcCreditCents: number
+    aotcRefundableCents: number
     withholdingCents: number
     taxableSocialSecurityCents: number
     /** Positive = refund, negative = amount owed. */
@@ -82,6 +90,9 @@ export function computeFederalReturn(input: FederalReturnInput): FederalReturnRe
                 "in.saltPaid": input.saltPaidCents ?? 0,
                 "in.charitableContr": input.charitableContributionsCents ?? 0,
                 "in.medicalExpenses": input.medicalExpensesCents ?? 0,
+                "in.studentLoanInterest": input.studentLoanInterestCents ?? 0,
+                "in.qualifiedEdExp": input.qualifiedEducationExpensesCents ?? 0,
+                "in.numStudents": input.numEligibleStudents ?? 0,
             },
         },
         FEDERAL_TY2024,
@@ -98,10 +109,13 @@ export function computeFederalReturn(input: FederalReturnInput): FederalReturnRe
         usingItemizedDeduction: v("WS.usingItemized") === 1,
         taxableIncomeCents: v("F1040.L15"),
         taxBeforeCreditsCents: v("F1040.L16"),
-        creditsCents: v("F1040.L19"),
+        creditsCents: v("F1040.L19") + v("F1040.L28"),
         taxAfterCreditsCents: v("F1040.L22"),
         selfEmploymentTaxCents: v("SchedSE.L10"),
         earnedIncomeCreditCents: v("F1040.L27a"),
+        studentLoanInterestDeductionCents: v("Sch1.L21"),
+        aotcCreditCents: v("WS.aotcCredit"),
+        aotcRefundableCents: v("F1040.L29"),
         withholdingCents: v("F1040.L33"),
         taxableSocialSecurityCents: v("F1040.L6b"),
         refundOrDueCents: v("F1040.L34") - v("F1040.L37"),

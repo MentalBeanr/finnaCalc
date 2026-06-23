@@ -80,6 +80,9 @@ describe("interview-shared helpers", () => {
                 saltPaidCents: 0,
                 charitableContributionsCents: 0,
                 medicalExpensesCents: 0,
+                studentLoanInterestCents: 0,
+                qualifiedEducationExpensesCents: 0,
+                numEligibleStudents: 0,
             })
         })
 

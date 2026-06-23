@@ -261,4 +261,132 @@ describe("federal TY2024 — golden fixtures", () => {
         expect(r.deductionCents).toBe(C(25_000))
         expect(r.converged).toBe(true)
     })
+
+    // ── Student Loan Interest Deduction ────────────────────────────────────────
+
+    it("SLI: single, $60k wages, $2,000 interest paid → full deduction (below phase-out)", () => {
+        // AGI threshold start = $75,000 — below it so full $2,000 is deductible.
+        const r = computeFederalReturn({
+            filingStatus: "single",
+            wagesCents: C(60_000),
+            studentLoanInterestCents: C(2_000),
+        })
+        expect(r.studentLoanInterestDeductionCents).toBe(C(2_000))
+        expect(r.agiCents).toBe(C(58_000))
+        expect(r.converged).toBe(true)
+    })
+
+    it("SLI: single, $80k wages, $2,500 interest → partially phased out", () => {
+        // AGI (before SLI deduction) ≈ $80k; phase-out range $75k–$90k, width $15k.
+        // Solve iteratively:
+        //   iter 0: agi=0 → sli=2500; iter 1: agi=80k-2500=$77,500 → fraction=(90k-77.5k)/15k=0.8333 → sli=2083
+        //   iter 2: agi=80k-2083=$77,917 → fraction=(90k-77.917k)/15k=0.8056 → sli=2014
+        //   converges to ~$2,019 ± rounding
+        const r = computeFederalReturn({
+            filingStatus: "single",
+            wagesCents: C(80_000),
+            studentLoanInterestCents: C(2_500),
+        })
+        expect(r.studentLoanInterestDeductionCents).toBeGreaterThan(0)
+        expect(r.studentLoanInterestDeductionCents).toBeLessThan(C(2_500))
+        expect(r.agiCents).toBeLessThan(C(80_000))
+        expect(r.converged).toBe(true)
+    })
+
+    it("SLI: MFS filer receives no student loan interest deduction", () => {
+        const r = computeFederalReturn({
+            filingStatus: "mfs",
+            wagesCents: C(40_000),
+            studentLoanInterestCents: C(2_500),
+        })
+        expect(r.studentLoanInterestDeductionCents).toBe(0)
+        expect(r.agiCents).toBe(C(40_000))
+    })
+
+    it("SLI: $3,000 paid is capped at $2,500", () => {
+        const r = computeFederalReturn({
+            filingStatus: "single",
+            wagesCents: C(50_000),
+            studentLoanInterestCents: C(3_000),
+        })
+        expect(r.studentLoanInterestDeductionCents).toBe(C(2_500))
+        expect(r.agiCents).toBe(C(47_500))
+    })
+
+    // ── American Opportunity Tax Credit (AOTC) ─────────────────────────────────
+
+    it("AOTC: 1 student, $4,000 expenses → max $2,500 credit", () => {
+        // 100% × $2,000 + 25% × $2,000 = $2,500; AGI $50k < $80k threshold → no phase-out.
+        // Non-refundable: 60% × $2,500 = $1,500; Refundable: 40% × $2,500 = $1,000.
+        const r = computeFederalReturn({
+            filingStatus: "single",
+            wagesCents: C(50_000),
+            qualifiedEducationExpensesCents: C(4_000),
+            numEligibleStudents: 1,
+        })
+        expect(r.aotcCreditCents).toBe(C(2_500))
+        expect(r.aotcRefundableCents).toBe(C(1_000))
+        // Non-refundable reduces tax; refundable added to payments.
+        expect(r.converged).toBe(true)
+    })
+
+    it("AOTC: 1 student, $2,000 expenses → $2,000 credit (tier 1 only)", () => {
+        // 100% × $2,000 = $2,000; tier 2 is $0.
+        const r = computeFederalReturn({
+            filingStatus: "single",
+            wagesCents: C(50_000),
+            qualifiedEducationExpensesCents: C(2_000),
+            numEligibleStudents: 1,
+        })
+        expect(r.aotcCreditCents).toBe(C(2_000))
+        expect(r.aotcRefundableCents).toBe(C(800)) // 40% × $2,000
+    })
+
+    it("AOTC: 2 students, $8,000 total expenses → $5,000 credit", () => {
+        // Per-student cap ×2: tier1Cap=$4k, tier2Cap=$4k.
+        // tier1=min($8k,$4k)=$4k; tier2=min($4k,$4k)=$4k; credit=$4k + 25%×$4k=$5k.
+        const r = computeFederalReturn({
+            filingStatus: "mfj",
+            wagesCents: C(100_000),
+            qualifiedEducationExpensesCents: C(8_000),
+            numEligibleStudents: 2,
+        })
+        expect(r.aotcCreditCents).toBe(C(5_000))
+        expect(r.aotcRefundableCents).toBe(C(2_000)) // 40% × $5,000
+    })
+
+    it("AOTC: phased out for high-income single filer ($88k AGI)", () => {
+        // Phase-out: $80k–$90k. At $88k: fraction = (90k−88k)/10k = 20%.
+        // Raw credit (1 student, $4k expenses) = $2,500.
+        // After phase-out: $2,500 × 20% = $500.
+        const r = computeFederalReturn({
+            filingStatus: "single",
+            wagesCents: C(88_000),
+            qualifiedEducationExpensesCents: C(4_000),
+            numEligibleStudents: 1,
+        })
+        expect(r.aotcCreditCents).toBe(C(500))
+        expect(r.aotcRefundableCents).toBe(C(200)) // 40% × $500
+    })
+
+    it("AOTC: MFS filer receives no AOTC", () => {
+        const r = computeFederalReturn({
+            filingStatus: "mfs",
+            wagesCents: C(40_000),
+            qualifiedEducationExpensesCents: C(4_000),
+            numEligibleStudents: 1,
+        })
+        expect(r.aotcCreditCents).toBe(0)
+        expect(r.aotcRefundableCents).toBe(0)
+    })
+
+    it("AOTC: fully phased out above $90k single → $0 credit", () => {
+        const r = computeFederalReturn({
+            filingStatus: "single",
+            wagesCents: C(95_000),
+            qualifiedEducationExpensesCents: C(4_000),
+            numEligibleStudents: 1,
+        })
+        expect(r.aotcCreditCents).toBe(0)
+    })
 })

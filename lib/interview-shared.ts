@@ -33,6 +33,8 @@ export const DEDUCTION_TYPE_OPTIONS = [
     { value: "salt", label: "State & local taxes paid" },
     { value: "charitable", label: "Charitable contributions" },
     { value: "medical", label: "Medical expenses" },
+    { value: "student_loan", label: "Student loan interest (1098-E)" },
+    { value: "aotc_expenses", label: "Education expenses per student (AOTC / Form 8863)" },
 ] as const
 
 export type InterviewDeductionType = (typeof DEDUCTION_TYPE_OPTIONS)[number]["value"]
@@ -140,6 +142,10 @@ export function mapToFederalInput(args: {
     let saltPaid = 0
     let charitable = 0
     let medical = 0
+    let studentLoanInterest = 0
+    // Each aotc_expenses entry represents one eligible student.
+    let aotcExpenses = 0
+    let numStudents = 0
 
     for (const ded of args.deductions) {
         switch (ded.type) {
@@ -155,6 +161,13 @@ export function mapToFederalInput(args: {
                 break
             case "medical":
                 medical += ded.amountCents
+                break
+            case "student_loan":
+                studentLoanInterest += ded.amountCents
+                break
+            case "aotc_expenses":
+                aotcExpenses += ded.amountCents
+                numStudents += 1
                 break
         }
     }
@@ -175,5 +188,8 @@ export function mapToFederalInput(args: {
         saltPaidCents: saltPaid,
         charitableContributionsCents: charitable,
         medicalExpensesCents: medical,
+        studentLoanInterestCents: studentLoanInterest,
+        qualifiedEducationExpensesCents: aotcExpenses,
+        numEligibleStudents: numStudents,
     }
 }
