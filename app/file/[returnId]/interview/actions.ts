@@ -3,8 +3,10 @@
 import { revalidatePath } from "next/cache"
 import { getCurrentUser } from "@/lib/server/auth"
 import { addIncome, removeIncome, setQualifyingChildren } from "@/lib/server/return-inputs"
-import { updateReturnBasics } from "@/lib/server/returns"
+import { updateReturnBasics, getReturn } from "@/lib/server/returns"
+import { extractIncomeFromDocument } from "@/lib/server/extraction"
 import { isInterviewIncomeType, parseDollarsToCents } from "@/lib/interview-shared"
+import type { IncomeSuggestion } from "@/lib/extraction-shared"
 import { isFilingStatus } from "@/lib/returns-shared"
 
 export type ActionResult = { ok: true } | { ok: false; error: string }
@@ -63,4 +65,29 @@ export async function setChildrenAction(returnId: string, count: number): Promis
     if (!ok) return { ok: false, error: "Return not found." }
     revalidate(returnId)
     return { ok: true }
+}
+
+export type ExtractResult =
+    | { ok: true; suggestions: IncomeSuggestion[] }
+    | { ok: false; error: string }
+
+/** Run AI extraction on an uploaded image and return suggestions to confirm. */
+export async function extractFromDocumentAction(
+    returnId: string,
+    formData: FormData,
+): Promise<ExtractResult> {
+    const user = await getCurrentUser()
+    if (!user) return { ok: false, error: "You must be signed in." }
+    const ret = await getReturn(user.id, returnId)
+    if (!ret) return { ok: false, error: "Return not found." }
+
+    const file = formData.get("file")
+    if (!(file instanceof File)) return { ok: false, error: "No file was provided." }
+    if (!file.type.startsWith("image/")) {
+        return { ok: false, error: "Auto-fill supports image files (PNG, JPG)." }
+    }
+
+    const bytes = Buffer.from(await file.arrayBuffer())
+    const suggestions = await extractIncomeFromDocument({ mime: file.type, bytes })
+    return { ok: true, suggestions }
 }
