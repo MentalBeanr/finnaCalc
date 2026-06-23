@@ -1,87 +1,87 @@
-"use client"
-
-import { useRouter } from "next/navigation"
-import { Calculator, Users, ArrowLeft } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
 import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { Container } from "@/components/ds/container"
+import { Section } from "@/components/ds/section"
+import { Eyebrow } from "@/components/ds/eyebrow"
+import { MaterialIcon } from "@/components/ds/material-icon"
+
+const COMING_FEATURES = [
+    { icon: "smart_toy", label: "AI-powered financial planning" },
+    { icon: "savings", label: "Personalized budget recommendations" },
+    { icon: "account_balance", label: "Debt consolidation strategies" },
+    { icon: "elderly", label: "Retirement planning guidance" },
+    { icon: "receipt_long", label: "Tax optimization strategies" },
+    { icon: "trending_up", label: "Business growth financial planning" },
+] as const
 
 export default function AdvisingPage() {
-  const router = useRouter()
+    return (
+        <div className="flex flex-col">
+            <Section spacing="loose" className="pt-section-gap-sm">
+                <Container className="flex flex-col gap-stack-lg max-w-3xl">
+                    <Eyebrow>Premium · Coming Soon</Eyebrow>
+                    <h1 className="font-headline-display text-[56px] leading-[1.1] tracking-[-0.02em] text-primary">
+                        Personal Financial Advising
+                    </h1>
+                    <p className="font-body-lg text-body-lg text-on-surface-variant max-w-prose">
+                        Personalized guidance and advisory services — built on the same
+                        deterministic math as the calculators, with a human layer on top.
+                        Launching in the premium tier.
+                    </p>
+                </Container>
+            </Section>
 
-  return (
-      <div className="min-h-screen bg-muted/40">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="mb-4">
-            <Button variant="outline" onClick={() => router.back()} className="flex items-center gap-2">
-              <ArrowLeft className="h-4 w-4" />
-              Back
-            </Button>
-          </div>
-          <div className="text-center">
-            <Users className="h-12 w-12 sm:h-16 sm:w-16 text-blue-600 mx-auto mb-6" />
-            <h1 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">Personal Financial Advising</h1>
-            <p className="text-lg sm:text-xl text-muted-foreground mb-8">Coming Soon to Premium Version</p>
+            <Section spacing="default">
+                <Container>
+                    <div className="grid grid-cols-12 gap-gutter">
+                        <div className="col-span-5 flex flex-col gap-stack-md">
+                            <Eyebrow>What&apos;s coming</Eyebrow>
+                            <h2 className="font-headline-lg text-headline-lg text-primary">
+                                Premium advisory features
+                            </h2>
+                            <p className="font-body-md text-body-md text-on-surface-variant">
+                                A suite of tools that go beyond calculation — into recommendation
+                                and planning with real context about your situation.
+                            </p>
+                        </div>
+                        <div className="col-span-7">
+                            <ul className="flex flex-col gap-stack-md">
+                                {COMING_FEATURES.map((f) => (
+                                    <li
+                                        key={f.label}
+                                        className="flex items-center gap-stack-md py-4 border-b border-outline-variant/20 last:border-b-0"
+                                    >
+                                        <MaterialIcon
+                                            name={f.icon}
+                                            size={20}
+                                            className="text-primary shrink-0"
+                                        />
+                                        <span className="font-body-md text-body-md text-on-background">
+                                            {f.label}
+                                        </span>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    </div>
+                </Container>
+            </Section>
 
-            <Card className="max-w-2xl mx-auto">
-              <CardHeader>
-                <CardTitle>What's Coming to Premium</CardTitle>
-                <CardDescription>Personalized financial guidance and advisory services</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="text-left space-y-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                    <span>AI-Powered Financial Planning</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                    <span>Personalized Budget Recommendations</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                    <span>Debt Consolidation Strategies</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                    <span>Retirement Planning Guidance</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                    <span>Tax Optimization Strategies</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                    <span>Business Growth Financial Planning</span>
-                  </div>
-                </div>
-
-                <div className="pt-4 border-t">
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Get notified when our premium advisory services become available!
-                  </p>
-                  <div className="flex flex-col sm:flex-row gap-2">
-                    <Input placeholder="Enter your email" className="flex-1" />
-                    <Button className="bg-blue-600 hover:bg-blue-700">Notify Me</Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <div className="mt-8">
-              <p className="text-muted-foreground mb-4">Start with our free financial calculators today:</p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Link href="/">
-                  <Button variant="outline">View All Calculators</Button>
-                </Link>
-                <Link href="/emergency-fund-calculator">
-                  <Button className="bg-blue-600 hover:bg-blue-700">Try Emergency Fund Calculator</Button>
-                </Link>
-              </div>
-            </div>
-          </div>
+            <Section spacing="default">
+                <Container className="flex flex-col gap-stack-md">
+                    <p className="font-body-md text-body-md text-on-surface-variant">
+                        In the meantime, start with the free calculators:
+                    </p>
+                    <div className="flex gap-stack-md">
+                        <Button asChild>
+                            <Link href="/">View all calculators</Link>
+                        </Button>
+                        <Button asChild variant="outline">
+                            <Link href="/emergency-fund-calculator">Emergency Fund Calculator</Link>
+                        </Button>
+                    </div>
+                </Container>
+            </Section>
         </div>
-      </div>
-  )
+    )
 }

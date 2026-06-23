@@ -2,177 +2,112 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Users, ExternalLink, DollarSign, TrendingUp, PieChart, Shield, FileText } from "lucide-react"
+import { Container } from "@/components/ds/container"
+import { Section } from "@/components/ds/section"
+import { Eyebrow } from "@/components/ds/eyebrow"
+import { MaterialIcon } from "@/components/ds/material-icon"
 import FinancialEducationHub from "@/components/financial-education-hub"
+
+const TOPICS = [
+    {
+        id: "credit",
+        icon: "credit_card",
+        title: "Credit & Debt",
+        bullets: ["Understanding credit scores", "How to improve credit", "Debt payoff strategies"],
+    },
+    {
+        id: "investing",
+        icon: "trending_up",
+        title: "Investing",
+        bullets: ["What are stocks & bonds?", "Risk vs reward explained", "Portfolio diversification"],
+    },
+    {
+        id: "budgeting",
+        icon: "pie_chart",
+        title: "Budgeting",
+        bullets: ["Creating a budget", "Tracking expenses", "Emergency fund planning"],
+    },
+    {
+        id: "retirement",
+        icon: "savings",
+        title: "Retirement",
+        bullets: ["401(k) vs IRA explained", "Compound interest power", "Retirement calculators"],
+    },
+    {
+        id: "taxes",
+        icon: "receipt_long",
+        title: "Tax Planning",
+        bullets: ["Understanding tax brackets", "Deductions vs credits", "Business vs personal taxes"],
+    },
+] as const
 
 export default function EducationPage() {
     const [activeSection, setActiveSection] = useState("")
-    const [selectedTopic, setSelectedTopic] = useState("credit");
-
+    const [selectedTopic, setSelectedTopic] = useState("credit")
 
     const handleSectionClick = (section: string, topic?: string) => {
-        setActiveSection(section);
-        if (topic) {
-            setSelectedTopic(topic);
-        }
+        setActiveSection(section)
+        if (topic) setSelectedTopic(topic)
     }
 
-    const handleBackToTab = () => {
-        setActiveSection("")
-    }
+    const handleBack = () => setActiveSection("")
 
-    const renderContent = () => {
-        if (activeSection === "financial-education") {
-            return <FinancialEducationHub onBack={handleBackToTab} initialTopic={selectedTopic} />
-        }
-        return (
-            <section className="space-y-8">
-                <div className="text-center mb-8">
-                    <h1 className="text-3xl font-bold text-primary mb-4">Build Financial Confidence</h1>
-                    <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                        Master personal finance fundamentals with easy-to-understand lessons, videos, and expert guidance.
-                    </p>
-                </div>
-
-                {/* <Card className="bg-gradient-to-r from-blue-50 to-green-50 border-blue-200 mb-8">
-                    <CardHeader className="pb-3">
-                        <div className="flex items-center gap-2">
-                            <Users className="h-5 w-5 text-primary" />
-                            <CardTitle className="text-lg">Connect with Real Financial Advisors</CardTitle>
-                        </div>
-                        <CardDescription className="text-sm">
-                            Get personalized advice from certified professionals
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-                            <div className="text-sm text-muted-foreground">
-                                Ready for professional guidance? Connect with vetted financial advisors for personalized strategies.
-                            </div>
-                            <Button className="bg-primary hover:bg-primary/90">
-                                Find an Advisor <ExternalLink className="h-4 w-4 ml-2" />
-                            </Button>
-                        </div>
-                    </CardContent>
-                </Card> */}
-
-                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                    <Card
-                        className="hover:shadow-lg transition-shadow cursor-pointer"
-                        onClick={() => handleSectionClick("financial-education", "credit")}
-                    >
-                        <CardHeader className="text-center pb-2">
-                            <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center mx-auto mb-2">
-                                <DollarSign className="h-6 w-6 text-primary-foreground" />
-                            </div>
-                            <CardTitle className="text-base">Credit & Debt</CardTitle>
-                        </CardHeader>
-                        <CardContent className="text-center">
-                            <div className="space-y-1 text-sm mb-3">
-                                <div>• Understanding credit scores</div>
-                                <div>• How to improve credit</div>
-                                <div>• Debt payoff strategies</div>
-                            </div>
-                            <Button size="sm" className="w-full bg-transparent" variant="outline">
-                                Learn More
-                            </Button>
-                        </CardContent>
-                    </Card>
-                    <Card
-                        className="hover:shadow-lg transition-shadow cursor-pointer"
-                        onClick={() => handleSectionClick("financial-education", "investing")}
-                    >
-                        <CardHeader className="text-center pb-2">
-                            <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center mx-auto mb-2">
-                                <TrendingUp className="h-6 w-6 text-primary-foreground" />
-                            </div>
-                            <CardTitle className="text-base">Investing</CardTitle>
-                        </CardHeader>
-                        <CardContent className="text-center">
-                            <div className="space-y-1 text-sm mb-3">
-                                <div>• What are stocks & bonds?</div>
-                                <div>• Risk vs reward explained</div>
-                                <div>• Portfolio diversification</div>
-                            </div>
-                            <Button size="sm" className="w-full bg-transparent" variant="outline">
-                                Learn More
-                            </Button>
-                        </CardContent>
-                    </Card>
-                    <Card
-                        className="hover:shadow-lg transition-shadow cursor-pointer"
-                        onClick={() => handleSectionClick("financial-education", "budgeting")}
-                    >
-                        <CardHeader className="text-center pb-2">
-                            <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center mx-auto mb-2">
-                                <PieChart className="h-6 w-6 text-primary-foreground" />
-                            </div>
-                            <CardTitle className="text-base">Budgeting</CardTitle>
-                        </CardHeader>
-                        <CardContent className="text-center">
-                            <div className="space-y-1 text-sm mb-3">
-                                <div>• Creating a budget</div>
-                                <div>• Tracking expenses</div>
-                                <div>• Emergency fund planning</div>
-                            </div>
-                            <Button size="sm" className="w-full bg-transparent" variant="outline">
-                                Learn More
-                            </Button>
-                        </CardContent>
-                    </Card>
-                    <Card
-                        className="hover:shadow-lg transition-shadow cursor-pointer"
-                        onClick={() => handleSectionClick("financial-education", "retirement")}
-                    >
-                        <CardHeader className="text-center pb-2">
-                            <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center mx-auto mb-2">
-                                <Shield className="h-6 w-6 text-primary-foreground" />
-                            </div>
-                            <CardTitle className="text-base">Retirement</CardTitle>
-                        </CardHeader>
-                        <CardContent className="text-center">
-                            <div className="space-y-1 text-sm mb-3">
-                                <div>• 401(k) vs IRA explained</div>
-                                <div>• Compound interest power</div>
-                                <div>• Retirement calculators</div>
-                            </div>
-                            <Button size="sm" className="w-full bg-transparent" variant="outline">
-                                Learn More
-                            </Button>
-                        </CardContent>
-                    </Card>
-                    <Card
-                        className="hover:shadow-lg transition-shadow cursor-pointer"
-                        onClick={() => handleSectionClick("financial-education", "taxes")}
-                    >
-                        <CardHeader className="text-center pb-2">
-                            <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center mx-auto mb-2">
-                                <FileText className="h-6 w-6 text-primary-foreground" />
-                            </div>
-                            <CardTitle className="text-base">Tax Planning</CardTitle>
-                        </CardHeader>
-                        <CardContent className="text-center">
-                            <div className="space-y-1 text-sm mb-3">
-                                <div>• Understanding tax brackets</div>
-                                <div>• Deductions vs credits</div>
-                                <div>• Business vs personal taxes</div>
-                            </div>
-                            <Button size="sm" className="w-full bg-transparent" variant="outline">
-                                Learn More
-                            </Button>
-                        </CardContent>
-                    </Card>
-                </div>
-            </section>
-        )
+    if (activeSection === "financial-education") {
+        return <FinancialEducationHub onBack={handleBack} initialTopic={selectedTopic} />
     }
 
     return (
-        <div className="min-h-screen bg-muted/40">
-            <main className="container mx-auto px-4 py-8 max-w-6xl">
-                {renderContent()}
-            </main>
+        <div className="flex flex-col">
+            <Section spacing="loose" className="pt-section-gap-sm">
+                <Container className="flex flex-col gap-stack-lg max-w-3xl">
+                    <Eyebrow>Education</Eyebrow>
+                    <h1 className="font-headline-display text-[56px] leading-[1.1] tracking-[-0.02em] text-primary">
+                        Build financial confidence
+                    </h1>
+                    <p className="font-body-lg text-body-lg text-on-surface-variant max-w-prose">
+                        Master personal finance fundamentals with clear explanations,
+                        worked examples, and the math behind every concept.
+                    </p>
+                </Container>
+            </Section>
+
+            <Section spacing="default">
+                <Container>
+                    <div className="grid grid-cols-3 gap-gutter">
+                        {TOPICS.map((topic) => (
+                            <button
+                                key={topic.id}
+                                type="button"
+                                onClick={() => handleSectionClick("financial-education", topic.id)}
+                                className="group flex flex-col gap-stack-md p-10 border border-outline-variant/30 rounded-lg bg-surface-container-lowest text-left transition-colors duration-200 hover:border-primary/40"
+                            >
+                                <MaterialIcon name={topic.icon} size={28} className="text-primary" />
+                                <h3 className="font-headline-md text-headline-md text-primary">
+                                    {topic.title}
+                                </h3>
+                                <ul className="flex flex-col gap-1 flex-grow">
+                                    {topic.bullets.map((b) => (
+                                        <li
+                                            key={b}
+                                            className="font-body-md text-sm text-on-surface-variant"
+                                        >
+                                            {b}
+                                        </li>
+                                    ))}
+                                </ul>
+                                <span className="inline-flex items-center gap-stack-sm pt-stack-sm font-ui-button text-ui-button uppercase tracking-[0.05em] text-primary">
+                                    Learn more
+                                    <MaterialIcon
+                                        name="arrow_forward"
+                                        size={16}
+                                        className="transition-transform duration-200 group-hover:translate-x-0.5"
+                                    />
+                                </span>
+                            </button>
+                        ))}
+                    </div>
+                </Container>
+            </Section>
         </div>
     )
 }

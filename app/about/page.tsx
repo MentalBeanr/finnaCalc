@@ -1,236 +1,156 @@
-"use client"
+import { Container } from "@/components/ds/container"
+import { Section } from "@/components/ds/section"
+import { Eyebrow } from "@/components/ds/eyebrow"
+import { SectionHeading } from "@/components/ds/section-heading"
+import { MaterialIcon } from "@/components/ds/material-icon"
 
-import { useRouter } from "next/navigation"
-import { Users, Calculator, Shield, Award, Target, Heart, ArrowLeft } from "lucide-react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
+const VALUES = [
+    {
+        icon: "verified",
+        title: "Accuracy",
+        body: "Every calculation is decimal-safe and test-covered. We don't float-round your money.",
+    },
+    {
+        icon: "public",
+        title: "Accessibility",
+        body: "Free tools for everyone — no paywall on the math that matters most.",
+    },
+    {
+        icon: "insights",
+        title: "Transparency",
+        body: "Formulas are textbook. The methodology is visible. You can verify every output.",
+    },
+    {
+        icon: "cached",
+        title: "Continuous improvement",
+        body: "Tax rates, formulas, and UX are updated as regulations and user needs evolve.",
+    },
+] as const
 
-export default function AboutUs() {
-    const router = useRouter()
+const WHAT_WE_OFFER = [
+    {
+        icon: "calculate",
+        title: "Business calculators",
+        body: "Startup costs, break-even, ROI, cash flow, pricing, and hiring analysis — the numbers operators reach for first.",
+    },
+    {
+        icon: "person",
+        title: "Personal finance",
+        body: "Loan amortization, tax estimation, emergency fund sizing, investment projections, and budget planning.",
+    },
+    {
+        icon: "lock",
+        title: "Privacy by default",
+        body: "All calculations run locally in your browser. Nothing is transmitted or stored on our servers.",
+    },
+] as const
 
+export default function AboutPage() {
     return (
-        <div className="min-h-screen bg-muted/40">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <div className="mb-4">
-                    <Button variant="outline" onClick={() => router.back()} className="flex items-center gap-2">
-                        <ArrowLeft className="h-4 w-4" />
-                        Back
-                    </Button>
-                </div>
+        <div className="flex flex-col">
+            <Section spacing="loose" className="pt-section-gap-sm">
+                <Container className="flex flex-col gap-stack-lg max-w-3xl">
+                    <Eyebrow>About FinnaCalc</Eyebrow>
+                    <h1 className="font-headline-display text-[56px] leading-[1.1] tracking-[-0.02em] text-primary">
+                        Empowering smarter financial decisions
+                    </h1>
+                    <p className="font-body-lg text-body-lg text-on-surface-variant max-w-prose">
+                        FinnaCalc provides editorial-grade financial calculators and
+                        planning tools built on deterministic, decimal-safe math — for
+                        individuals, families, and businesses making decisions that matter.
+                    </p>
+                </Container>
+            </Section>
 
-                <div className="space-y-12">
-                    {/* Hero Section */}
-                    <div className="text-center space-y-4">
-                        <h1 className="text-4xl font-bold text-foreground text-balance">Empowering Smart Financial Decisions</h1>
-                        <p className="text-xl text-muted-foreground max-w-3xl mx-auto text-pretty">
-                            FinnaCalc is your trusted partner in financial planning, providing professional-grade calculators and planning
-                            tools to help individuals and businesses make informed financial decisions.
+            <Section spacing="default">
+                <Container className="flex flex-col gap-stack-lg">
+                    <SectionHeading eyebrow="Mission & Vision" title="Why FinnaCalc exists" />
+                    <div className="grid grid-cols-2 gap-gutter">
+                        <div className="flex flex-col gap-stack-md p-10 border border-outline-variant/30 rounded-lg bg-surface-container-lowest">
+                            <MaterialIcon name="flag" size={28} className="text-primary" />
+                            <h3 className="font-headline-md text-headline-md text-primary">Our mission</h3>
+                            <p className="font-body-md text-body-md text-on-surface-variant">
+                                To democratize financial planning by providing free, accurate, and
+                                easy-to-use calculators that empower everyone to make better
+                                decisions — regardless of background or experience level.
+                            </p>
+                        </div>
+                        <div className="flex flex-col gap-stack-md p-10 border border-outline-variant/30 rounded-lg bg-surface-container-lowest">
+                            <MaterialIcon name="visibility" size={28} className="text-primary" />
+                            <h3 className="font-headline-md text-headline-md text-primary">Our vision</h3>
+                            <p className="font-body-md text-body-md text-on-surface-variant">
+                                To become the most trusted platform for financial calculations
+                                — helping millions achieve their goals through informed,
+                                math-backed decisions rather than guesswork.
+                            </p>
+                        </div>
+                    </div>
+                </Container>
+            </Section>
+
+            <Section spacing="default">
+                <Container className="flex flex-col gap-stack-lg">
+                    <SectionHeading eyebrow="What We Offer" title="Tools built for real decisions" />
+                    <div className="grid grid-cols-3 gap-gutter">
+                        {WHAT_WE_OFFER.map((item) => (
+                            <div
+                                key={item.title}
+                                className="flex flex-col gap-stack-md p-10 border border-outline-variant/30 rounded-lg bg-surface-container-lowest"
+                            >
+                                <MaterialIcon name={item.icon} size={28} className="text-primary" />
+                                <h3 className="font-headline-md text-headline-md text-primary">{item.title}</h3>
+                                <p className="font-body-md text-body-md text-on-surface-variant">{item.body}</p>
+                            </div>
+                        ))}
+                    </div>
+                </Container>
+            </Section>
+
+            <Section spacing="default">
+                <Container className="flex flex-col gap-stack-lg">
+                    <SectionHeading eyebrow="Core Values" title="What we stand for" />
+                    <div className="grid grid-cols-4 gap-gutter">
+                        {VALUES.map((v) => (
+                            <div key={v.title} className="flex flex-col gap-stack-md">
+                                <MaterialIcon name={v.icon} size={24} className="text-primary" />
+                                <h4 className="font-headline-md text-[20px] leading-[1.3] text-primary">{v.title}</h4>
+                                <p className="font-body-md text-body-md text-on-surface-variant">{v.body}</p>
+                            </div>
+                        ))}
+                    </div>
+                </Container>
+            </Section>
+
+            <Section spacing="default">
+                <Container className="flex flex-col gap-stack-lg">
+                    <SectionHeading eyebrow="Contact" title="Get in touch" />
+                    <div className="flex flex-col gap-stack-sm">
+                        <p className="font-body-md text-body-md text-on-surface-variant max-w-prose">
+                            Questions, suggestions, or feedback — we&apos;d love to hear from you.
                         </p>
-                    </div>
-
-                    {/* Mission & Vision */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <Target className="h-6 w-6 text-blue-600" />
-                                    Our Mission
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <p className="text-muted-foreground">
-                                    To democratize financial planning by providing free, accurate, and easy-to-use financial calculators and personal finance tools
-                                    that empower everyone to make better financial decisions, regardless of their background or experience
-                                    level.
-                                </p>
-                            </CardContent>
-                        </Card>
-
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <Heart className="h-6 w-6 text-red-600" />
-                                    Our Vision
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <p className="text-muted-foreground">
-                                    To become the world's most trusted platform for financial calculations and personal finance planning tools, helping
-                                    millions of people achieve their financial goals through informed decision-making.
-                                </p>
-                            </CardContent>
-                        </Card>
-                    </div>
-
-                    {/* What We Offer */}
-                    <div className="space-y-8">
-                        <div className="text-center">
-                            <h2 className="text-3xl font-bold text-foreground mb-4">What We Offer</h2>
-                            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                                Comprehensive financial tools designed for real-world applications
-                            </p>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle className="flex items-center gap-2">
-                                        <Calculator className="h-6 w-6 text-green-600" />
-                                        Business Calculators
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <p className="text-muted-foreground">
-                                        Startup costs, break-even analysis, ROI calculations, cash flow projections, and pricing strategies
-                                        to help businesses plan and grow.
-                                    </p>
-                                </CardContent>
-                            </Card>
-
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle className="flex items-center gap-2">
-                                        <Users className="h-6 w-6 text-purple-600" />
-                                        Personal Finance
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <p className="text-muted-foreground">
-                                        Tax calculators, loan analyzers, investment tools, and budgeting calculators designed for
-                                        individuals and families.
-                                    </p>
-                                </CardContent>
-                            </Card>
-
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle className="flex items-center gap-2">
-                                        <Shield className="h-6 w-6 text-blue-600" />
-                                        Professional Grade
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <p className="text-muted-foreground">
-                                        All calculations are based on current financial formulas and regulations, ensuring accuracy and
-                                        reliability for professional use.
-                                    </p>
-                                </CardContent>
-                            </Card>
+                        <div className="flex flex-col gap-stack-sm pt-stack-md">
+                            <span className="font-body-md text-body-md text-on-surface-variant">
+                                Help &amp; Assistance:{" "}
+                                <a
+                                    href="mailto:helpfinnacalc@gmail.com"
+                                    className="text-primary underline-offset-2 hover:underline"
+                                >
+                                    helpfinnacalc@gmail.com
+                                </a>
+                            </span>
+                            <span className="font-body-md text-body-md text-on-surface-variant">
+                                Business Inquiries:{" "}
+                                <a
+                                    href="mailto:finnacalc@gmail.com"
+                                    className="text-primary underline-offset-2 hover:underline"
+                                >
+                                    finnacalc@gmail.com
+                                </a>
+                            </span>
                         </div>
                     </div>
-
-                    {/* Our Values */}
-                    <div className="space-y-8">
-                        <div className="text-center">
-                            <h2 className="text-3xl font-bold text-foreground mb-4">Our Core Values</h2>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                            <div className="text-center space-y-3">
-                                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto">
-                                    <Shield className="h-8 w-8 text-blue-600" />
-                                </div>
-                                <h3 className="font-semibold text-foreground">Accuracy</h3>
-                                <p className="text-sm text-muted-foreground">
-                                    Every calculation is thoroughly tested and based on current financial standards and regulations.
-                                </p>
-                            </div>
-
-                            <div className="text-center space-y-3">
-                                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
-                                    <Heart className="h-8 w-8 text-green-600" />
-                                </div>
-                                <h3 className="font-semibold text-foreground">Accessibility</h3>
-                                <p className="text-sm text-muted-foreground">
-                                    Financial planning tools should be available to everyone, regardless of their economic background.
-                                </p>
-                            </div>
-
-                            <div className="text-center space-y-3">
-                                <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto">
-                                    <Users className="h-8 w-8 text-purple-600" />
-                                </div>
-                                <h3 className="font-semibold text-foreground">Simplicity</h3>
-                                <p className="text-sm text-muted-foreground">
-                                    Complex financial concepts made simple and understandable for users of all experience levels.
-                                </p>
-                            </div>
-
-                            <div className="text-center space-y-3">
-                                <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto">
-                                    <Award className="h-8 w-8 text-orange-600" />
-                                </div>
-                                <h3 className="font-semibold text-foreground">Excellence</h3>
-                                <p className="text-sm text-muted-foreground">
-                                    Continuous improvement and innovation to provide the best possible user experience.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Why Choose FinnaCalc */}
-                    <div className="bg-background rounded-lg p-8 shadow-sm">
-                        <div className="text-center space-y-4 mb-8">
-                            <h2 className="text-3xl font-bold text-foreground">Why Choose FinnaCalc?</h2>
-                            <p className="text-lg text-muted-foreground">
-                                We're committed to providing the most reliable and user-friendly financial tools available
-                            </p>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div className="space-y-4">
-                                <h3 className="text-xl font-semibold text-foreground">Free & Accessible</h3>
-                                <p className="text-muted-foreground">
-                                    All basic calculations and personal finance tools are completely free to use. No hidden fees, no
-                                    subscriptions, no barriers to financial planning.
-                                </p>
-                            </div>
-
-                            <div className="space-y-4">
-                                <h3 className="text-xl font-semibold text-foreground">Professional Quality</h3>
-                                <p className="text-muted-foreground">
-                                    Our calculators use the same formulas and methodologies employed by financial professionals and
-                                    institutions worldwide.
-                                </p>
-                            </div>
-
-                            <div className="space-y-4">
-                                <h3 className="text-xl font-semibold text-foreground">User-Friendly Design</h3>
-                                <p className="text-muted-foreground">
-                                    Clean, intuitive interfaces that make complex financial calculations simple and straightforward for
-                                    everyone to use.
-                                </p>
-                            </div>
-
-                            <div className="space-y-4">
-                                <h3 className="text-xl font-semibold text-foreground">Constantly Updated</h3>
-                                <p className="text-muted-foreground">
-                                    We regularly update our calculators to reflect current tax rates, interest rates, and financial
-                                    regulations.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Contact Information */}
-                    <div className="text-center space-y-4">
-                        <h2 className="text-2xl font-bold text-foreground">Get in Touch</h2>
-                        <p className="text-muted-foreground max-w-2xl mx-auto">
-                            Have questions, suggestions, or feedback? We'd love to hear from you. Our team is committed to
-                            continuously improving FinnaCalc based on user needs and feedback.
-                        </p>
-                        <div className="space-y-2">
-                            <p className="text-muted-foreground">
-                                <strong>Help & Assistance:</strong> helpfinnacalc@gmail.com
-                            </p>
-                            <p className="text-muted-foreground">
-                                <strong>Business Inquiries:</strong> finnacalc@gmail.com
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </div>
+                </Container>
+            </Section>
         </div>
     )
 }

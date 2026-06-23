@@ -2,8 +2,10 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { TrendingUp, Shield, GraduationCap } from "lucide-react"
+import { Container } from "@/components/ds/container"
+import { Section } from "@/components/ds/section"
+import { Eyebrow } from "@/components/ds/eyebrow"
+import { MaterialIcon } from "@/components/ds/material-icon"
 import InvestingOptions from "@/components/investing-options"
 import StocksPage from "@/components/stocks-page"
 import BondsPage from "@/components/bonds-page"
@@ -11,117 +13,115 @@ import SafeInvestmentsPage from "@/components/safe-investments-page"
 import StockResearchTools from "@/components/stock-research-tools"
 import Link from "next/link"
 
+const TOOLS = [
+    {
+        id: "investing-options",
+        icon: "shield",
+        title: "Safe investing options",
+        body: "Curated safe investment options including index funds, ETFs, and bonds.",
+        cta: "View safe options",
+    },
+    {
+        id: "stock-research",
+        icon: "trending_up",
+        title: "Stock research tools",
+        body: "Basic stock screener and analysis tools designed for beginners.",
+        cta: "Explore tools",
+    },
+] as const
+
 export default function InvestingPage() {
-  const [activeSection, setActiveSection] = useState("");
-  const [initialSymbol, setInitialSymbol] = useState<string | undefined>();
+    const [activeSection, setActiveSection] = useState("")
+    const [initialSymbol, setInitialSymbol] = useState<string | undefined>()
 
-  const handleSectionClick = (section: string, symbol?: string) => {
-    setInitialSymbol(symbol);
-    setActiveSection(section);
-  };
+    const handleSectionClick = (section: string, symbol?: string) => {
+        setInitialSymbol(symbol)
+        setActiveSection(section)
+    }
 
+    const handleBack = () => setActiveSection("")
 
-  const handleBackToTab = () => {
-    setActiveSection("")
-  }
-
-  const renderContent = () => {
     if (activeSection === "investing-options") {
-      return <InvestingOptions onBack={handleBackToTab} onSelect={handleSectionClick} />
+        return <InvestingOptions onBack={handleBack} onSelect={handleSectionClick} />
     }
     if (activeSection === "stocks") {
-      return <StocksPage onBack={() => setActiveSection("investing-options")} initialSymbol={initialSymbol} />
+        return <StocksPage onBack={() => setActiveSection("investing-options")} initialSymbol={initialSymbol} />
     }
     if (activeSection === "bonds") {
-      return <BondsPage onBack={() => setActiveSection("investing-options")} />
+        return <BondsPage onBack={() => setActiveSection("investing-options")} />
     }
     if (activeSection === "safe-investments") {
-      return <SafeInvestmentsPage onBack={() => setActiveSection("investing-options")} />
+        return <SafeInvestmentsPage onBack={() => setActiveSection("investing-options")} />
     }
     if (activeSection === "stock-research") {
-      return <StockResearchTools onBack={handleBackToTab} />
+        return <StockResearchTools onBack={handleBack} />
     }
-    // "investment-education" is now handled by a direct link
-    return (
-        <section className="space-y-8">
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-foreground mb-4">Smart Investing Made Simple</h1>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              Professional investment tools to help individuals and businesses make better financial decisions.
-            </p>
-          </div>
-          <div className="grid md:grid-cols-3 gap-6 mb-8">
-            <Card
-                className="bg-background hover:shadow-lg transition-shadow cursor-pointer border border-border"
-                onClick={() => handleSectionClick("investing-options")}
-            >
-              <CardHeader className="text-center pb-4">
-                <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center mx-auto mb-3">
-                  <Shield className="h-6 w-6 text-white" />
-                </div>
-                <CardTitle className="text-lg text-foreground">Investing</CardTitle>
-                <CardDescription className="text-sm text-muted-foreground">Explore safe investment options</CardDescription>
-              </CardHeader>
-              <CardContent className="text-center">
-                <p className="text-sm text-muted-foreground mb-4">
-                  Explore curated safe investment options including index funds, ETFs, and bonds.
-                </p>
-                <Button className="w-full bg-blue-600 hover:bg-blue-700">View Safe Options</Button>
-              </CardContent>
-            </Card>
-            <Card
-                className="bg-background hover:shadow-lg transition-shadow cursor-pointer border border-border"
-                onClick={() => handleSectionClick("stock-research")}
-            >
-              <CardHeader className="text-center pb-4">
-                <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center mx-auto mb-3">
-                  <TrendingUp className="h-6 w-6 text-white" />
-                </div>
-                <CardTitle className="text-lg text-foreground">Stock Research Tools</CardTitle>
-                <CardDescription className="text-sm text-muted-foreground">
-                  Tools to research and analyze stocks
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="text-center">
-                <p className="text-sm text-muted-foreground mb-4">
-                  Basic stock screener and analysis tools designed for beginners.
-                </p>
-                <Button className="w-full bg-blue-600 hover:bg-blue-700">
-                  Explore Tools
-                </Button>
-              </CardContent>
-            </Card>
-            <Link href="/education">
-              <Card
-                  className="bg-background hover:shadow-lg transition-shadow cursor-pointer border border-border h-full"
-              >
-                <CardHeader className="text-center pb-4">
-                  <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center mx-auto mb-3">
-                    <GraduationCap className="h-6 w-6 text-white" />
-                  </div>
-                  <CardTitle className="text-lg text-foreground">Learn Investing Basics</CardTitle>
-                  <CardDescription className="text-sm text-muted-foreground">Learn the fundamentals of investing</CardDescription>
-                </CardHeader>
-                <CardContent className="text-center">
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Educational content about stocks, bonds, and building a portfolio.
-                  </p>
-                  <Button className="w-full bg-blue-600 hover:bg-blue-700">
-                    Start Learning
-                  </Button>
-                </CardContent>
-              </Card>
-            </Link>
-          </div>
-        </section>
-    )
-  }
 
-  return (
-      <div className="min-h-screen bg-muted/40 dark:bg-gray-900">
-        <main className="container mx-auto px-4 py-8 max-w-6xl">
-          {renderContent()}
-        </main>
-      </div>
-  )
+    return (
+        <div className="flex flex-col">
+            <Section spacing="loose" className="pt-section-gap-sm">
+                <Container className="flex flex-col gap-stack-lg max-w-3xl">
+                    <Eyebrow>Investing</Eyebrow>
+                    <h1 className="font-headline-display text-[56px] leading-[1.1] tracking-[-0.02em] text-primary">
+                        Smart investing made simple
+                    </h1>
+                    <p className="font-body-lg text-body-lg text-on-surface-variant max-w-prose">
+                        Research tools and investment options to help individuals
+                        and businesses make better, math-backed decisions.
+                    </p>
+                </Container>
+            </Section>
+
+            <Section spacing="default">
+                <Container>
+                    <div className="grid grid-cols-3 gap-gutter">
+                        {TOOLS.map((tool) => (
+                            <button
+                                key={tool.id}
+                                type="button"
+                                onClick={() => handleSectionClick(tool.id)}
+                                className="group flex flex-col gap-stack-md p-10 border border-outline-variant/30 rounded-lg bg-surface-container-lowest text-left transition-colors duration-200 hover:border-primary/40"
+                            >
+                                <MaterialIcon name={tool.icon} size={28} className="text-primary" />
+                                <h3 className="font-headline-md text-headline-md text-primary">
+                                    {tool.title}
+                                </h3>
+                                <p className="font-body-md text-body-md text-on-surface-variant flex-grow">
+                                    {tool.body}
+                                </p>
+                                <span className="inline-flex items-center gap-stack-sm pt-stack-sm font-ui-button text-ui-button uppercase tracking-[0.05em] text-primary">
+                                    {tool.cta}
+                                    <MaterialIcon
+                                        name="arrow_forward"
+                                        size={16}
+                                        className="transition-transform duration-200 group-hover:translate-x-0.5"
+                                    />
+                                </span>
+                            </button>
+                        ))}
+                        <Link
+                            href="/education"
+                            className="group flex flex-col gap-stack-md p-10 border border-outline-variant/30 rounded-lg bg-surface-container-lowest transition-colors duration-200 hover:border-primary/40"
+                        >
+                            <MaterialIcon name="school" size={28} className="text-primary" />
+                            <h3 className="font-headline-md text-headline-md text-primary">
+                                Learn investing basics
+                            </h3>
+                            <p className="font-body-md text-body-md text-on-surface-variant flex-grow">
+                                Educational content about stocks, bonds, and building a portfolio.
+                            </p>
+                            <span className="inline-flex items-center gap-stack-sm pt-stack-sm font-ui-button text-ui-button uppercase tracking-[0.05em] text-primary">
+                                Start learning
+                                <MaterialIcon
+                                    name="arrow_forward"
+                                    size={16}
+                                    className="transition-transform duration-200 group-hover:translate-x-0.5"
+                                />
+                            </span>
+                        </Link>
+                    </div>
+                </Container>
+            </Section>
+        </div>
+    )
 }

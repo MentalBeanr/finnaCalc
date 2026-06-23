@@ -1,113 +1,109 @@
 "use client"
 
 import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { FileText, Calculator, BookOpen } from "lucide-react"
+import Link from "next/link"
+import { Container } from "@/components/ds/container"
+import { Section } from "@/components/ds/section"
+import { Eyebrow } from "@/components/ds/eyebrow"
+import { MaterialIcon } from "@/components/ds/material-icon"
 import TaxFilingInterface from "@/components/tax-filing-interface"
 import TaxCalculators from "@/components/tax-calculators"
-import Link from "next/link" // Import Link
+
+const TOOLS = [
+    {
+        id: "tax-filing",
+        icon: "description",
+        title: "Easy tax filing",
+        body: "Guided step-by-step tax preparation. Supports personal, business, and rental properties.",
+        cta: "Start filing",
+    },
+    {
+        id: "tax-calculators",
+        icon: "calculate",
+        title: "Tax calculators & tools",
+        body: "Tax calculator, deduction finder, refund estimator, and withholding calculator to optimize your taxes.",
+        cta: "Explore tools",
+    },
+] as const
 
 export default function TaxesPage() {
     const [activeSection, setActiveSection] = useState("")
 
-    const handleSectionClick = (section: string) => {
-        setActiveSection(section)
+    const handleBack = () => setActiveSection("")
+
+    if (activeSection === "tax-filing") {
+        return <TaxFilingInterface onBack={handleBack} />
     }
-
-    const handleBackToTab = () => {
-        setActiveSection("")
-    }
-
-    const renderContent = () => {
-        if (activeSection === "tax-filing") {
-            return <TaxFilingInterface onBack={handleBackToTab} />
-        }
-        if (activeSection === "tax-calculators") {
-            return <TaxCalculators onBack={handleBackToTab} />
-        }
-        // "tax-education" is now handled by a direct link
-        return (
-            <section className="space-y-8">
-                <div className="text-center mb-8">
-                    <h1 className="text-3xl font-bold text-primary mb-4">Maximize Your Tax Returns</h1>
-                    <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                        Easy tax filing, smart calculators, and tools to help you save money and optimize your tax strategy.
-                    </p>
-                </div>
-
-                <div className="grid md:grid-cols-3 gap-6 mb-8">
-                    <Card
-                        className="bg-background hover:shadow-lg transition-shadow cursor-pointer border border-border flex flex-col"
-                        onClick={() => handleSectionClick("tax-filing")}
-                    >
-                        <CardHeader className="text-center pb-4">
-                            <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center mx-auto mb-3">
-                                <FileText className="h-6 w-6 text-primary-foreground" />
-                            </div>
-                            <CardTitle className="text-lg">Easy Tax Filing</CardTitle>
-                            <CardDescription className="text-sm text-muted-foreground">Simple, step-by-step tax preparation</CardDescription>
-                        </CardHeader>
-                        <CardContent className="text-center flex-grow flex flex-col justify-between">
-                            <p className="text-sm text-muted-foreground mb-4">
-                                File your taxes easily with our guided interface. Supports personal, business, and rental
-                                properties.
-                            </p>
-                            <Button className="w-full bg-blue-600 hover:bg-blue-700 mt-auto">Start Filing</Button>
-                        </CardContent>
-                    </Card>
-                    <Card
-                        className="bg-background hover:shadow-lg transition-shadow cursor-pointer border border-border flex flex-col"
-                        onClick={() => handleSectionClick("tax-calculators")}
-                    >
-                        <CardHeader className="text-center pb-4">
-                            <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center mx-auto mb-3">
-                                <Calculator className="h-6 w-6 text-primary-foreground" />
-                            </div>
-                            <CardTitle className="text-lg">Tax Calculators & Tools</CardTitle>
-                            <CardDescription className="text-sm text-muted-foreground">Calculators to maximize your refund</CardDescription>
-                        </CardHeader>
-                        <CardContent className="text-center flex-grow flex flex-col justify-between">
-                            <p className="text-sm text-muted-foreground mb-4">
-                                Tax calculator, deduction finder, refund estimator, and withholding calculator to optimize your
-                                taxes.
-                            </p>
-                            <Button className="w-full bg-blue-600 hover:bg-blue-700 mt-auto">
-                                Explore Tools
-                            </Button>
-                        </CardContent>
-                    </Card>
-                    <Link href="/education" className="flex">
-                        <Card
-                            className="bg-background hover:shadow-lg transition-shadow cursor-pointer border border-border h-full flex flex-col w-full"
-                        >
-                            <CardHeader className="text-center pb-4">
-                                <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center mx-auto mb-3">
-                                    <BookOpen className="h-6 w-6 text-primary-foreground" />
-                                </div>
-                                <CardTitle className="text-lg">Tax Education</CardTitle>
-                                <CardDescription className="text-sm text-muted-foreground">Learn tax strategies and planning</CardDescription>
-                            </CardHeader>
-                            <CardContent className="text-center flex-grow flex flex-col justify-between">
-                                <p className="text-sm text-muted-foreground mb-4">
-                                    Understand tax brackets, deductions, business vs personal taxes, and planning strategies.
-                                </p>
-                                <Button className="w-full bg-blue-600 hover:bg-blue-700 mt-auto">
-                                    Start Learning
-                                </Button>
-                            </CardContent>
-                        </Card>
-                    </Link>
-                </div>
-            </section>
-        )
+    if (activeSection === "tax-calculators") {
+        return <TaxCalculators onBack={handleBack} />
     }
 
     return (
-        <div className="min-h-screen bg-muted/40">
-            <main className="container mx-auto px-4 py-8 max-w-6xl">
-                {renderContent()}
-            </main>
+        <div className="flex flex-col">
+            <Section spacing="loose" className="pt-section-gap-sm">
+                <Container className="flex flex-col gap-stack-lg max-w-3xl">
+                    <Eyebrow>Taxes</Eyebrow>
+                    <h1 className="font-headline-display text-[56px] leading-[1.1] tracking-[-0.02em] text-primary">
+                        Maximize your tax returns
+                    </h1>
+                    <p className="font-body-lg text-body-lg text-on-surface-variant max-w-prose">
+                        Filing, calculators, and education — tools that help you
+                        understand and optimize your tax position.
+                    </p>
+                </Container>
+            </Section>
+
+            <Section spacing="default">
+                <Container>
+                    <div className="grid grid-cols-3 gap-gutter">
+                        {TOOLS.map((tool) => (
+                            <button
+                                key={tool.id}
+                                type="button"
+                                onClick={() => setActiveSection(tool.id)}
+                                className="group flex flex-col gap-stack-md p-10 border border-outline-variant/30 rounded-lg bg-surface-container-lowest text-left transition-colors duration-200 hover:border-primary/40"
+                            >
+                                <MaterialIcon name={tool.icon} size={28} className="text-primary" />
+                                <h3 className="font-headline-md text-headline-md text-primary">
+                                    {tool.title}
+                                </h3>
+                                <p className="font-body-md text-body-md text-on-surface-variant flex-grow">
+                                    {tool.body}
+                                </p>
+                                <span className="inline-flex items-center gap-stack-sm pt-stack-sm font-ui-button text-ui-button uppercase tracking-[0.05em] text-primary">
+                                    {tool.cta}
+                                    <MaterialIcon
+                                        name="arrow_forward"
+                                        size={16}
+                                        className="transition-transform duration-200 group-hover:translate-x-0.5"
+                                    />
+                                </span>
+                            </button>
+                        ))}
+                        <Link
+                            href="/education"
+                            className="group flex flex-col gap-stack-md p-10 border border-outline-variant/30 rounded-lg bg-surface-container-lowest transition-colors duration-200 hover:border-primary/40"
+                        >
+                            <MaterialIcon name="menu_book" size={28} className="text-primary" />
+                            <h3 className="font-headline-md text-headline-md text-primary">
+                                Tax education
+                            </h3>
+                            <p className="font-body-md text-body-md text-on-surface-variant flex-grow">
+                                Understand tax brackets, deductions vs credits, and
+                                business vs personal tax strategies.
+                            </p>
+                            <span className="inline-flex items-center gap-stack-sm pt-stack-sm font-ui-button text-ui-button uppercase tracking-[0.05em] text-primary">
+                                Start learning
+                                <MaterialIcon
+                                    name="arrow_forward"
+                                    size={16}
+                                    className="transition-transform duration-200 group-hover:translate-x-0.5"
+                                />
+                            </span>
+                        </Link>
+                    </div>
+                </Container>
+            </Section>
         </div>
     )
 }
