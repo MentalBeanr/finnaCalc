@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { MaterialIcon } from "@/components/ds/material-icon"
 import { FILING_STATUS_OPTIONS, formatCents } from "@/lib/returns-shared"
@@ -143,8 +144,17 @@ export function InterviewClient(props: InterviewProps) {
             </div>
 
             {/* Estimate rail */}
-            <aside className="col-span-1 sticky top-24">
+            <aside className="col-span-1 sticky top-24 flex flex-col gap-gutter">
                 <EstimatePanel estimate={props.estimate} hasFilingStatus={Boolean(props.filingStatus)} />
+                {props.estimate && (
+                    <Link
+                        href={`/file/${props.returnId}/review`}
+                        className="inline-flex items-center justify-center gap-stack-sm px-6 py-3 rounded-full bg-primary text-on-primary font-ui-button text-ui-button uppercase tracking-[0.05em] hover:opacity-90 transition-opacity"
+                    >
+                        Review my return
+                        <MaterialIcon name="arrow_forward" size={16} />
+                    </Link>
+                )}
             </aside>
         </div>
     )
