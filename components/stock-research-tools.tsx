@@ -1,35 +1,24 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Container } from "@/components/ds/container"
+import { Section } from "@/components/ds/section"
+import { MaterialIcon } from "@/components/ds/material-icon"
 import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import {
-    ArrowLeft,
-    Search,
-    TrendingUp,
-    TrendingDown,
-    DollarSign,
-    BarChart3,
-    ExternalLink,
-    ChevronRight,
-} from "lucide-react"
 
-// TradingView Widget Component
 const TradingViewWidget = ({ symbol }: { symbol: string }) => {
-    const container = useRef<HTMLDivElement>(null);
+    const container = useRef<HTMLDivElement>(null)
 
     useEffect(() => {
-        const script = document.createElement("script");
-        script.src = "https://s3.tradingview.com/tv.js";
-        script.type = "text/javascript";
-        script.async = true;
+        const script = document.createElement("script")
+        script.src = "https://s3.tradingview.com/tv.js"
+        script.type = "text/javascript"
+        script.async = true
         script.onload = () => {
-            if (window.TradingView) {
+            if (window.TradingView && container.current) {
                 new window.TradingView.widget({
                     autosize: true,
-                    symbol: symbol,
+                    symbol,
                     interval: "D",
                     timezone: "Etc/UTC",
                     theme: "light",
@@ -38,20 +27,19 @@ const TradingViewWidget = ({ symbol }: { symbol: string }) => {
                     toolbar_bg: "#f1f3f6",
                     enable_publishing: false,
                     allow_symbol_change: true,
-                    container_id: container.current?.id
-                });
+                    container_id: container.current.id,
+                })
             }
-        };
-        container.current?.appendChild(script);
-    }, [symbol]);
+        }
+        container.current?.appendChild(script)
+    }, [symbol])
 
     return (
-        <div className="tradingview-widget-container" style={{ height: "400px", width: "100%" }}>
-            <div id={`tradingview_${symbol}`} ref={container} style={{ height: "100%", width: "100%" }}></div>
+        <div style={{ height: "400px", width: "100%" }}>
+            <div id={`tradingview_${symbol}`} ref={container} style={{ height: "100%", width: "100%" }} />
         </div>
-    );
-};
-
+    )
+}
 
 interface StockResearchToolsProps {
     onBack: () => void
@@ -79,13 +67,46 @@ interface SearchResult {
     "4. region": string
 }
 
+const TABS = [
+    { id: "screener", label: "Stock Screener" },
+    { id: "analysis", label: "Company Analysis" },
+    { id: "portfolio", label: "Portfolio Tracker" },
+] as const
+
+const METRICS = [
+    {
+        title: "P/E Ratio (Price-to-Earnings)",
+        body: "How much you pay for each dollar of earnings. Lower is often better.",
+    },
+    {
+        title: "Market Cap",
+        body: "Total value of all company shares. Shows company size.",
+    },
+    {
+        title: "Revenue Growth",
+        body: "How fast the company is growing its sales year over year.",
+    },
+    {
+        title: "Debt-to-Equity",
+        body: "How much debt vs equity the company has. Lower is safer.",
+    },
+]
+
+const CHECKLIST = [
+    "Company has growing revenue",
+    "P/E ratio is reasonable (under 30)",
+    "Company has manageable debt",
+    "Business model makes sense",
+    "Strong competitive position",
+    "Experienced management team",
+]
+
 export default function StockResearchTools({ onBack }: StockResearchToolsProps) {
     const [searchTerm, setSearchTerm] = useState("")
-    const [activeTab, setActiveTab] = useState("screener")
+    const [activeTab, setActiveTab] = useState<"screener" | "analysis" | "portfolio">("screener")
     const [searchResults, setSearchResults] = useState<SearchResult[]>([])
     const [isSearching, setIsSearching] = useState(false)
     const [stockData, setStockData] = useState<StockData | null>(null)
-    const [chartData, setChartData] = useState<ChartDataPoint[]>([])
     const [isLoadingDetails, setIsLoadingDetails] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
@@ -102,15 +123,14 @@ export default function StockResearchTools({ onBack }: StockResearchToolsProps) 
         setIsSearching(true)
         setError(null)
         setStockData(null)
-        setChartData([])
         setSearchResults([])
         try {
             const response = await fetch(`/api/stock-search?keywords=${searchTerm}`)
             const data = await response.json()
             if (!response.ok) throw new Error(data.error || "An error occurred during search.")
             setSearchResults(data)
-        } catch (err: any) {
-            setError(err.message)
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : "Search failed.")
         } finally {
             setIsSearching(false)
         }
@@ -120,13 +140,11 @@ export default function StockResearchTools({ onBack }: StockResearchToolsProps) 
         setIsLoadingDetails(true)
         setError(null)
         setStockData(null)
-        setChartData([])
         setSearchResults([])
         try {
             const response = await fetch(`/api/stock?symbol=${symbol}`)
             const data = await response.json()
-            if (!response.ok)
-                throw new Error(data.error || "An error occurred fetching stock data.")
+            if (!response.ok) throw new Error(data.error || "An error occurred fetching stock data.")
             const { quote, overview, timeSeries } = data
             if (!quote || !overview || !overview.Name || !timeSeries)
                 throw new Error(`Incomplete data found for symbol "${symbol}".`)
@@ -140,337 +158,235 @@ export default function StockResearchTools({ onBack }: StockResearchToolsProps) 
                 marketCap: formatMarketCap(overview.MarketCapitalization),
                 description: overview.Description || "No description available.",
             })
-            const formattedChartData = Object.entries(timeSeries)
-                .map(([date, values]: [string, any]) => ({
-                    date: new Date(date).toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                    }),
-                    price: parseFloat(values["4. close"]),
-                }))
-                .reverse()
-                .slice(-30)
-            setChartData(formattedChartData)
-        } catch (err: any) {
-            setError(err.message)
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : "Failed to load stock data.")
         } finally {
             setIsLoadingDetails(false)
         }
     }
 
+    const isUp = stockData ? parseFloat(stockData.change) >= 0 : true
+
     return (
-        <div className="space-y-6">
-            {/* Header */}
-            <div className="flex items-center gap-4">
-                <Button variant="outline" size="sm" onClick={onBack}>
-                    <ArrowLeft className="h-4 w-4 mr-2" />
-                    Back
-                </Button>
-                <div>
-                    <h1 className="text-3xl font-bold">Stock Research Tools</h1>
-                    <p className="text-muted-foreground">
-                        Simple tools to research and understand investments
+        <div className="flex flex-col">
+            <Section spacing="default" className="pt-section-gap-sm pb-0">
+                <Container className="flex flex-col gap-stack-lg">
+                    <button
+                        onClick={onBack}
+                        className="inline-flex items-center gap-stack-sm self-start font-ui-button text-ui-button uppercase tracking-[0.05em] text-on-surface-variant hover:text-primary transition-colors"
+                    >
+                        <MaterialIcon name="arrow_back" size={16} />
+                        Back
+                    </button>
+                    <h1 className="font-headline-display text-[56px] leading-[1.1] tracking-[-0.02em] text-primary">
+                        Stock Research Tools
+                    </h1>
+                    <p className="font-body-lg text-body-lg text-on-surface-variant max-w-prose">
+                        Simple tools to research and understand investments.
                     </p>
-                </div>
-            </div>
+                </Container>
+            </Section>
 
-            {/* Advertisement Space */}
-            <Card className="bg-gradient-to-r from-purple-50 to-blue-50 border-purple-200">
-                <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <BarChart3 className="h-8 w-8 text-purple-600" />
-                            <div>
-                                <h3 className="font-semibold">Advanced Analytics</h3>
-                                <p className="text-sm text-muted-foreground">
-                                    Professional-grade research tools
-                                </p>
-                            </div>
-                        </div>
-                        <Button size="sm" variant="outline">
-                            Upgrade <ExternalLink className="h-3 w-3 ml-1" />
-                        </Button>
+            <Section spacing="default">
+                <Container className="flex flex-col gap-gutter">
+                    {/* Tabs */}
+                    <div className="flex gap-stack-sm border-b border-outline-variant/30">
+                        {TABS.map((tab) => (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id)}
+                                className={`px-4 py-3 font-ui-button text-ui-button uppercase tracking-[0.05em] border-b-2 transition-colors ${
+                                    activeTab === tab.id
+                                        ? "border-primary text-primary"
+                                        : "border-transparent text-on-surface-variant hover:text-primary"
+                                }`}
+                            >
+                                {tab.label}
+                            </button>
+                        ))}
                     </div>
-                </CardContent>
-            </Card>
 
-            {/* Tool Tabs */}
-            <div className="flex gap-2 border-b">
-                <button
-                    onClick={() => setActiveTab("screener")}
-                    className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                        activeTab === "screener"
-                            ? "border-primary text-primary"
-                            : "border-transparent text-muted-foreground hover:text-foreground"
-                    }`}
-                >
-                    Stock Screener
-                </button>
-                <button
-                    onClick={() => setActiveTab("analysis")}
-                    className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                        activeTab === "analysis"
-                            ? "border-primary text-primary"
-                            : "border-transparent text-muted-foreground hover:text-foreground"
-                    }`}
-                >
-                    Company Analysis
-                </button>
-                <button
-                    onClick={() => setActiveTab("portfolio")}
-                    className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                        activeTab === "portfolio"
-                            ? "border-primary text-primary"
-                            : "border-transparent text-muted-foreground hover:text-foreground"
-                    }`}
-                >
-                    Portfolio Tracker
-                </button>
-            </div>
-
-            {/* Stock Screener Tab */}
-            {activeTab === "screener" && (
-                <div className="space-y-6">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Find Stocks</CardTitle>
-                            <CardDescription>
-                                Search for stocks by company name or ticker symbol.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="flex gap-4 mb-6">
-                                <div className="flex-1">
+                    {/* Stock Screener */}
+                    {activeTab === "screener" && (
+                        <div className="border border-outline-variant/30 rounded-lg bg-surface-container-lowest p-10 flex flex-col gap-stack-lg">
+                            <div>
+                                <h2 className="font-headline-md text-headline-md text-primary mb-stack-sm">
+                                    Find Stocks
+                                </h2>
+                                <p className="font-body-md text-body-md text-on-surface-variant mb-stack-lg">
+                                    Search for stocks by company name or ticker symbol.
+                                </p>
+                                <div className="flex gap-stack-md">
                                     <Input
                                         placeholder="Search by company name or symbol (e.g., Apple, MSFT)"
                                         value={searchTerm}
-                                        onChange={e => setSearchTerm(e.target.value)}
-                                        className="w-full"
-                                        onKeyDown={e => {
-                                            if (e.key === "Enter") findSymbols()
-                                        }}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        onKeyDown={(e) => e.key === "Enter" && findSymbols()}
+                                        className="flex-1"
                                     />
+                                    <button
+                                        onClick={findSymbols}
+                                        disabled={isSearching}
+                                        className="inline-flex items-center gap-stack-sm px-6 py-2 rounded-lg border border-outline-variant/40 font-ui-button text-ui-button uppercase tracking-[0.05em] text-on-surface-variant hover:border-primary/40 hover:text-primary transition-colors disabled:opacity-50"
+                                    >
+                                        <MaterialIcon name="search" size={16} />
+                                        {isSearching ? "Searching..." : "Search"}
+                                    </button>
                                 </div>
-                                <Button onClick={findSymbols} disabled={isSearching}>
-                                    {isSearching ? (
-                                        "Searching..."
-                                    ) : (
-                                        <>
-                                            <Search className="h-4 w-4 mr-2" />
-                                            Search
-                                        </>
-                                    )}
-                                </Button>
                             </div>
 
-                            {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
+                            {error && (
+                                <p className="font-body-md text-body-md text-error">{error}</p>
+                            )}
 
-                            <div className="grid gap-4">
-                                {/* Search Results */}
-                                {searchResults.length > 0 && (
-                                    <div className="space-y-2">
-                                        <h4 className="font-semibold">Search Results</h4>
-                                        {searchResults.map(result => (
-                                            <Card
-                                                key={result["1. symbol"]}
-                                                className="hover:shadow-md transition-shadow cursor-pointer"
-                                                onClick={() => fetchStockDetails(result["1. symbol"])}
-                                            >
-                                                <CardContent className="p-3 flex justify-between items-center">
-                                                    <div>
-                                                        <span className="font-bold">{result["1. symbol"]}</span>
-                                                        <p className="text-sm text-muted-foreground">
-                                                            {result["2. name"]}
-                                                        </p>
-                                                    </div>
-                                                    <div className="flex items-center gap-2">
-                                                        <Badge variant="outline">{result["4. region"]}</Badge>
-                                                        <ChevronRight className="h-5 w-5 text-gray-400" />
-                                                    </div>
-                                                </CardContent>
-                                            </Card>
-                                        ))}
-                                    </div>
-                                )}
+                            {searchResults.length > 0 && (
+                                <div className="flex flex-col gap-stack-sm">
+                                    <p className="font-ui-button text-ui-button uppercase tracking-[0.05em] text-on-surface-variant">
+                                        Search Results
+                                    </p>
+                                    {searchResults.map((result) => (
+                                        <button
+                                            key={result["1. symbol"]}
+                                            onClick={() => fetchStockDetails(result["1. symbol"])}
+                                            className="flex items-center justify-between p-4 rounded-lg border border-outline-variant/30 hover:border-primary/40 transition-colors text-left"
+                                        >
+                                            <div>
+                                                <p className="font-body-md text-body-md text-primary font-semibold">
+                                                    {result["1. symbol"]}
+                                                </p>
+                                                <p className="font-body-md text-body-md text-on-surface-variant">
+                                                    {result["2. name"]}
+                                                </p>
+                                            </div>
+                                            <div className="flex items-center gap-stack-sm">
+                                                <span className="font-label-caps text-label-caps uppercase tracking-[0.15em] text-on-surface-variant border border-outline-variant/40 rounded-full px-3 py-1">
+                                                    {result["4. region"]}
+                                                </span>
+                                                <MaterialIcon name="chevron_right" size={16} className="text-on-surface-variant" />
+                                            </div>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
 
-                                {/* Loading and Final Data Display */}
-                                {isLoadingDetails && (
-                                    <p className="text-sm text-muted-foreground">Loading details...</p>
-                                )}
-                                {stockData && (
-                                    <>
-                                        <Card className="shadow-md transition-shadow">
-                                            <CardContent className="p-4">
-                                                <div className="flex items-center justify-between">
-                                                    <div className="flex-1 min-w-0">
-                                                        <div className="flex items-center gap-2">
-                                                            <h3 className="font-bold text-lg">
-                                                                {stockData.symbol}
-                                                            </h3>
-                                                            <Badge
-                                                                variant={
-                                                                    parseFloat(stockData.change) >= 0
-                                                                        ? "default"
-                                                                        : "destructive"
-                                                                }
-                                                            >
-                                                                {parseFloat(stockData.change) >= 0 ? (
-                                                                    <TrendingUp className="h-3 w-3 mr-1" />
-                                                                ) : (
-                                                                    <TrendingDown className="h-3 w-3 mr-1" />
-                                                                )}
-                                                                {stockData.changePercent}%
-                                                            </Badge>
-                                                        </div>
-                                                        <p className="text-sm text-muted-foreground truncate">
-                                                            {stockData.name}
-                                                        </p>
-                                                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                                                            {stockData.description}
-                                                        </p>
-                                                    </div>
-                                                    <div className="text-right flex-shrink-0 pl-4">
-                                                        <div className="text-2xl font-bold">
-                                                            {stockData.price}
-                                                        </div>
-                                                        <div className="text-xs text-muted-foreground">
-                                                            P/E: {stockData.peRatio} • Cap: {stockData.marketCap}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </CardContent>
-                                        </Card>
-                                        {stockData.symbol && (
-                                            <Card>
-                                                <CardHeader>
-                                                    <CardTitle>TradingView Chart</CardTitle>
-                                                </CardHeader>
-                                                <CardContent>
-                                                    <TradingViewWidget symbol={stockData.symbol} />
-                                                </CardContent>
-                                            </Card>
-                                        )}
-                                    </>
-                                )}
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
-            )}
-            {/* Other tabs remain unchanged */}
-            {activeTab === "analysis" && (
-                <div className="space-y-6">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Company Analysis</CardTitle>
-                            <CardDescription>
-                                Understand key financial metrics in simple terms
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-6">
-                            <div className="grid md:grid-cols-2 gap-6">
-                                <Card>
-                                    <CardHeader>
-                                        <CardTitle className="text-lg">Key Metrics Explained</CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="space-y-4">
-                                        <div className="space-y-3">
-                                            <div className="p-3 border rounded-lg">
-                                                <h4 className="font-medium">
-                                                    P/E Ratio (Price-to-Earnings)
-                                                </h4>
-                                                <p className="text-sm text-muted-foreground">
-                                                    How much you pay for each dollar of earnings. Lower is
-                                                    often better.
-                                                </p>
-                                            </div>
-                                            <div className="p-3 border rounded-lg">
-                                                <h4 className="font-medium">Market Cap</h4>
-                                                <p className="text-sm text-muted-foreground">
-                                                    Total value of all company shares. Shows company size.
-                                                </p>
-                                            </div>
-                                            <div className="p-3 border rounded-lg">
-                                                <h4 className="font-medium">Revenue Growth</h4>
-                                                <p className="text-sm text-muted-foreground">
-                                                    How fast the company is growing its sales year over year.
-                                                </p>
-                                            </div>
-                                            <div className="p-3 border rounded-lg">
-                                                <h4 className="font-medium">Debt-to-Equity</h4>
-                                                <p className="text-sm text-muted-foreground">
-                                                    How much debt vs equity the company has. Lower is safer.
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-
-                                <Card>
-                                    <CardHeader>
-                                        <CardTitle className="text-lg">Analysis Checklist</CardTitle>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <div className="space-y-3">
-                                            <div className="flex items-center gap-2">
-                                                <input type="checkbox" className="rounded" />
-                                                <span className="text-sm">Company has growing revenue</span>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <input type="checkbox" className="rounded" />
-                                                <span className="text-sm">
-													P/E ratio is reasonable (under 30)
-												</span>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <input type="checkbox" className="rounded" />
-                                                <span className="text-sm">Company has manageable debt</span>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <input type="checkbox" className="rounded" />
-                                                <span className="text-sm">Business model makes sense</span>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <input type="checkbox" className="rounded" />
-                                                <span className="text-sm">Strong competitive position</span>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <input type="checkbox" className="rounded" />
-                                                <span className="text-sm">Experienced management team</span>
-                                            </div>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
-            )}
-            {activeTab === "portfolio" && (
-                <div className="space-y-6">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Portfolio Tracker</CardTitle>
-                            <CardDescription>
-                                Monitor your investments simply and clearly
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-center py-12">
-                                <DollarSign className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                                <h3 className="text-xl font-semibold mb-2">
-                                    Start Tracking Your Portfolio
-                                </h3>
-                                <p className="text-muted-foreground mb-6">
-                                    Add your investments to see performance, allocation, and get
-                                    personalized insights.
+                            {isLoadingDetails && (
+                                <p className="font-body-md text-body-md text-on-surface-variant">
+                                    Loading details...
                                 </p>
-                                <Button>Add Your First Investment</Button>
+                            )}
+
+                            {stockData && (
+                                <div className="flex flex-col gap-stack-lg">
+                                    <div className="flex items-start justify-between p-6 rounded-lg border border-outline-variant/30">
+                                        <div>
+                                            <div className="flex items-center gap-stack-sm mb-stack-sm">
+                                                <p className="font-headline-md text-headline-md text-primary">
+                                                    {stockData.symbol}
+                                                </p>
+                                                <span
+                                                    className={`inline-flex items-center gap-1 font-label-caps text-label-caps uppercase tracking-[0.15em] rounded-full px-3 py-1 ${
+                                                        isUp
+                                                            ? "bg-success/10 text-success"
+                                                            : "bg-error/10 text-error"
+                                                    }`}
+                                                >
+                                                    <MaterialIcon
+                                                        name={isUp ? "trending_up" : "trending_down"}
+                                                        size={12}
+                                                    />
+                                                    {stockData.changePercent}%
+                                                </span>
+                                            </div>
+                                            <p className="font-body-md text-body-md text-on-surface-variant mb-stack-sm">
+                                                {stockData.name}
+                                            </p>
+                                            <p className="font-body-md text-body-md text-on-surface-variant max-w-prose line-clamp-2">
+                                                {stockData.description}
+                                            </p>
+                                        </div>
+                                        <div className="text-right pl-stack-lg flex-shrink-0">
+                                            <p className="font-headline-md text-headline-md text-primary">
+                                                {stockData.price}
+                                            </p>
+                                            <p className="font-body-md text-body-md text-on-surface-variant">
+                                                P/E: {stockData.peRatio} · Cap: {stockData.marketCap}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="border border-outline-variant/30 rounded-lg p-6">
+                                        <p className="font-ui-button text-ui-button uppercase tracking-[0.05em] text-on-surface-variant mb-stack-md">
+                                            TradingView Chart
+                                        </p>
+                                        <TradingViewWidget symbol={stockData.symbol} />
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Company Analysis */}
+                    {activeTab === "analysis" && (
+                        <div className="grid grid-cols-2 gap-gutter">
+                            <div className="border border-outline-variant/30 rounded-lg bg-surface-container-lowest p-10 flex flex-col gap-stack-lg">
+                                <h2 className="font-headline-md text-headline-md text-primary">
+                                    Key Metrics Explained
+                                </h2>
+                                <div className="flex flex-col gap-stack-md">
+                                    {METRICS.map((metric) => (
+                                        <div
+                                            key={metric.title}
+                                            className="p-4 border border-outline-variant/30 rounded-lg"
+                                        >
+                                            <p className="font-body-md text-body-md text-primary font-medium mb-1">
+                                                {metric.title}
+                                            </p>
+                                            <p className="font-body-md text-body-md text-on-surface-variant">
+                                                {metric.body}
+                                            </p>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
-                        </CardContent>
-                    </Card>
-                </div>
-            )}
+                            <div className="border border-outline-variant/30 rounded-lg bg-surface-container-lowest p-10 flex flex-col gap-stack-lg">
+                                <h2 className="font-headline-md text-headline-md text-primary">
+                                    Analysis Checklist
+                                </h2>
+                                <div className="flex flex-col gap-stack-md">
+                                    {CHECKLIST.map((item) => (
+                                        <label
+                                            key={item}
+                                            className="flex items-center gap-stack-md font-body-md text-body-md text-on-surface-variant cursor-pointer"
+                                        >
+                                            <input type="checkbox" className="rounded" />
+                                            {item}
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Portfolio Tracker */}
+                    {activeTab === "portfolio" && (
+                        <div className="border border-outline-variant/30 rounded-lg bg-surface-container-lowest p-10">
+                            <div className="flex flex-col items-center text-center py-stack-xl gap-stack-lg">
+                                <MaterialIcon name="account_balance_wallet" size={48} className="text-on-surface-variant" />
+                                <div>
+                                    <h2 className="font-headline-md text-headline-md text-primary mb-stack-sm">
+                                        Start Tracking Your Portfolio
+                                    </h2>
+                                    <p className="font-body-md text-body-md text-on-surface-variant max-w-prose">
+                                        Add your investments to see performance, allocation, and get personalized insights.
+                                    </p>
+                                </div>
+                                <button className="inline-flex items-center gap-stack-sm px-6 py-3 rounded-lg border border-outline-variant/40 font-ui-button text-ui-button uppercase tracking-[0.05em] text-on-surface-variant hover:border-primary/40 hover:text-primary transition-colors">
+                                    Add Your First Investment
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </Container>
+            </Section>
         </div>
     )
 }
