@@ -64,6 +64,7 @@ export const deductionType = pgEnum("deduction_type", [
     "medical",
     "student_loan",
     "aotc_expenses",
+    "cdcc_expenses",
     "property_tax",
     "other",
 ])

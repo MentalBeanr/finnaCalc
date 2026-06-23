@@ -42,6 +42,10 @@ export interface FederalReturnInput {
     studentLoanInterestCents?: number
     qualifiedEducationExpensesCents?: number
     numEligibleStudents?: number
+
+    // Child and Dependent Care Credit (Form 2441)
+    dependentCareExpensesCents?: number
+    numDependentCarePersons?: number
 }
 
 export interface FederalReturnResult {
@@ -60,6 +64,7 @@ export interface FederalReturnResult {
     studentLoanInterestDeductionCents: number
     aotcCreditCents: number
     aotcRefundableCents: number
+    cdccCreditCents: number
     withholdingCents: number
     taxableSocialSecurityCents: number
     /** Positive = refund, negative = amount owed. */
@@ -93,6 +98,8 @@ export function computeFederalReturn(input: FederalReturnInput): FederalReturnRe
                 "in.studentLoanInterest": input.studentLoanInterestCents ?? 0,
                 "in.qualifiedEdExp": input.qualifiedEducationExpensesCents ?? 0,
                 "in.numStudents": input.numEligibleStudents ?? 0,
+                "in.dependentCareExpenses": input.dependentCareExpensesCents ?? 0,
+                "in.numDependentCarePersons": input.numDependentCarePersons ?? 0,
             },
         },
         FEDERAL_TY2024,
@@ -109,13 +116,14 @@ export function computeFederalReturn(input: FederalReturnInput): FederalReturnRe
         usingItemizedDeduction: v("WS.usingItemized") === 1,
         taxableIncomeCents: v("F1040.L15"),
         taxBeforeCreditsCents: v("F1040.L16"),
-        creditsCents: v("F1040.L19") + v("F1040.L28"),
+        creditsCents: v("F1040.L19") + v("F1040.L28") + v("WS.cdccCredit"),
         taxAfterCreditsCents: v("F1040.L22"),
         selfEmploymentTaxCents: v("SchedSE.L10"),
         earnedIncomeCreditCents: v("F1040.L27a"),
         studentLoanInterestDeductionCents: v("Sch1.L21"),
         aotcCreditCents: v("WS.aotcCredit"),
         aotcRefundableCents: v("F1040.L29"),
+        cdccCreditCents: v("WS.cdccCredit"),
         withholdingCents: v("F1040.L33"),
         taxableSocialSecurityCents: v("F1040.L6b"),
         refundOrDueCents: v("F1040.L34") - v("F1040.L37"),

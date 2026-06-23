@@ -193,6 +193,41 @@ export const AOTC_PHASE_OUT: Record<StatusCode, PhaseOutRange | null> = {
     [STATUS.qss]: { start: C(80_000), end: C(90_000) },
 }
 
+// ── Child and Dependent Care Credit (IRC §21, Form 2441) ─────────────────────
+// IRS Rev. Proc. 2023-34. MFS is not eligible (null). The credit is
+// non-refundable and applies to qualified dependent care expenses up to the
+// per-person cap. The applicable percentage steps down as AGI rises.
+
+/** Qualified expense caps (Form 2441 line 3b). */
+export const CDCC_EXPENSE_CAP_ONE_CENT = C(3_000)
+export const CDCC_EXPENSE_CAP_TWO_PLUS_CENTS = C(6_000)
+
+/**
+ * Form 2441 applicable-percentage table (IRS Publication 503, Table 1).
+ * Each entry is [agiThresholdCents, rateBp]. Apply the rate for the highest
+ * threshold that does NOT exceed the taxpayer's AGI.
+ *
+ * At AGI > $43,000 the rate is capped at 20% (2,000 bp).
+ */
+export const CDCC_RATE_TABLE: ReadonlyArray<readonly [number, number]> = [
+    [C(43_000), 2_000],
+    [C(41_000), 2_100],
+    [C(39_000), 2_200],
+    [C(37_000), 2_300],
+    [C(35_000), 2_400],
+    [C(33_000), 2_500],
+    [C(31_000), 2_600],
+    [C(29_000), 2_700],
+    [C(27_000), 2_800],
+    [C(25_000), 2_900],
+    [C(23_000), 3_000],
+    [C(21_000), 3_100],
+    [C(19_000), 3_200],
+    [C(17_000), 3_300],
+    [C(15_000), 3_400],
+    [0,         3_500],
+] as const
+
 // ── Earned Income Tax Credit (EITC) — TY2024 ─────────────────────────────────
 // IRS Rev. Proc. 2023-34, §3.06. All money in cents.
 
