@@ -13,5 +13,8 @@ export const FEDERAL_TY2024: Ruleset = {
     jurisdiction: "federal",
     taxYear: 2024,
     nodes: FEDERAL_TY2024_NODES,
-    cycles: [],
+    // Sch1.L21 (student loan interest deduction) depends on F1040.L11 (AGI)
+    // for its phase-out, and F1040.L11 subtracts Sch1.L21 — a genuine cycle
+    // resolved by the fixed-point solver.
+    cycles: [["Sch1.L21", "F1040.L11"]],
 }

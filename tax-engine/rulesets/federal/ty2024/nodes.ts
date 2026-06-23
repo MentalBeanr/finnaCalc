@@ -12,6 +12,11 @@ import { applyBp, nonNegative } from "@/tax-engine/core/money"
 import { bracketTax, marginalRateBp } from "@/tax-engine/core/primitives"
 import type { Read, RuleNode } from "@/tax-engine/core/types"
 import {
+    AOTC_PHASE_OUT,
+    AOTC_REFUNDABLE_BP,
+    AOTC_TIER1_CAP_CENTS,
+    AOTC_TIER2_CAP_CENTS,
+    AOTC_TIER2_RATE_BP,
     BRACKETS,
     CAP_LOSS_LIMIT_CENTS,
     CTC_PER_CHILD_CENTS,
@@ -27,9 +32,11 @@ import {
     SE_NET_EARNINGS_BP,
     SE_SS_RATE_BP,
     SE_SS_WAGE_BASE_CENTS,
+    SLI_PHASE_OUT,
     SS_THRESHOLDS_CENTS,
     STANDARD_DEDUCTION_CENTS,
     STATUS,
+    STUDENT_LOAN_INTEREST_MAX_CENTS,
     type StatusCode,
 } from "./params"
 
@@ -153,6 +160,11 @@ export const FEDERAL_TY2024_NODES: RuleNode[] = [
     input("in.charitableContr", "money", "Charitable contributions (Schedule A line 16)"),
     input("in.medicalExpenses", "money", "Total medical expenses (Schedule A line 1 — before AGI floor)"),
 
+    // Education — above-the-line deduction + AOTC credit
+    input("in.studentLoanInterest", "money", "Student loan interest paid (Form 1098-E), Schedule 1 line 21"),
+    input("in.qualifiedEdExp", "money", "Qualified education expenses for AOTC (Form 8863)"),
+    input("in.numStudents", "count", "Number of eligible students for AOTC (Form 8863)"),
+
     // ── Dividends ─────────────────────────────────────────────────────────────
     computed(
         "F1040.L3b",
@@ -249,6 +261,26 @@ export const FEDERAL_TY2024_NODES: RuleNode[] = [
         "Schedule 1 line 20 — IRA deduction (capped at $7,000 for 2024)",
     ),
 
+    // Student loan interest deduction (IRC §221) — phases out based on AGI,
+    // creating a circular dependency with F1040.L11 that the fixed-point solver resolves.
+    computed(
+        "Sch1.L21",
+        "money",
+        ["in.filingStatus", "in.studentLoanInterest", "F1040.L11"],
+        (r) => {
+            const raw = r("in.studentLoanInterest")
+            if (raw <= 0) return 0
+            const range = SLI_PHASE_OUT[statusOf(r)]
+            if (!range) return 0
+            const capped = Math.min(raw, STUDENT_LOAN_INTEREST_MAX_CENTS)
+            const agi = r("F1040.L11")
+            if (agi >= range.end) return 0
+            if (agi <= range.start) return capped
+            return Math.round(capped * (range.end - agi) / (range.end - range.start))
+        },
+        "Schedule 1 line 21 — student loan interest deduction (IRC §221; phases out $75k-$90k single, $155k-$185k MFJ)",
+    ),
+
     // ── AGI (Form 1040 line 11) ────────────────────────────────────────────────
     computed(
         "F1040.L11",
@@ -262,6 +294,7 @@ export const FEDERAL_TY2024_NODES: RuleNode[] = [
             "in.schedCNet",
             "Sch1.L15",
             "Sch1.L20",
+            "Sch1.L21",
         ],
         (r) =>
             r("F1040.L1a") +
@@ -271,7 +304,8 @@ export const FEDERAL_TY2024_NODES: RuleNode[] = [
             r("F1040.L7") +
             r("in.schedCNet") -
             r("Sch1.L15") -
-            r("Sch1.L20"),
+            r("Sch1.L20") -
+            r("Sch1.L21"),
         "Form 1040 line 11 — adjusted gross income",
     ),
 
@@ -367,15 +401,58 @@ export const FEDERAL_TY2024_NODES: RuleNode[] = [
         (r) => Math.max(0, Math.round(r("in.numChildren"))) * CTC_PER_CHILD_CENTS,
         "Form 1040 line 19 — Child Tax Credit (simplified; $2,000 per qualifying child)",
     ),
+
+    // AOTC raw (before phase-out): 100% of first $2k + 25% of next $2k, per eligible student.
+    computed(
+        "WS.aotcRaw",
+        "money",
+        ["in.qualifiedEdExp", "in.numStudents"],
+        (r) => {
+            const expenses = r("in.qualifiedEdExp")
+            const n = Math.max(1, Math.round(r("in.numStudents")))
+            if (expenses <= 0) return 0
+            const tier1Cap = AOTC_TIER1_CAP_CENTS * n
+            const tier2Cap = AOTC_TIER2_CAP_CENTS * n
+            const tier1 = Math.min(expenses, tier1Cap)
+            const tier2 = Math.min(nonNegative(expenses - tier1Cap), tier2Cap)
+            return tier1 + applyBp(tier2, AOTC_TIER2_RATE_BP)
+        },
+        "Form 8863 — AOTC raw credit (100% of first $2k + 25% of next $2k per student, IRC §25A(b))",
+    ),
+    // AOTC after AGI phase-out. MFS not eligible.
+    computed(
+        "WS.aotcCredit",
+        "money",
+        ["in.filingStatus", "WS.aotcRaw", "F1040.L11"],
+        (r) => {
+            const raw = r("WS.aotcRaw")
+            if (raw <= 0) return 0
+            const range = AOTC_PHASE_OUT[statusOf(r)]
+            if (!range) return 0
+            const agi = r("F1040.L11")
+            if (agi >= range.end) return 0
+            if (agi <= range.start) return raw
+            return Math.round(raw * (range.end - agi) / (range.end - range.start))
+        },
+        "Form 8863 — AOTC after AGI phase-out ($80k-$90k single, $160k-$180k MFJ)",
+    ),
+    // Non-refundable 60% of AOTC (reduces tax at line 22).
+    computed(
+        "F1040.L28",
+        "money",
+        ["WS.aotcCredit"],
+        (r) => applyBp(r("WS.aotcCredit"), 6_000),
+        "Form 1040 line 28 — non-refundable AOTC (60% of credit, IRC §25A(i))",
+    ),
     computed(
         "F1040.L22",
         "money",
-        ["F1040.L16", "F1040.L19"],
-        (r) => nonNegative(r("F1040.L16") - r("F1040.L19")),
-        "Form 1040 line 22 — tax after non-refundable credits",
+        ["F1040.L16", "F1040.L19", "F1040.L28"],
+        (r) => nonNegative(r("F1040.L16") - r("F1040.L19") - r("F1040.L28")),
+        "Form 1040 line 22 — tax after non-refundable credits (CTC + AOTC non-refundable)",
     ),
 
-    // ── Refundable credits (EITC) ──────────────────────────────────────────────
+    // ── Refundable credits (EITC, AOTC refundable) ────────────────────────────
     computed(
         "WS.eitcEarnedIncome",
         "money",
@@ -416,13 +493,22 @@ export const FEDERAL_TY2024_NODES: RuleNode[] = [
         "Form 1040 line 27a — Earned Income Credit (IRC §32)",
     ),
 
+    // Refundable 40% of AOTC (treated as a payment like EITC).
+    computed(
+        "F1040.L29",
+        "money",
+        ["WS.aotcCredit"],
+        (r) => applyBp(r("WS.aotcCredit"), AOTC_REFUNDABLE_BP),
+        "Form 1040 line 29 — refundable AOTC (40% of credit, IRC §25A(i))",
+    ),
+
     // ── Total payments (withholding + refundable credits) ─────────────────────
     computed(
         "F1040.L33",
         "money",
-        ["in.withholding", "F1040.L27a"],
-        (r) => r("in.withholding") + r("F1040.L27a"),
-        "Form 1040 line 33 — total payments (withholding + EITC)",
+        ["in.withholding", "F1040.L27a", "F1040.L29"],
+        (r) => r("in.withholding") + r("F1040.L27a") + r("F1040.L29"),
+        "Form 1040 line 33 — total payments (withholding + EITC + refundable AOTC)",
     ),
 
     // ── Refund / amount owed ───────────────────────────────────────────────────
