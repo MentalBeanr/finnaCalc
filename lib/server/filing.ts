@@ -7,7 +7,7 @@
  * and testable without a live IRS connection: the StubTransmitter accepts; a real
  * partner/MeF transmitter implementing the same interface is the production path.
  */
-import { and, desc, eq } from "drizzle-orm"
+import { and, desc, eq, gt, sql } from "drizzle-orm"
 import { getDb } from "@/db/client"
 import {
     consentsSigned,
@@ -157,8 +157,60 @@ async function recordFilingEvent(
     toState: string,
     eventKind: string,
     actor: string,
+    payload?: Record<string, unknown>,
 ) {
-    await getDb().insert(filingEvents).values({ filingId, fromState, toState, eventKind, actor })
+    await getDb()
+        .insert(filingEvents)
+        .values({ filingId, fromState, toState, eventKind, actor, payload: payload ?? null })
+}
+
+// ── Fraud controls ────────────────────────────────────────────────────────────
+
+/** $15,000 — refunds above this are flagged for anomaly review. */
+const REFUND_ANOMALY_THRESHOLD_CENTS = 1_500_000
+
+/**
+ * Anti-fraud checks run at the start of submitFederalReturn.
+ * Returns an error string to surface to the user, or null if everything is OK.
+ */
+async function checkFraudGates(
+    returnId: string,
+): Promise<string | null> {
+    const db = getDb()
+
+    // Gate 1: block re-submission if an accepted federal filing already exists.
+    const [alreadyAccepted] = await db
+        .select({ id: filings.id })
+        .from(filings)
+        .where(
+            and(
+                eq(filings.returnId, returnId),
+                eq(filings.jurisdiction, "federal"),
+                eq(filings.state, "accepted"),
+            ),
+        )
+        .limit(1)
+    if (alreadyAccepted) {
+        return "This return has already been accepted by the IRS and cannot be resubmitted."
+    }
+
+    // Gate 2: velocity cap — at most 3 federal submission attempts per return in 24 hours.
+    const window24h = new Date(Date.now() - 24 * 60 * 60 * 1000)
+    const [{ attempts }] = await db
+        .select({ attempts: sql<number>`count(*)::int` })
+        .from(filings)
+        .where(
+            and(
+                eq(filings.returnId, returnId),
+                eq(filings.jurisdiction, "federal"),
+                gt(filings.builtAt, window24h),
+            ),
+        )
+    if (attempts >= 3) {
+        return "Too many submission attempts in 24 hours. Please wait before trying again."
+    }
+
+    return null
 }
 
 /**
@@ -175,6 +227,10 @@ export async function submitFederalReturn(
     if (ret.state !== "signed") {
         return { ok: false, error: "Sign your return before filing." }
     }
+
+    const fraudError = await checkFraudGates(returnId)
+    if (fraudError) return { ok: false, error: fraudError }
+
     const user = await getUserById(userId)
     const userEmail = user?.email
 
@@ -206,6 +262,14 @@ export async function submitFederalReturn(
         })
         .returning()
     await recordFilingEvent(filing.id, null, "built", "build", "system")
+
+    // Gate 3: log an anomaly event for unusually large refunds (non-blocking).
+    if (fresh.refundOrDueCents > REFUND_ANOMALY_THRESHOLD_CENTS) {
+        await recordFilingEvent(filing.id, null, "built", "fraud_flag", "system", {
+            reason: "large_refund",
+            refundCents: fresh.refundOrDueCents,
+        })
+    }
 
     await transitionReturn(userId, returnId, "submitted")
     if (userEmail) {
