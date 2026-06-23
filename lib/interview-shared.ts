@@ -35,6 +35,7 @@ export const DEDUCTION_TYPE_OPTIONS = [
     { value: "medical", label: "Medical expenses" },
     { value: "student_loan", label: "Student loan interest (1098-E)" },
     { value: "aotc_expenses", label: "Education expenses per student (AOTC / Form 8863)" },
+    { value: "cdcc_expenses", label: "Dependent care expenses per person (Form 2441 / CDCC)" },
 ] as const
 
 export type InterviewDeductionType = (typeof DEDUCTION_TYPE_OPTIONS)[number]["value"]
@@ -146,6 +147,9 @@ export function mapToFederalInput(args: {
     // Each aotc_expenses entry represents one eligible student.
     let aotcExpenses = 0
     let numStudents = 0
+    // Each cdcc_expenses entry represents one qualifying care person (child <13 or disabled dependent).
+    let cdccExpenses = 0
+    let numDependentCarePersons = 0
 
     for (const ded of args.deductions) {
         switch (ded.type) {
@@ -169,6 +173,10 @@ export function mapToFederalInput(args: {
                 aotcExpenses += ded.amountCents
                 numStudents += 1
                 break
+            case "cdcc_expenses":
+                cdccExpenses += ded.amountCents
+                numDependentCarePersons += 1
+                break
         }
     }
 
@@ -191,5 +199,7 @@ export function mapToFederalInput(args: {
         studentLoanInterestCents: studentLoanInterest,
         qualifiedEducationExpensesCents: aotcExpenses,
         numEligibleStudents: numStudents,
+        dependentCareExpensesCents: cdccExpenses,
+        numDependentCarePersons,
     }
 }

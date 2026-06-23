@@ -29,6 +29,13 @@
       "when": 1782254671294,
       "tag": "0003_add_aotc_expenses_deduction_type",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1782255382664,
+      "tag": "0004_add_cdcc_expenses_deduction_type",
+      "breakpoints": true
     }
   ]
 }

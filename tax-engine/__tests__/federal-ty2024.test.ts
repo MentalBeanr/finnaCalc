@@ -389,4 +389,71 @@ describe("federal TY2024 — golden fixtures", () => {
         })
         expect(r.aotcCreditCents).toBe(0)
     })
+
+    // ── Child & Dependent Care Credit (Form 2441) ──────────────────────────────
+
+    it("CDCC: 1 qualifying person, $3k expenses, AGI $50k → 20% rate → $600 credit", () => {
+        // AGI $50k > $43k → rate is 20% (floor). Credit = 20% × min($3k, $3k cap) = $600.
+        const r = computeFederalReturn({
+            filingStatus: "single",
+            wagesCents: C(50_000),
+            dependentCareExpensesCents: C(3_000),
+            numDependentCarePersons: 1,
+        })
+        expect(r.cdccCreditCents).toBe(C(600))
+        expect(r.converged).toBe(true)
+    })
+
+    it("CDCC: 1 qualifying person, $5k expenses, AGI $50k → capped at $3k → $600 credit", () => {
+        // Expenses > $3k one-person cap; capped. Rate 20%. Credit = $600.
+        const r = computeFederalReturn({
+            filingStatus: "single",
+            wagesCents: C(50_000),
+            dependentCareExpensesCents: C(5_000),
+            numDependentCarePersons: 1,
+        })
+        expect(r.cdccCreditCents).toBe(C(600))
+    })
+
+    it("CDCC: 2 qualifying persons, $6k expenses, AGI $20k → 32% rate → $1,920 credit", () => {
+        // AGI $20k: bracket [$19k, $21k) → rate 32%. Two-person cap $6k. 32% × $6k = $1,920.
+        const r = computeFederalReturn({
+            filingStatus: "mfj",
+            wagesCents: C(20_000),
+            dependentCareExpensesCents: C(6_000),
+            numDependentCarePersons: 2,
+        })
+        expect(r.cdccCreditCents).toBe(C(1_920))
+    })
+
+    it("CDCC: low AGI ($10k) → max rate 35% → $2,100 credit (2 persons, $6k cap)", () => {
+        // AGI $10k < $15k → rate 35% (floor of table). Credit = 35% × $6k = $2,100.
+        const r = computeFederalReturn({
+            filingStatus: "mfj",
+            wagesCents: C(10_000),
+            dependentCareExpensesCents: C(6_000),
+            numDependentCarePersons: 2,
+        })
+        expect(r.cdccCreditCents).toBe(C(2_100))
+    })
+
+    it("CDCC: MFS filer receives no credit", () => {
+        const r = computeFederalReturn({
+            filingStatus: "mfs",
+            wagesCents: C(40_000),
+            dependentCareExpensesCents: C(3_000),
+            numDependentCarePersons: 1,
+        })
+        expect(r.cdccCreditCents).toBe(0)
+    })
+
+    it("CDCC: $0 expenses → $0 credit", () => {
+        const r = computeFederalReturn({
+            filingStatus: "single",
+            wagesCents: C(60_000),
+            dependentCareExpensesCents: 0,
+            numDependentCarePersons: 1,
+        })
+        expect(r.cdccCreditCents).toBe(0)
+    })
 })

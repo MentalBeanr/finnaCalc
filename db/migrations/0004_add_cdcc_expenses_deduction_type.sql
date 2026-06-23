@@ -1,0 +1,1 @@
+ALTER TYPE "public"."deduction_type" ADD VALUE 'cdcc_expenses' BEFORE 'property_tax';

@@ -86,6 +86,7 @@ export default async function InterviewPage({
             earnedIncomeCreditCents: r.earnedIncomeCreditCents,
             studentLoanInterestDeductionCents: r.studentLoanInterestDeductionCents,
             aotcCreditCents: r.aotcCreditCents,
+            cdccCreditCents: r.cdccCreditCents,
             usingItemizedDeduction: r.usingItemizedDeduction,
             withholdingCents: r.withholdingCents,
             refundOrDueCents: r.refundOrDueCents,

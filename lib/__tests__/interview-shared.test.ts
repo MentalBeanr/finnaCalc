@@ -83,6 +83,8 @@ describe("interview-shared helpers", () => {
                 studentLoanInterestCents: 0,
                 qualifiedEducationExpensesCents: 0,
                 numEligibleStudents: 0,
+                dependentCareExpensesCents: 0,
+                numDependentCarePersons: 0,
             })
         })
 

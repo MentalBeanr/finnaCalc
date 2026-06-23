@@ -18,6 +18,9 @@ import {
     AOTC_TIER2_CAP_CENTS,
     AOTC_TIER2_RATE_BP,
     BRACKETS,
+    CDCC_EXPENSE_CAP_ONE_CENT,
+    CDCC_EXPENSE_CAP_TWO_PLUS_CENTS,
+    CDCC_RATE_TABLE,
     CAP_LOSS_LIMIT_CENTS,
     CTC_PER_CHILD_CENTS,
     EITC_BANDS,
@@ -164,6 +167,10 @@ export const FEDERAL_TY2024_NODES: RuleNode[] = [
     input("in.studentLoanInterest", "money", "Student loan interest paid (Form 1098-E), Schedule 1 line 21"),
     input("in.qualifiedEdExp", "money", "Qualified education expenses for AOTC (Form 8863)"),
     input("in.numStudents", "count", "Number of eligible students for AOTC (Form 8863)"),
+
+    // Child and Dependent Care Credit (Form 2441)
+    input("in.dependentCareExpenses", "money", "Qualified dependent care expenses paid (Form 2441 line 3)"),
+    input("in.numDependentCarePersons", "count", "Number of qualifying persons for CDCC (0/1/2+; Form 2441 line 2)"),
 
     // ── Dividends ─────────────────────────────────────────────────────────────
     computed(
@@ -444,12 +451,45 @@ export const FEDERAL_TY2024_NODES: RuleNode[] = [
         (r) => applyBp(r("WS.aotcCredit"), 6_000),
         "Form 1040 line 28 — non-refundable AOTC (60% of credit, IRC §25A(i))",
     ),
+
+    // Child and Dependent Care Credit (IRC §21, Form 2441).
+    // The applicable percentage is looked up from the Form 2441 AGI rate table
+    // and applied to expenses capped at $3k (1 person) or $6k (2+ persons).
+    // MFS is not eligible. Credit is non-refundable.
+    computed(
+        "WS.cdccRate",
+        "rate_bp",
+        ["in.filingStatus", "F1040.L11"],
+        (r) => {
+            if (statusOf(r) === STATUS.mfs) return 0
+            const agi = r("F1040.L11")
+            for (const [threshold, rateBp] of CDCC_RATE_TABLE) {
+                if (agi >= threshold) return rateBp
+            }
+            return 3_500
+        },
+        "Form 2441 applicable-percentage table (IRC §21(a)(2); 35%→20% as AGI rises)",
+    ),
+    computed(
+        "WS.cdccCredit",
+        "money",
+        ["in.dependentCareExpenses", "in.numDependentCarePersons", "WS.cdccRate"],
+        (r) => {
+            const expenses = r("in.dependentCareExpenses")
+            if (expenses <= 0) return 0
+            const numPersons = Math.round(r("in.numDependentCarePersons"))
+            if (numPersons <= 0) return 0
+            const cap = numPersons >= 2 ? CDCC_EXPENSE_CAP_TWO_PLUS_CENTS : CDCC_EXPENSE_CAP_ONE_CENT
+            return applyBp(Math.min(expenses, cap), r("WS.cdccRate"))
+        },
+        "Form 2441 line 11 — child and dependent care credit (IRC §21)",
+    ),
     computed(
         "F1040.L22",
         "money",
-        ["F1040.L16", "F1040.L19", "F1040.L28"],
-        (r) => nonNegative(r("F1040.L16") - r("F1040.L19") - r("F1040.L28")),
-        "Form 1040 line 22 — tax after non-refundable credits (CTC + AOTC non-refundable)",
+        ["F1040.L16", "F1040.L19", "F1040.L28", "WS.cdccCredit"],
+        (r) => nonNegative(r("F1040.L16") - r("F1040.L19") - r("F1040.L28") - r("WS.cdccCredit")),
+        "Form 1040 line 22 — tax after non-refundable credits (CTC + AOTC non-refundable + CDCC)",
     ),
 
     // ── Refundable credits (EITC, AOTC refundable) ────────────────────────────
