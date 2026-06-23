@@ -4,7 +4,36 @@ import * as React from "react"
 import { useRouter } from "next/navigation"
 import { MaterialIcon } from "@/components/ds/material-icon"
 import { CONSENT_ITEMS } from "@/lib/filing-shared"
-import { acceptConsentsAction, signAction, submitAction } from "./actions"
+import { acceptConsentsAction, reopenAction, signAction, submitAction } from "./actions"
+
+export function ReopenButton({ returnId }: { returnId: string }) {
+    const router = useRouter()
+    const [error, setError] = React.useState<string | null>(null)
+    const [pending, start] = React.useTransition()
+
+    const reopen = () => {
+        setError(null)
+        start(async () => {
+            const result = await reopenAction(returnId)
+            if (!result.ok) setError(result.error)
+            else router.push(`/file/${returnId}/interview`)
+        })
+    }
+
+    return (
+        <div className="flex flex-col gap-stack-sm items-start">
+            <button
+                onClick={reopen}
+                disabled={pending}
+                className="inline-flex items-center gap-stack-sm self-start px-6 py-3 rounded-full bg-primary text-on-primary font-ui-button text-ui-button uppercase tracking-[0.05em] hover:opacity-90 transition-opacity disabled:opacity-50"
+            >
+                <MaterialIcon name="edit" size={16} />
+                {pending ? "Reopening…" : "Fix & resubmit"}
+            </button>
+            {error && <p className="font-body-md text-body-md text-error">{error}</p>}
+        </div>
+    )
+}
 
 export function ConsentStep({ returnId }: { returnId: string }) {
     const router = useRouter()
