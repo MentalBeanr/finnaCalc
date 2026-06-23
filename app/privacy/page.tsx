@@ -1,282 +1,171 @@
-"use client"
-
-import { Shield, Eye, Lock, Database, Users, FileText, ArrowLeft } from "lucide-react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { useRouter } from "next/navigation"
+import { Container } from "@/components/ds/container"
+import { Section } from "@/components/ds/section"
+import { Eyebrow } from "@/components/ds/eyebrow"
 
-export default function PrivacyPolicy() {
-    const router = useRouter();
-
+function PolicySection({ title, children }: { title: string; children: React.ReactNode }) {
     return (
-        <div className="min-h-screen bg-muted/40">
-            <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <div className="mb-4">
-                    <Button variant="outline" onClick={() => router.back()} className="flex items-center gap-2">
-                        <ArrowLeft className="h-4 w-4" />
-                        Back
-                    </Button>
-                </div>
-
-                <div className="space-y-8">
-                    {/* Header */}
-                    <div className="text-center space-y-2">
-                        <h1 className="text-4xl font-bold text-foreground">Privacy Policy</h1>
-                    </div>
-
-                    {/* Introduction */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <Eye className="h-6 w-6 text-blue-600" />
-                                Introduction
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <p className="text-muted-foreground">
-                                FinnaCalc is committed to protecting your privacy. This Privacy Policy explains
-                                how information is collected, used, disclosed, and safeguarded when you visit the website and use the
-                                financial calculators and tools.
-                            </p>
-                            <p className="text-muted-foreground">
-                                By using FinnaCalc, you agree to the collection and use of information in accordance with this policy.
-                                If you do not agree with the policies and practices outlined, please do not use the services.
-                            </p>
-                        </CardContent>
-                    </Card>
-
-                    {/* Information We Collect */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <Database className="h-6 w-6 text-green-600" />
-                                Information Collected
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-6">
-                            <div>
-                                <h3 className="text-lg font-semibold text-foreground mb-3">Information You Provide</h3>
-                                <ul className="space-y-2 text-muted-foreground">
-                                    <li>• Calculator inputs and financial data (processed locally, not stored)</li>
-                                    <li>• Contact information when you reach out</li>
-                                    <li>• Feedback and suggestions you provide</li>
-                                </ul>
-                            </div>
-
-                            <div>
-                                <h3 className="text-lg font-semibold text-foreground mb-3">Automatically Collected Information</h3>
-                                <ul className="space-y-2 text-muted-foreground">
-                                    <li>• Usage data and analytics (page views, time spent, features used)</li>
-                                    <li>• Device information (browser type, operating system, screen resolution)</li>
-                                    <li>• IP address and general location information</li>
-                                    <li>• Cookies and similar tracking technologies</li>
-                                </ul>
-                            </div>
-
-                            <div className="bg-blue-50 p-4 rounded-lg">
-                                <p className="text-sm text-blue-800">
-                                    <strong>Important:</strong> All financial calculations are performed locally in your browser.
-                                    Your personal financial data entered into the calculators is not stored, transmitted, or accessed.
-                                </p>
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    {/* How We Use Information */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <Users className="h-6 w-6 text-purple-600" />
-                                How Information Is Used
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <ul className="space-y-3 text-muted-foreground">
-                                <li>
-                                    • <strong>Service Provision:</strong> To provide and maintain financial calculators and tools
-                                </li>
-                                <li>
-                                    • <strong>Improvement:</strong> To analyze usage patterns and improve services
-                                </li>
-                                <li>
-                                    • <strong>Communication:</strong> To respond to inquiries and provide customer support
-                                </li>
-                                <li>
-                                    • <strong>Security:</strong> To detect, prevent, and address technical issues and security threats
-                                </li>
-                                <li>
-                                    • <strong>Legal Compliance:</strong> To comply with applicable laws and regulations
-                                </li>
-                            </ul>
-                        </CardContent>
-                    </Card>
-
-                    {/* Information Sharing */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <Lock className="h-6 w-6 text-red-600" />
-                                Information Sharing and Disclosure
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <p className="text-muted-foreground">
-                                Personal information is not sold, traded, or otherwise transferred to third parties except in the
-                                following circumstances:
-                            </p>
-                            <ul className="space-y-2 text-muted-foreground">
-                                <li>
-                                    • <strong>Service Providers:</strong> Trusted third parties who assist in operating the website and
-                                    conducting business
-                                </li>
-                                <li>
-                                    • <strong>Legal Requirements:</strong> When required by law or to protect rights and safety
-                                </li>
-                                <li>
-                                    • <strong>Business Transfers:</strong> In connection with a merger, acquisition, or sale of assets
-                                </li>
-                                <li>
-                                    • <strong>Consent:</strong> When you have given explicit consent for sharing
-                                </li>
-                            </ul>
-                        </CardContent>
-                    </Card>
-
-                    {/* Data Security */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <Shield className="h-6 w-6 text-orange-600" />
-                                Data Security
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <p className="text-muted-foreground">
-                                Appropriate technical and organizational security measures are implemented to protect your information
-                                against unauthorized access, alteration, disclosure, or destruction.
-                            </p>
-                            <ul className="space-y-2 text-muted-foreground">
-                                <li>• SSL encryption for data transmission</li>
-                                <li>• Regular security assessments and updates</li>
-                                <li>• Limited access to personal information on a need-to-know basis</li>
-                                <li>• Secure hosting infrastructure</li>
-                            </ul>
-                            <div className="bg-yellow-50 p-4 rounded-lg">
-                                <p className="text-sm text-yellow-800">
-                                    <strong>Note:</strong> While efforts are made to protect your information, no method of transmission over the
-                                    internet or electronic storage is 100% secure. Absolute security cannot be guaranteed.
-                                </p>
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    {/* Cookies and Tracking */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Cookies and Tracking Technologies</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <p className="text-muted-foreground">
-                                Cookies and similar tracking technologies are used to enhance your experience on the website:
-                            </p>
-                            <ul className="space-y-2 text-muted-foreground">
-                                <li>
-                                    • <strong>Essential Cookies:</strong> Required for basic website functionality
-                                </li>
-                                <li>
-                                    • <strong>Analytics Cookies:</strong> To understand how visitors use the site
-                                </li>
-                                <li>
-                                    • <strong>Preference Cookies:</strong> To remember your settings and preferences
-                                </li>
-                            </ul>
-                            <p className="text-muted-foreground">
-                                You can control cookies through your browser settings. However, disabling certain cookies may affect
-                                website functionality.
-                            </p>
-                        </CardContent>
-                    </Card>
-
-                    {/* Your Rights */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Your Privacy Rights</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-muted-foreground mb-4">Depending on your location, you may have the following rights:</p>
-                            <ul className="space-y-2 text-muted-foreground">
-                                <li>
-                                    • <strong>Access:</strong> Request information about the personal data held about you
-                                </li>
-                                <li>
-                                    • <strong>Correction:</strong> Request correction of inaccurate or incomplete information
-                                </li>
-                                <li>
-                                    • <strong>Deletion:</strong> Request deletion of your personal information
-                                </li>
-                                <li>
-                                    • <strong>Portability:</strong> Request a copy of your data in a structured format
-                                </li>
-                                <li>
-                                    • <strong>Objection:</strong> Object to certain processing of your information
-                                </li>
-                            </ul>
-                        </CardContent>
-                    </Card>
-
-                    {/* Children's Privacy */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Children's Privacy</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-muted-foreground">
-                                The services are not intended for children under 13 years of age. Personal
-                                information from children under 13 is not knowingly collected. If you are a parent or guardian and believe your child has provided
-                                personal information, please make contact immediately.
-                            </p>
-                        </CardContent>
-                    </Card>
-
-                    {/* Changes to Policy */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <FileText className="h-6 w-6 text-blue-600" />
-                                Changes to This Privacy Policy
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-muted-foreground">
-                                This Privacy Policy may be updated from time to time. You will be notified of any changes by posting the
-                                new Privacy Policy on this page. You are advised to review this
-                                Privacy Policy periodically for any changes.
-                            </p>
-                        </CardContent>
-                    </Card>
-
-                    {/* Contact Information */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Contact Us</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-muted-foreground mb-4">
-                                If you have any questions about this Privacy Policy or privacy practices, please make contact:
-                            </p>
-                            <div className="space-y-2 text-muted-foreground">
-                                <p>
-                                    <strong>Help & Assistance:</strong> helpfinnacalc@gmail.com
-                                </p>
-                                <p>
-                                    <strong>Inquiries:</strong> finnacalc@gmail.com
-                                </p>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
+        <div className="flex flex-col gap-stack-md pt-stack-lg border-t border-outline-variant/20 first:border-t-0 first:pt-0">
+            <h2 className="font-headline-md text-headline-md text-primary">{title}</h2>
+            <div className="flex flex-col gap-stack-sm font-body-md text-body-md text-on-surface-variant">
+                {children}
             </div>
+        </div>
+    )
+}
+
+export default function PrivacyPage() {
+    return (
+        <div className="flex flex-col">
+            <Section spacing="loose" className="pt-section-gap-sm">
+                <Container className="max-w-3xl flex flex-col gap-stack-md">
+                    <Eyebrow>Legal</Eyebrow>
+                    <h1 className="font-headline-display text-[56px] leading-[1.1] tracking-[-0.02em] text-primary">
+                        Privacy Policy
+                    </h1>
+                    <p className="font-body-md text-body-md text-on-surface-variant">
+                        FinnaCalc is committed to protecting your privacy. This policy explains
+                        how information is collected, used, and safeguarded when you use the site.
+                    </p>
+                </Container>
+            </Section>
+
+            <Section spacing="default">
+                <Container className="max-w-3xl flex flex-col gap-stack-lg">
+                    <PolicySection title="Introduction">
+                        <p>
+                            By using FinnaCalc, you agree to the collection and use of information
+                            in accordance with this policy. If you do not agree, please do not use
+                            the services.
+                        </p>
+                        <p>
+                            FinnaCalc may update this policy from time to time. Continued use of
+                            the service after changes are posted constitutes acceptance of the
+                            revised policy.
+                        </p>
+                    </PolicySection>
+
+                    <PolicySection title="Information collected">
+                        <p className="font-medium text-on-background">Information you provide</p>
+                        <ul className="flex flex-col gap-1 pl-4">
+                            <li>Calculator inputs and financial data (processed locally in your browser — not transmitted or stored)</li>
+                            <li>Contact information if you reach out directly</li>
+                            <li>Feedback and suggestions you provide</li>
+                        </ul>
+                        <p className="font-medium text-on-background">Automatically collected</p>
+                        <ul className="flex flex-col gap-1 pl-4">
+                            <li>Usage analytics (page views, features used, time on page)</li>
+                            <li>Device information (browser type, operating system)</li>
+                            <li>IP address and general location</li>
+                            <li>Cookies and similar tracking technologies</li>
+                        </ul>
+                        <div className="border-l-2 border-primary pl-4 py-2 bg-surface-container-lowest rounded-r-lg">
+                            <p>
+                                <strong className="text-on-background">Important:</strong> All financial
+                                calculations run locally in your browser. Your personal financial data
+                                is never transmitted to or stored on our servers.
+                            </p>
+                        </div>
+                    </PolicySection>
+
+                    <PolicySection title="How information is used">
+                        <ul className="flex flex-col gap-2 pl-4">
+                            <li><strong className="text-on-background">Service provision</strong> — to provide and maintain the calculators and tools</li>
+                            <li><strong className="text-on-background">Improvement</strong> — to analyze usage patterns and improve the service</li>
+                            <li><strong className="text-on-background">Communication</strong> — to respond to inquiries and provide support</li>
+                            <li><strong className="text-on-background">Security</strong> — to detect and address technical issues and threats</li>
+                            <li><strong className="text-on-background">Legal compliance</strong> — to comply with applicable laws and regulations</li>
+                        </ul>
+                    </PolicySection>
+
+                    <PolicySection title="Information sharing and disclosure">
+                        <p>
+                            Personal information is not sold, traded, or transferred to third
+                            parties except in the following circumstances:
+                        </p>
+                        <ul className="flex flex-col gap-2 pl-4">
+                            <li><strong className="text-on-background">Service providers</strong> — trusted partners who assist in operating the site</li>
+                            <li><strong className="text-on-background">Legal requirements</strong> — when required by law or to protect rights and safety</li>
+                            <li><strong className="text-on-background">Business transfers</strong> — in connection with a merger, acquisition, or asset sale</li>
+                            <li><strong className="text-on-background">Consent</strong> — when you have given explicit consent</li>
+                        </ul>
+                    </PolicySection>
+
+                    <PolicySection title="Data security">
+                        <p>
+                            Appropriate technical and organizational security measures are in place
+                            to protect your information against unauthorized access, alteration,
+                            disclosure, or destruction — including SSL encryption, regular security
+                            assessments, and limited access on a need-to-know basis.
+                        </p>
+                        <p>
+                            No method of transmission over the internet is 100% secure. We cannot
+                            guarantee absolute security.
+                        </p>
+                    </PolicySection>
+
+                    <PolicySection title="Cookies and tracking">
+                        <p>
+                            Cookies and similar technologies are used to enhance your experience:
+                        </p>
+                        <ul className="flex flex-col gap-1 pl-4">
+                            <li><strong className="text-on-background">Essential</strong> — required for basic site functionality</li>
+                            <li><strong className="text-on-background">Analytics</strong> — to understand how visitors use the site</li>
+                            <li><strong className="text-on-background">Preference</strong> — to remember your settings</li>
+                        </ul>
+                        <p>
+                            You can control cookies through your browser settings. Disabling certain
+                            cookies may affect site functionality.
+                        </p>
+                    </PolicySection>
+
+                    <PolicySection title="Your privacy rights">
+                        <p>Depending on your location, you may have the right to:</p>
+                        <ul className="flex flex-col gap-1 pl-4">
+                            <li>Access personal data held about you</li>
+                            <li>Request correction of inaccurate information</li>
+                            <li>Request deletion of your personal information</li>
+                            <li>Request a portable copy of your data</li>
+                            <li>Object to certain processing of your information</li>
+                        </ul>
+                    </PolicySection>
+
+                    <PolicySection title="Children&apos;s privacy">
+                        <p>
+                            The services are not intended for children under 13. Personal
+                            information from children under 13 is not knowingly collected. If you
+                            believe your child has provided personal information, please contact us
+                            immediately.
+                        </p>
+                    </PolicySection>
+
+                    <PolicySection title="Contact">
+                        <p>
+                            Questions about this Privacy Policy? Get in touch:
+                        </p>
+                        <div className="flex flex-col gap-1">
+                            <span>
+                                Help &amp; Assistance:{" "}
+                                <a href="mailto:helpfinnacalc@gmail.com" className="text-primary underline-offset-2 hover:underline">
+                                    helpfinnacalc@gmail.com
+                                </a>
+                            </span>
+                            <span>
+                                Inquiries:{" "}
+                                <a href="mailto:finnacalc@gmail.com" className="text-primary underline-offset-2 hover:underline">
+                                    finnacalc@gmail.com
+                                </a>
+                            </span>
+                        </div>
+                        <p>
+                            See also:{" "}
+                            <Link href="/terms" className="text-primary underline-offset-2 hover:underline">
+                                Terms of Service
+                            </Link>
+                        </p>
+                    </PolicySection>
+                </Container>
+            </Section>
         </div>
     )
 }

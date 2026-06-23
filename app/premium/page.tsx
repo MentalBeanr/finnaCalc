@@ -1,120 +1,127 @@
 "use client"
 
-import { Calculator, Crown, Check, Star } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
+import { useState } from "react"
 import Link from "next/link"
-import { useState } from "react" // Import useState
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Container } from "@/components/ds/container"
+import { Section } from "@/components/ds/section"
+import { Eyebrow } from "@/components/ds/eyebrow"
+import { SectionHeading } from "@/components/ds/section-heading"
+import { MaterialIcon } from "@/components/ds/material-icon"
+
+const FEATURES = [
+    { icon: "smart_toy", title: "AI-Powered Financial Planning", body: "Context-aware recommendations that adapt to your actual numbers, not generic advice." },
+    { icon: "savings", title: "Personalized Budget Coaching", body: "Goal-based nudges and milestone tracking tuned to your income and expense profile." },
+    { icon: "account_balance", title: "Debt Strategy Builder", body: "Snowball vs avalanche analysis with payoff projections and interest saved." },
+    { icon: "elderly", title: "Retirement Runway", body: "Project savings longevity with customizable withdrawal rates and market scenarios." },
+    { icon: "receipt_long", title: "Tax Optimization", body: "Year-round tax planning integrated with your real income and deduction data." },
+    { icon: "trending_up", title: "Business Growth Planning", body: "Cash runway, hiring impact, and pricing sensitivity — in one integrated view." },
+] as const
 
 export default function PremiumPage() {
-  const [email, setEmail] = useState(''); // Add state for the email input
-  const [message, setMessage] = useState(''); // Add state for success/error messages
+    const [email, setEmail] = useState("")
+    const [message, setMessage] = useState("")
+    const [submitting, setSubmitting] = useState(false)
 
-  const handleJoinWaitlist = async () => {
-    setMessage('');
-    if (!email) {
-      setMessage('Please enter a valid email address.');
-      return;
+    const handleJoinWaitlist = async () => {
+        setMessage("")
+        if (!email) {
+            setMessage("Please enter a valid email address.")
+            return
+        }
+        setSubmitting(true)
+        try {
+            const res = await fetch("/api/send-email", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email }),
+            })
+            const data = await res.json()
+            if (res.ok) {
+                setMessage("You're on the list. A confirmation is on its way.")
+                setEmail("")
+            } else {
+                setMessage(data.error || "Something went wrong. Please try again.")
+            }
+        } catch {
+            setMessage("An unexpected error occurred.")
+        } finally {
+            setSubmitting(false)
+        }
     }
 
-    try {
-      const response = await fetch('/api/send-email', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email }),
-      });
+    return (
+        <div className="flex flex-col">
+            <Section spacing="loose" className="pt-section-gap-sm">
+                <Container className="flex flex-col gap-stack-lg max-w-3xl">
+                    <Eyebrow>Coming Soon</Eyebrow>
+                    <h1 className="font-headline-display text-[56px] leading-[1.1] tracking-[-0.02em] text-primary">
+                        FinnaCalc Premium
+                    </h1>
+                    <p className="font-body-lg text-body-lg text-on-surface-variant max-w-prose">
+                        Advanced planning tools, AI-powered recommendations, and
+                        full-picture financial coaching — built on the same
+                        deterministic math, with a lot more depth.
+                    </p>
+                    <div className="flex items-center gap-stack-md pt-stack-md">
+                        <Input
+                            placeholder="your@email.com"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            className="max-w-xs"
+                            onKeyDown={(e) => { if (e.key === "Enter") handleJoinWaitlist() }}
+                        />
+                        <Button onClick={handleJoinWaitlist} disabled={submitting} size="lg">
+                            Join the waitlist
+                        </Button>
+                    </div>
+                    {message ? (
+                        <p className="font-body-md text-body-md text-on-surface-variant">{message}</p>
+                    ) : null}
+                    <p className="font-body-md text-sm text-on-surface-variant">
+                        No spam. Unsubscribe anytime. Early access members get 60% off forever.
+                    </p>
+                </Container>
+            </Section>
 
-      const data = await response.json();
+            <Section spacing="default">
+                <Container className="flex flex-col gap-stack-lg">
+                    <SectionHeading eyebrow="Premium Features" title="What you get" />
+                    <div className="grid grid-cols-3 gap-gutter">
+                        {FEATURES.map((f) => (
+                            <div
+                                key={f.title}
+                                className="flex flex-col gap-stack-md p-10 border border-outline-variant/30 rounded-lg bg-surface-container-lowest"
+                            >
+                                <MaterialIcon name={f.icon} size={24} className="text-primary" />
+                                <h3 className="font-headline-md text-[20px] leading-[1.3] text-primary">
+                                    {f.title}
+                                </h3>
+                                <p className="font-body-md text-body-md text-on-surface-variant">
+                                    {f.body}
+                                </p>
+                            </div>
+                        ))}
+                    </div>
+                </Container>
+            </Section>
 
-      if (response.ok) {
-        setMessage('Thank you for joining! A confirmation email has been sent.');
-        setEmail('');
-      } else {
-        setMessage(data.error || 'Something went wrong. Please try again.');
-      }
-    } catch (error) {
-      setMessage('An unexpected error occurred.');
-    }
-  };
-
-  return (
-      <div className="min-h-screen bg-muted/40">
-        <header className="border-b border-border bg-background">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between items-center h-16">
-              <div className="flex items-center">
-                <Link href="/" className="flex items-center">
-                  <Calculator className="h-8 w-8 text-blue-600" />
-                  <span className="ml-2 text-xl font-bold text-foreground">FinnaCalc</span>
-                </Link>
-              </div>
-              <Link href="/">
-                <Button variant="outline">Back to Home</Button>
-              </Link>
-            </div>
-          </div>
-        </header>
-
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-          <div className="text-center">
-            <Crown className="h-16 w-16 text-yellow-500 mx-auto mb-6" />
-            <h1 className="text-4xl font-bold text-foreground mb-4">FinnaCalc Premium</h1>
-            <p className="text-xl text-muted-foreground mb-8">Coming Soon</p>
-
-            <Card className="max-w-3xl mx-auto">
-              <CardHeader>
-                <CardTitle className="flex items-center justify-center gap-2">
-                  <Star className="h-5 w-5 text-yellow-500" />
-                  Premium Features
-                  <Star className="h-5 w-5 text-yellow-500" />
-                </CardTitle>
-                <CardDescription>Advanced tools and features for serious financial planning</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {/* ... (rest of your premium features) */}
-
-                <div className="pt-4 border-t">
-                  <p className="text-sm text-muted-foreground mb-4 text-center">
-                    Join our exclusive early access list and be the first to experience FinnaCalc Premium!
-                  </p>
-                  <div className="flex gap-2 max-w-md mx-auto">
-                    <Input
-                        placeholder="Enter your email for early access"
-                        className="flex-1"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                    />
-                    <Button
-                        className="bg-blue-600 hover:bg-blue-700"
-                        onClick={handleJoinWaitlist}
-                    >
-                      Join Waitlist
-                    </Button>
-                  </div>
-                  {message && <p className="text-sm text-center mt-2">{message}</p>}
-                  <p className="text-xs text-muted-foreground text-center mt-2">
-                    No spam. Unsubscribe anytime. Early access members get 60% off forever.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <div className="mt-8">
-              <p className="text-muted-foreground mb-4">Continue using our free calculators while you wait:</p>
-              <Link href="/">
-                <Button variant="outline" className="mr-4">
-                  Back to Calculators
-                </Button>
-              </Link>
-              <Link href="/about">
-                <Button className="bg-blue-600 hover:bg-blue-700">Learn More About FinnaCalc</Button>
-              </Link>
-            </div>
-          </div>
+            <Section spacing="default">
+                <Container className="flex flex-col gap-stack-md">
+                    <p className="font-body-md text-body-md text-on-surface-variant">
+                        While you wait — all existing calculators are free:
+                    </p>
+                    <div className="flex gap-stack-md">
+                        <Button asChild variant="outline">
+                            <Link href="/">Explore free calculators</Link>
+                        </Button>
+                        <Button asChild variant="outline">
+                            <Link href="/about">About FinnaCalc</Link>
+                        </Button>
+                    </div>
+                </Container>
+            </Section>
         </div>
-      </div>
-  )
+    )
 }
