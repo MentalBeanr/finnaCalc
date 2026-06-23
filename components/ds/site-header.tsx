@@ -92,6 +92,9 @@ export function SiteHeader() {
                                     </div>
                                 </DropdownMenuLabel>
                                 <DropdownMenuSeparator />
+                                <DropdownMenuItem asChild>
+                                    <Link href="/account">Account</Link>
+                                </DropdownMenuItem>
                                 <DropdownMenuItem onClick={handleSignOut}>
                                     Sign out
                                 </DropdownMenuItem>
