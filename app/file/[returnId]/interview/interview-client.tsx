@@ -5,11 +5,18 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { MaterialIcon } from "@/components/ds/material-icon"
 import { FILING_STATUS_OPTIONS, formatCents } from "@/lib/returns-shared"
-import { INCOME_TYPE_OPTIONS, incomeTypeLabel } from "@/lib/interview-shared"
+import {
+    DEDUCTION_TYPE_OPTIONS,
+    INCOME_TYPE_OPTIONS,
+    deductionTypeLabel,
+    incomeTypeLabel,
+} from "@/lib/interview-shared"
 import type { IncomeSuggestion } from "@/lib/extraction-shared"
 import {
+    addDeductionAction,
     addIncomeAction,
     extractFromDocumentAction,
+    removeDeductionAction,
     removeIncomeAction,
     setChildrenAction,
     setFilingStatusAction,
@@ -20,12 +27,23 @@ export interface IncomeRow {
     type: string
     amountCents: number
     withholdingCents: number
+    metadata: Record<string, unknown>
+}
+
+export interface DeductionRow {
+    id: string
+    type: string
+    amountCents: number
 }
 
 export interface EstimateView {
     agiCents: number
     taxableIncomeCents: number
+    taxBeforeCreditsCents: number
     taxAfterCreditsCents: number
+    selfEmploymentTaxCents: number
+    earnedIncomeCreditCents: number
+    usingItemizedDeduction: boolean
     withholdingCents: number
     refundOrDueCents: number
     marginalRateBp: number
@@ -35,6 +53,7 @@ export interface InterviewProps {
     returnId: string
     filingStatus: string | null
     income: IncomeRow[]
+    deductions: DeductionRow[]
     numChildren: number
     estimate: EstimateView | null
 }
@@ -100,9 +119,18 @@ export function InterviewClient(props: InterviewProps) {
                                             {incomeTypeLabel(row.type)}
                                         </p>
                                         <p className="font-label-caps uppercase tracking-[0.15em] text-[10px] text-on-surface-variant">
-                                            {formatCents(row.amountCents)}
+                                            {formatCents(Math.abs(row.amountCents))}
+                                            {row.amountCents < 0 ? " loss" : ""}
                                             {row.withholdingCents > 0
                                                 ? ` · ${formatCents(row.withholdingCents)} withheld`
+                                                : ""}
+                                            {row.type === "1099_div" &&
+                                            typeof row.metadata?.qualifiedCents === "number" &&
+                                            row.metadata.qualifiedCents > 0
+                                                ? ` · ${formatCents(row.metadata.qualifiedCents as number)} qualified`
+                                                : ""}
+                                            {row.type === "1099_b" && row.metadata?.term
+                                                ? ` · ${row.metadata.term === "short" ? "short-term" : "long-term"}`
                                                 : ""}
                                         </p>
                                     </div>
@@ -127,6 +155,51 @@ export function InterviewClient(props: InterviewProps) {
                     />
                 </section>
 
+                {/* Deductions */}
+                <section className="border border-outline-variant/30 rounded-lg bg-surface-container-lowest p-10 flex flex-col gap-stack-lg">
+                    <div>
+                        <h2 className="font-headline-md text-headline-md text-primary mb-stack-sm">
+                            Deductions
+                        </h2>
+                        <p className="font-body-md text-body-md text-on-surface-variant">
+                            Add itemized deductions if they exceed your standard deduction. We'll
+                            automatically use whichever is larger.
+                        </p>
+                    </div>
+
+                    {props.deductions.length > 0 && (
+                        <div className="flex flex-col divide-y divide-outline-variant/20">
+                            {props.deductions.map((row) => (
+                                <div key={row.id} className="flex items-center justify-between py-stack-md">
+                                    <div>
+                                        <p className="font-body-md text-body-md text-on-surface">
+                                            {deductionTypeLabel(row.type)}
+                                        </p>
+                                        <p className="font-label-caps uppercase tracking-[0.15em] text-[10px] text-on-surface-variant">
+                                            {formatCents(row.amountCents)}
+                                        </p>
+                                    </div>
+                                    <button
+                                        onClick={() =>
+                                            run(() => removeDeductionAction(props.returnId, row.id))
+                                        }
+                                        disabled={pending}
+                                        aria-label="Remove"
+                                        className="p-2 rounded-lg text-on-surface-variant hover:text-error transition-colors disabled:opacity-50"
+                                    >
+                                        <MaterialIcon name="delete" size={18} />
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    <AddDeductionForm
+                        disabled={pending}
+                        onAdd={(input) => run(() => addDeductionAction(props.returnId, input))}
+                    />
+                </section>
+
                 {/* Dependents */}
                 <section className="border border-outline-variant/30 rounded-lg bg-surface-container-lowest p-10 flex flex-col gap-stack-md">
                     <div>
@@ -134,7 +207,7 @@ export function InterviewClient(props: InterviewProps) {
                             Dependents
                         </h2>
                         <p className="font-body-md text-body-md text-on-surface-variant">
-                            Qualifying children under 17 (for the Child Tax Credit).
+                            Qualifying children under 17 (for the Child Tax Credit and EITC).
                         </p>
                     </div>
                     <ChildrenInput
@@ -277,17 +350,43 @@ function AddIncomeForm({
     onAdd,
 }: {
     disabled: boolean
-    onAdd: (input: { type: string; amount: string; withholding?: string }) => void
+    onAdd: (input: {
+        type: string
+        amount: string
+        withholding?: string
+        metadata?: Record<string, unknown>
+    }) => void
 }) {
     const [type, setType] = React.useState<string>(INCOME_TYPE_OPTIONS[0].value)
     const [amount, setAmount] = React.useState("")
     const [withholding, setWithholding] = React.useState("")
+    // 1099-DIV extra field
+    const [qualifiedDivs, setQualifiedDivs] = React.useState("")
+    // 1099-B extra field
+    const [capGainTerm, setCapGainTerm] = React.useState<"long" | "short">("long")
+
+    const isDiv = type === "1099_div"
+    const isCapGain = type === "1099_b"
 
     const submit = () => {
         if (!amount.trim()) return
-        onAdd({ type, amount, withholding: withholding || undefined })
+        const metadata: Record<string, unknown> = {}
+        if (isDiv && qualifiedDivs.trim()) {
+            const qCents = Math.round(Number(qualifiedDivs.replace(/[$,\s]/g, "")) * 100)
+            if (Number.isFinite(qCents) && qCents >= 0) metadata.qualifiedCents = qCents
+        }
+        if (isCapGain) {
+            metadata.term = capGainTerm
+        }
+        onAdd({
+            type,
+            amount,
+            withholding: withholding || undefined,
+            metadata: Object.keys(metadata).length > 0 ? metadata : undefined,
+        })
         setAmount("")
         setWithholding("")
+        setQualifiedDivs("")
     }
 
     return (
@@ -306,7 +405,7 @@ function AddIncomeForm({
                 </select>
                 <input
                     inputMode="decimal"
-                    placeholder="Amount"
+                    placeholder={isCapGain ? "Net gain (+) or loss (−)" : "Amount"}
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
                     className="rounded-lg border border-outline-variant/40 bg-surface px-3 py-2.5 font-body-md text-body-md text-on-surface outline-none focus:border-primary"
@@ -319,6 +418,51 @@ function AddIncomeForm({
                     className="rounded-lg border border-outline-variant/40 bg-surface px-3 py-2.5 font-body-md text-body-md text-on-surface outline-none focus:border-primary"
                 />
             </div>
+
+            {/* Extra fields for dividends */}
+            {isDiv && (
+                <div className="flex flex-col gap-stack-sm">
+                    <label className="font-label-caps uppercase tracking-[0.15em] text-[10px] text-on-surface-variant">
+                        Qualified dividends (box 1b — must be ≤ total above)
+                    </label>
+                    <input
+                        inputMode="decimal"
+                        placeholder="Qualified dividend amount"
+                        value={qualifiedDivs}
+                        onChange={(e) => setQualifiedDivs(e.target.value)}
+                        className="max-w-xs rounded-lg border border-outline-variant/40 bg-surface px-3 py-2.5 font-body-md text-body-md text-on-surface outline-none focus:border-primary"
+                    />
+                </div>
+            )}
+
+            {/* Extra fields for capital gains */}
+            {isCapGain && (
+                <div className="flex flex-col gap-stack-sm">
+                    <label className="font-label-caps uppercase tracking-[0.15em] text-[10px] text-on-surface-variant">
+                        Holding period
+                    </label>
+                    <div className="flex gap-stack-md">
+                        {(["long", "short"] as const).map((t) => (
+                            <button
+                                key={t}
+                                type="button"
+                                onClick={() => setCapGainTerm(t)}
+                                className={`px-4 py-2 rounded-lg border font-body-md text-body-md transition-colors ${
+                                    capGainTerm === t
+                                        ? "border-primary bg-primary/10 text-primary"
+                                        : "border-outline-variant/40 text-on-surface-variant hover:border-primary/40"
+                                }`}
+                            >
+                                {t === "long" ? "Long-term (held > 1 year)" : "Short-term (held ≤ 1 year)"}
+                            </button>
+                        ))}
+                    </div>
+                    <p className="font-label-caps uppercase tracking-[0.15em] text-[10px] text-on-surface-variant">
+                        Enter a negative number for a net loss (e.g. −2500).
+                    </p>
+                </div>
+            )}
+
             <button
                 onClick={submit}
                 disabled={disabled || !amount.trim()}
@@ -326,6 +470,56 @@ function AddIncomeForm({
             >
                 <MaterialIcon name="add" size={16} />
                 Add income
+            </button>
+        </div>
+    )
+}
+
+function AddDeductionForm({
+    disabled,
+    onAdd,
+}: {
+    disabled: boolean
+    onAdd: (input: { type: string; amount: string }) => void
+}) {
+    const [type, setType] = React.useState<string>(DEDUCTION_TYPE_OPTIONS[0].value)
+    const [amount, setAmount] = React.useState("")
+
+    const submit = () => {
+        if (!amount.trim()) return
+        onAdd({ type, amount })
+        setAmount("")
+    }
+
+    return (
+        <div className="flex flex-col gap-stack-md border-t border-outline-variant/20 pt-stack-lg">
+            <div className="grid grid-cols-2 gap-stack-md max-w-lg">
+                <select
+                    value={type}
+                    onChange={(e) => setType(e.target.value)}
+                    className="rounded-lg border border-outline-variant/40 bg-surface px-3 py-2.5 font-body-md text-body-md text-on-surface outline-none focus:border-primary"
+                >
+                    {DEDUCTION_TYPE_OPTIONS.map((o) => (
+                        <option key={o.value} value={o.value}>
+                            {o.label}
+                        </option>
+                    ))}
+                </select>
+                <input
+                    inputMode="decimal"
+                    placeholder="Amount paid"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    className="rounded-lg border border-outline-variant/40 bg-surface px-3 py-2.5 font-body-md text-body-md text-on-surface outline-none focus:border-primary"
+                />
+            </div>
+            <button
+                onClick={submit}
+                disabled={disabled || !amount.trim()}
+                className="inline-flex items-center gap-stack-sm self-start px-5 py-2.5 rounded-full border border-outline-variant/40 font-ui-button text-ui-button uppercase tracking-[0.05em] text-on-surface-variant hover:border-primary/40 hover:text-primary transition-colors disabled:opacity-40"
+            >
+                <MaterialIcon name="add" size={16} />
+                Add deduction
             </button>
         </div>
     )
@@ -393,10 +587,29 @@ function EstimatePanel({
                     <div className="flex flex-col divide-y divide-outline-variant/20">
                         <EstimateRow label="AGI" value={formatCents(estimate.agiCents)} />
                         <EstimateRow
+                            label={estimate.usingItemizedDeduction ? "Itemized deductions" : "Standard deduction"}
+                            value={formatCents(estimate.taxableIncomeCents > 0
+                                ? estimate.agiCents - estimate.taxableIncomeCents
+                                : estimate.agiCents)}
+                        />
+                        <EstimateRow
                             label="Taxable income"
                             value={formatCents(estimate.taxableIncomeCents)}
                         />
-                        <EstimateRow label="Tax" value={formatCents(estimate.taxAfterCreditsCents)} />
+                        <EstimateRow label="Income tax" value={formatCents(estimate.taxBeforeCreditsCents)} />
+                        {estimate.selfEmploymentTaxCents > 0 && (
+                            <EstimateRow
+                                label="Self-employment tax"
+                                value={formatCents(estimate.selfEmploymentTaxCents)}
+                            />
+                        )}
+                        {estimate.earnedIncomeCreditCents > 0 && (
+                            <EstimateRow
+                                label="Earned Income Credit"
+                                value={`−${formatCents(estimate.earnedIncomeCreditCents)}`}
+                            />
+                        )}
+                        <EstimateRow label="Tax after credits" value={formatCents(estimate.taxAfterCreditsCents)} />
                         <EstimateRow label="Withheld" value={formatCents(estimate.withholdingCents)} />
                         <EstimateRow
                             label="Marginal rate"
@@ -404,7 +617,8 @@ function EstimatePanel({
                         />
                     </div>
                     <p className="font-label-caps uppercase tracking-[0.15em] text-[10px] text-on-surface-variant">
-                        Estimate only · standard deduction · federal
+                        Estimate only ·{" "}
+                        {estimate.usingItemizedDeduction ? "itemized" : "standard"} deduction · federal
                     </p>
                 </>
             )}

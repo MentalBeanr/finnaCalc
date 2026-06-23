@@ -3,19 +3,30 @@
  * tax-engine-specification.md §2). Nodes are form-line addressable; formulas are
  * pure functions of their dependencies and the cited parameters.
  *
- * Scope (foundational): wages, taxable interest, Social Security taxability,
- * deductible IRA contribution, standard deduction, ordinary-income tax, the
- * (simplified) Child Tax Credit, withholding, and refund/amount-owed. Itemized
- * deductions, credit phase-outs, ACA/8962, and other forms are deferred to the
- * federal-support phase.
+ * Scope: wages, interest, ordinary/qualified dividends, Social Security,
+ * Schedule C self-employment income + SE tax, capital gains/losses (Schedule D),
+ * standard vs. itemized deduction (SALT, mortgage interest, charitable, medical),
+ * Child Tax Credit, Earned Income Tax Credit, withholding, refund/amount-owed.
  */
 import { applyBp, nonNegative } from "@/tax-engine/core/money"
 import { bracketTax, marginalRateBp } from "@/tax-engine/core/primitives"
 import type { Read, RuleNode } from "@/tax-engine/core/types"
 import {
     BRACKETS,
+    CAP_LOSS_LIMIT_CENTS,
     CTC_PER_CHILD_CENTS,
+    EITC_BANDS,
+    EITC_MAX_INVESTMENT_INCOME_CENTS,
     IRA_CONTRIBUTION_CAP_CENTS,
+    MEDICAL_FLOOR_BP,
+    QDCG_0_PCT_THRESHOLD_CENTS,
+    QDCG_15_PCT_THRESHOLD_CENTS,
+    SALT_CAP_CENTS,
+    SE_AGI_DEDUCTION_BP,
+    SE_MEDICARE_RATE_BP,
+    SE_NET_EARNINGS_BP,
+    SE_SS_RATE_BP,
+    SE_SS_WAGE_BASE_CENTS,
     SS_THRESHOLDS_CENTS,
     STANDARD_DEDUCTION_CENTS,
     STATUS,
@@ -27,7 +38,7 @@ function statusOf(read: Read): StatusCode {
     return (code >= 0 && code <= 4 ? code : STATUS.single) as StatusCode
 }
 
-/** Simplified Social Security taxability (IRC §86 tiers). */
+/** Social Security taxability (IRC §86 two-tier formula). */
 function taxableSocialSecurity(
     provisional: number,
     ssBenefits: number,
@@ -40,6 +51,63 @@ function taxableSocialSecurity(
     }
     const lowerTier = Math.min(applyBp(t.additional - t.base, 5000), halfSS)
     return Math.min(applyBp(ssBenefits, 8500), applyBp(provisional - t.additional, 8500) + lowerTier)
+}
+
+/**
+ * Qualified Dividends and Capital Gain Tax Worksheet (1040 instructions).
+ * Returns the lesser of worksheet tax and regular bracket tax on all taxable income,
+ * ensuring preferential income is never taxed above ordinary rates.
+ */
+function qdcgTax(
+    taxableIncome: number,
+    ordinaryTaxable: number,
+    prefIncome: number,
+    status: StatusCode,
+): number {
+    const t0 = QDCG_0_PCT_THRESHOLD_CENTS[status]
+    const t15 = QDCG_15_PCT_THRESHOLD_CENTS[status]
+
+    const roomAt0 = nonNegative(t0 - ordinaryTaxable)
+    const at0 = Math.min(prefIncome, roomAt0)
+
+    const roomAt15 = nonNegative(t15 - ordinaryTaxable - at0)
+    const at15 = Math.min(nonNegative(prefIncome - at0), roomAt15)
+
+    const at20 = nonNegative(prefIncome - at0 - at15)
+
+    const ordTax = bracketTax(ordinaryTaxable, BRACKETS[status])
+    const prefTax = applyBp(at15, 1500) + applyBp(at20, 2000)
+    const regularTax = bracketTax(taxableIncome, BRACKETS[status])
+
+    return Math.min(ordTax + prefTax, regularTax)
+}
+
+/**
+ * Earned Income Tax Credit computation (IRC §32).
+ * Returns $0 if MFS, if investment income exceeds the limit, or if the
+ * phase-out eliminates the credit.
+ */
+function computeEitc(
+    status: StatusCode,
+    earnedIncome: number,
+    agi: number,
+    investmentIncome: number,
+    numChildren: number,
+): number {
+    if (status === STATUS.mfs) return 0
+    if (investmentIncome > EITC_MAX_INVESTMENT_INCOME_CENTS) return 0
+
+    const childIdx = Math.min(Math.max(0, Math.round(numChildren)), 3)
+    const band = EITC_BANDS[childIdx]
+
+    const phaseIn = Math.min(band.maxCreditCents, applyBp(nonNegative(earnedIncome), band.phaseInBp))
+
+    const phaseOutBase = Math.max(agi, earnedIncome)
+    const phaseOutStart =
+        status === STATUS.mfj ? band.phaseOutStartMfjCents : band.phaseOutStartSingleCents
+    const phaseOut = applyBp(nonNegative(phaseOutBase - phaseOutStart), band.phaseOutBp)
+
+    return nonNegative(phaseIn - phaseOut)
 }
 
 const input = (id: string, dataType: RuleNode["dataType"], citation: string): RuleNode => ({
@@ -68,13 +136,96 @@ export const FEDERAL_TY2024_NODES: RuleNode[] = [
     input("in.numChildren", "count", "Qualifying children under 17"),
     input("in.withholding", "money", "Federal income tax withheld"),
 
-    // ── Worksheets & computed lines ────────────────────────────────────────────
+    // Schedule C / self-employment
+    input("in.schedCNet", "money", "Schedule C net profit (1099-NEC / self-employment)"),
+
+    // Capital gains (Schedule D)
+    input("in.shortTermGain", "money", "Net short-term capital gain or loss (Schedule D line 7)"),
+    input("in.longTermGain", "money", "Net long-term capital gain or loss (Schedule D line 15)"),
+
+    // Dividends (1099-DIV)
+    input("in.ordinaryDivs", "money", "Form 1040 line 3b — ordinary dividends (1099-DIV box 1a)"),
+    input("in.qualifiedDivs", "money", "Form 1040 line 3a — qualified dividends (1099-DIV box 1b)"),
+
+    // Itemized deductions
+    input("in.mortgageInt", "money", "Mortgage interest paid (Form 1098 box 1), Schedule A line 8a"),
+    input("in.saltPaid", "money", "State and local taxes paid (Schedule A line 5d — before SALT cap)"),
+    input("in.charitableContr", "money", "Charitable contributions (Schedule A line 16)"),
+    input("in.medicalExpenses", "money", "Total medical expenses (Schedule A line 1 — before AGI floor)"),
+
+    // ── Dividends ─────────────────────────────────────────────────────────────
+    computed(
+        "F1040.L3b",
+        "money",
+        ["in.ordinaryDivs"],
+        (r) => r("in.ordinaryDivs"),
+        "Form 1040 line 3b — ordinary dividends",
+    ),
+    computed(
+        "F1040.L3a",
+        "money",
+        ["in.qualifiedDivs", "in.ordinaryDivs"],
+        (r) => Math.min(r("in.qualifiedDivs"), r("in.ordinaryDivs")),
+        "Form 1040 line 3a — qualified dividends (clamped to ordinary divs)",
+    ),
+
+    // ── Schedule D (capital gains/losses) ────────────────────────────────────
+    computed(
+        "F1040.L7",
+        "money",
+        ["in.filingStatus", "in.shortTermGain", "in.longTermGain"],
+        (r) => {
+            const net = r("in.shortTermGain") + r("in.longTermGain")
+            // Net losses are deductible up to the annual limit; excess carries over.
+            if (net < 0) return Math.max(-CAP_LOSS_LIMIT_CENTS[statusOf(r)], net)
+            return net
+        },
+        "Form 1040 line 7 — capital gain or loss (Schedule D; net loss limited to $3k)",
+    ),
+
+    // ── Schedule C / Schedule SE ──────────────────────────────────────────────
+    computed(
+        "SchedSE.L3",
+        "money",
+        ["in.schedCNet"],
+        (r) => nonNegative(applyBp(r("in.schedCNet"), SE_NET_EARNINGS_BP)),
+        "Schedule SE line 3 — net earnings from self-employment (92.35% of Schedule C profit)",
+    ),
+    computed(
+        "SchedSE.L10",
+        "money",
+        ["SchedSE.L3"],
+        (r) => {
+            const netEarnings = r("SchedSE.L3")
+            if (netEarnings <= 0) return 0
+            // SS portion applies only up to the wage base; Medicare applies to all.
+            const ssBase = Math.min(netEarnings, SE_SS_WAGE_BASE_CENTS)
+            return applyBp(ssBase, SE_SS_RATE_BP) + applyBp(netEarnings, SE_MEDICARE_RATE_BP)
+        },
+        "Schedule SE line 10 — self-employment tax (12.4% SS + 2.9% Medicare)",
+    ),
+    computed(
+        "Sch1.L15",
+        "money",
+        ["SchedSE.L10"],
+        (r) => applyBp(r("SchedSE.L10"), SE_AGI_DEDUCTION_BP),
+        "Schedule 1 line 15 — deductible part of self-employment tax (50% of SE tax, IRC §164(f))",
+    ),
+
+    // ── Social Security taxability ─────────────────────────────────────────────
     computed(
         "WS.provisionalIncome",
         "money",
-        ["F1040.L1a", "F1040.L2b", "F1040.L6a"],
-        (r) => r("F1040.L1a") + r("F1040.L2b") + applyBp(r("F1040.L6a"), 5000),
-        "Social Security Benefits Worksheet — provisional income",
+        ["F1040.L1a", "F1040.L2b", "F1040.L3b", "in.schedCNet", "F1040.L7", "F1040.L6a"],
+        (r) =>
+            r("F1040.L1a") +
+            r("F1040.L2b") +
+            r("F1040.L3b") +
+            r("in.schedCNet") +
+            // Only gains increase provisional income (losses don't reduce it for SS purposes).
+            nonNegative(r("F1040.L7")) +
+            applyBp(r("F1040.L6a"), 5000),
+        "Social Security Benefits Worksheet — provisional income (all income + 50% SS)",
     ),
     computed(
         "F1040.L6b",
@@ -88,27 +239,86 @@ export const FEDERAL_TY2024_NODES: RuleNode[] = [
             ),
         "Form 1040 line 6b — taxable Social Security",
     ),
+
+    // ── Schedule 1 above-the-line adjustments ─────────────────────────────────
     computed(
         "Sch1.L20",
         "money",
         ["in.iraContribution"],
         (r) => Math.min(r("in.iraContribution"), IRA_CONTRIBUTION_CAP_CENTS),
-        "Schedule 1 line 20 — IRA deduction",
+        "Schedule 1 line 20 — IRA deduction (capped at $7,000 for 2024)",
     ),
+
+    // ── AGI (Form 1040 line 11) ────────────────────────────────────────────────
     computed(
         "F1040.L11",
         "money",
-        ["F1040.L1a", "F1040.L2b", "F1040.L6b", "Sch1.L20"],
-        (r) => r("F1040.L1a") + r("F1040.L2b") + r("F1040.L6b") - r("Sch1.L20"),
+        [
+            "F1040.L1a",
+            "F1040.L2b",
+            "F1040.L3b",
+            "F1040.L6b",
+            "F1040.L7",
+            "in.schedCNet",
+            "Sch1.L15",
+            "Sch1.L20",
+        ],
+        (r) =>
+            r("F1040.L1a") +
+            r("F1040.L2b") +
+            r("F1040.L3b") +
+            r("F1040.L6b") +
+            r("F1040.L7") +
+            r("in.schedCNet") -
+            r("Sch1.L15") -
+            r("Sch1.L20"),
         "Form 1040 line 11 — adjusted gross income",
     ),
+
+    // ── Itemized deductions (Schedule A) ──────────────────────────────────────
+    computed(
+        "WS.saltDeduction",
+        "money",
+        ["in.filingStatus", "in.saltPaid"],
+        (r) => Math.min(r("in.saltPaid"), SALT_CAP_CENTS[statusOf(r)]),
+        "Schedule A — SALT deduction (capped at $10k/$5k MFS, TCJA §164(b)(6))",
+    ),
+    computed(
+        "WS.medicalDeduction",
+        "money",
+        ["F1040.L11", "in.medicalExpenses"],
+        (r) => nonNegative(r("in.medicalExpenses") - applyBp(r("F1040.L11"), MEDICAL_FLOOR_BP)),
+        "Schedule A — deductible medical expenses above 7.5% AGI floor (IRC §213(a))",
+    ),
+    computed(
+        "WS.totalItemized",
+        "money",
+        ["WS.saltDeduction", "in.mortgageInt", "in.charitableContr", "WS.medicalDeduction"],
+        (r) =>
+            r("WS.saltDeduction") +
+            r("in.mortgageInt") +
+            r("in.charitableContr") +
+            r("WS.medicalDeduction"),
+        "Schedule A line 17 — total itemized deductions",
+    ),
+
+    // ── Deduction (standard or itemized) ──────────────────────────────────────
     computed(
         "F1040.L12",
         "money",
-        ["in.filingStatus"],
-        (r) => STANDARD_DEDUCTION_CENTS[statusOf(r)],
-        "Form 1040 line 12 — standard deduction",
+        ["in.filingStatus", "WS.totalItemized"],
+        (r) => Math.max(STANDARD_DEDUCTION_CENTS[statusOf(r)], r("WS.totalItemized")),
+        "Form 1040 line 12 — greater of standard deduction or itemized deductions",
     ),
+    computed(
+        "WS.usingItemized",
+        "boolean",
+        ["in.filingStatus", "WS.totalItemized"],
+        (r) => (r("WS.totalItemized") > STANDARD_DEDUCTION_CENTS[statusOf(r)] ? 1 : 0),
+        "Worksheet — 1 if itemized exceeds standard deduction",
+    ),
+
+    // ── Taxable income ─────────────────────────────────────────────────────────
     computed(
         "F1040.L15",
         "money",
@@ -116,41 +326,106 @@ export const FEDERAL_TY2024_NODES: RuleNode[] = [
         (r) => nonNegative(r("F1040.L11") - r("F1040.L12")),
         "Form 1040 line 15 — taxable income",
     ),
+
+    // ── QDCG worksheet — preferential income ──────────────────────────────────
+    computed(
+        "WS.prefIncome",
+        "money",
+        ["F1040.L3a", "in.longTermGain"],
+        // Qualified divs + net LTCG (only positive LTCG earns the preferential rate).
+        (r) => nonNegative(r("F1040.L3a") + nonNegative(r("in.longTermGain"))),
+        "QDCG Worksheet — preferential income (qualified dividends + net long-term capital gain)",
+    ),
+
+    // ── Income tax (Form 1040 line 16) ────────────────────────────────────────
     computed(
         "F1040.L16",
         "money",
-        ["in.filingStatus", "F1040.L15"],
-        (r) => bracketTax(r("F1040.L15"), BRACKETS[statusOf(r)]),
-        "Form 1040 line 16 — tax",
+        ["in.filingStatus", "F1040.L15", "WS.prefIncome"],
+        (r) => {
+            const ti = r("F1040.L15")
+            const pref = r("WS.prefIncome")
+            if (pref <= 0) return bracketTax(ti, BRACKETS[statusOf(r)])
+            const ordinary = nonNegative(ti - pref)
+            return qdcgTax(ti, ordinary, pref, statusOf(r))
+        },
+        "Form 1040 line 16 — income tax (QDCG worksheet when qualified divs / LTCG present)",
     ),
     computed(
         "WS.marginalRateBp",
         "rate_bp",
         ["in.filingStatus", "F1040.L15"],
         (r) => marginalRateBp(r("F1040.L15"), BRACKETS[statusOf(r)]),
-        "Marginal rate (basis points)",
+        "Marginal ordinary-income rate (basis points)",
     ),
+
+    // ── Non-refundable credits ─────────────────────────────────────────────────
     computed(
         "F1040.L19",
         "money",
         ["in.numChildren"],
         (r) => Math.max(0, Math.round(r("in.numChildren"))) * CTC_PER_CHILD_CENTS,
-        "Form 1040 line 19 — Child Tax Credit (simplified)",
+        "Form 1040 line 19 — Child Tax Credit (simplified; $2,000 per qualifying child)",
     ),
     computed(
         "F1040.L22",
         "money",
         ["F1040.L16", "F1040.L19"],
         (r) => nonNegative(r("F1040.L16") - r("F1040.L19")),
-        "Form 1040 line 22 — tax after credits",
+        "Form 1040 line 22 — tax after non-refundable credits",
     ),
+
+    // ── Refundable credits (EITC) ──────────────────────────────────────────────
+    computed(
+        "WS.eitcEarnedIncome",
+        "money",
+        ["F1040.L1a", "in.schedCNet"],
+        // Earned income = wages + Schedule C net (losses reduce earned income, floored at $0 for phase-in).
+        (r) => r("F1040.L1a") + r("in.schedCNet"),
+        "EITC Worksheet — earned income (wages + self-employment)",
+    ),
+    computed(
+        "WS.eitcInvestmentIncome",
+        "money",
+        ["F1040.L2b", "F1040.L3b", "in.longTermGain", "in.shortTermGain"],
+        (r) =>
+            r("F1040.L2b") +
+            r("F1040.L3b") +
+            nonNegative(r("in.longTermGain")) +
+            nonNegative(r("in.shortTermGain")),
+        "EITC Worksheet — investment income (interest + dividends + capital gains)",
+    ),
+    computed(
+        "F1040.L27a",
+        "money",
+        [
+            "in.filingStatus",
+            "WS.eitcEarnedIncome",
+            "F1040.L11",
+            "WS.eitcInvestmentIncome",
+            "in.numChildren",
+        ],
+        (r) =>
+            computeEitc(
+                statusOf(r),
+                r("WS.eitcEarnedIncome"),
+                r("F1040.L11"),
+                r("WS.eitcInvestmentIncome"),
+                r("in.numChildren"),
+            ),
+        "Form 1040 line 27a — Earned Income Credit (IRC §32)",
+    ),
+
+    // ── Total payments (withholding + refundable credits) ─────────────────────
     computed(
         "F1040.L33",
         "money",
-        ["in.withholding"],
-        (r) => r("in.withholding"),
-        "Form 1040 line 33 — total payments",
+        ["in.withholding", "F1040.L27a"],
+        (r) => r("in.withholding") + r("F1040.L27a"),
+        "Form 1040 line 33 — total payments (withholding + EITC)",
     ),
+
+    // ── Refund / amount owed ───────────────────────────────────────────────────
     computed(
         "F1040.L34",
         "money",

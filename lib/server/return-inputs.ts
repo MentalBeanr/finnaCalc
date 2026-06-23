@@ -1,14 +1,16 @@
 /**
- * Return inputs service: the income line items and qualifying-children count the
- * interview collects. User-scoped via the owning return.
- *
- * Deductions and other credits exist in the schema (database-design.md §5.3) but
- * are not yet surfaced by the foundational interview, since the engine uses the
- * standard deduction and a simplified CTC for now.
+ * Return inputs service: the income line items, deductions, and
+ * qualifying-children count the interview collects. User-scoped via the owning return.
  */
 import { and, asc, eq } from "drizzle-orm"
 import { getDb } from "@/db/client"
-import { creditsClaimed, incomeSources, type IncomeSource } from "@/db/schema"
+import {
+    creditsClaimed,
+    deductionsClaimed,
+    incomeSources,
+    type DeductionClaimed,
+    type IncomeSource,
+} from "@/db/schema"
 import { getReturn } from "./returns"
 
 export async function listIncome(userId: string, returnId: string): Promise<IncomeSource[]> {
@@ -26,6 +28,7 @@ export interface AddIncomeInput {
     type: IncomeSource["type"]
     amountCents: number
     withholdingCents?: number
+    metadata?: Record<string, unknown>
 }
 
 export async function addIncome(
@@ -43,6 +46,7 @@ export async function addIncome(
             type: input.type,
             amountCents: input.amountCents,
             withholdingCents: input.withholdingCents ?? 0,
+            metadata: input.metadata ?? {},
         })
         .returning()
     return row
@@ -74,6 +78,60 @@ export async function getQualifyingChildren(userId: string, returnId: string): P
         .limit(1)
     return row?.qualifyingCount ?? 0
 }
+
+// ── Deductions ────────────────────────────────────────────────────────────────
+
+export async function listDeductions(
+    userId: string,
+    returnId: string,
+): Promise<DeductionClaimed[]> {
+    const ret = await getReturn(userId, returnId)
+    if (!ret) return []
+    const db = getDb()
+    return db
+        .select()
+        .from(deductionsClaimed)
+        .where(eq(deductionsClaimed.returnId, returnId))
+        .orderBy(asc(deductionsClaimed.createdAt))
+}
+
+export interface AddDeductionInput {
+    type: DeductionClaimed["type"]
+    amountCents: number
+}
+
+export async function addDeduction(
+    userId: string,
+    returnId: string,
+    input: AddDeductionInput,
+): Promise<DeductionClaimed | null> {
+    const ret = await getReturn(userId, returnId)
+    if (!ret) return null
+    const db = getDb()
+    const [row] = await db
+        .insert(deductionsClaimed)
+        .values({ returnId, type: input.type, amountCents: input.amountCents })
+        .returning()
+    return row
+}
+
+export async function removeDeduction(
+    userId: string,
+    returnId: string,
+    deductionId: string,
+): Promise<boolean> {
+    const ret = await getReturn(userId, returnId)
+    if (!ret) return false
+    const db = getDb()
+    await db
+        .delete(deductionsClaimed)
+        .where(
+            and(eq(deductionsClaimed.id, deductionId), eq(deductionsClaimed.returnId, returnId)),
+        )
+    return true
+}
+
+// ── Qualifying children ────────────────────────────────────────────────────────
 
 export async function setQualifyingChildren(
     userId: string,

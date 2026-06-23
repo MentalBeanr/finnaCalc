@@ -20,6 +20,23 @@ export interface FederalReturnInput {
     iraContributionCents?: number
     withholdingCents?: number
     numChildren?: number
+
+    // Schedule C / self-employment (1099-NEC)
+    schedCNetProfitCents?: number
+
+    // Schedule D — capital gains/losses
+    shortTermGainCents?: number
+    longTermGainCents?: number
+
+    // Dividends (1099-DIV)
+    ordinaryDividendsCents?: number
+    qualifiedDividendsCents?: number
+
+    // Itemized deductions (Schedule A)
+    mortgageInterestCents?: number
+    saltPaidCents?: number
+    charitableContributionsCents?: number
+    medicalExpensesCents?: number
 }
 
 export interface FederalReturnResult {
@@ -28,10 +45,13 @@ export interface FederalReturnResult {
     taxYear: number
     agiCents: number
     deductionCents: number
+    usingItemizedDeduction: boolean
     taxableIncomeCents: number
     taxBeforeCreditsCents: number
     creditsCents: number
     taxAfterCreditsCents: number
+    selfEmploymentTaxCents: number
+    earnedIncomeCreditCents: number
     withholdingCents: number
     taxableSocialSecurityCents: number
     /** Positive = refund, negative = amount owed. */
@@ -53,6 +73,15 @@ export function computeFederalReturn(input: FederalReturnInput): FederalReturnRe
                 "in.iraContribution": input.iraContributionCents ?? 0,
                 "in.numChildren": input.numChildren ?? 0,
                 "in.withholding": input.withholdingCents ?? 0,
+                "in.schedCNet": input.schedCNetProfitCents ?? 0,
+                "in.shortTermGain": input.shortTermGainCents ?? 0,
+                "in.longTermGain": input.longTermGainCents ?? 0,
+                "in.ordinaryDivs": input.ordinaryDividendsCents ?? 0,
+                "in.qualifiedDivs": input.qualifiedDividendsCents ?? 0,
+                "in.mortgageInt": input.mortgageInterestCents ?? 0,
+                "in.saltPaid": input.saltPaidCents ?? 0,
+                "in.charitableContr": input.charitableContributionsCents ?? 0,
+                "in.medicalExpenses": input.medicalExpensesCents ?? 0,
             },
         },
         FEDERAL_TY2024,
@@ -66,10 +95,13 @@ export function computeFederalReturn(input: FederalReturnInput): FederalReturnRe
         taxYear: FEDERAL_TY2024.taxYear,
         agiCents: v("F1040.L11"),
         deductionCents: v("F1040.L12"),
+        usingItemizedDeduction: v("WS.usingItemized") === 1,
         taxableIncomeCents: v("F1040.L15"),
         taxBeforeCreditsCents: v("F1040.L16"),
         creditsCents: v("F1040.L19"),
         taxAfterCreditsCents: v("F1040.L22"),
+        selfEmploymentTaxCents: v("SchedSE.L10"),
+        earnedIncomeCreditCents: v("F1040.L27a"),
         withholdingCents: v("F1040.L33"),
         taxableSocialSecurityCents: v("F1040.L6b"),
         refundOrDueCents: v("F1040.L34") - v("F1040.L37"),
