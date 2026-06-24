@@ -1,24 +1,19 @@
-"use client"
-
-import { useState } from "react"
 import Link from "next/link"
 import { Container } from "@/components/ds/container"
 import { Section } from "@/components/ds/section"
 import { Eyebrow } from "@/components/ds/eyebrow"
 import { MaterialIcon } from "@/components/ds/material-icon"
-import TaxFilingInterface from "@/components/tax-filing-interface"
-import TaxCalculators from "@/components/tax-calculators"
 
 const TOOLS = [
     {
-        id: "tax-filing",
+        href: "/taxes/filing",
         icon: "description",
         title: "Easy tax filing",
         body: "Guided step-by-step tax preparation. Supports personal, business, and rental properties.",
         cta: "Start filing",
     },
     {
-        id: "tax-calculators",
+        href: "/taxes/calculators",
         icon: "calculate",
         title: "Tax calculators & tools",
         body: "Tax calculator, deduction finder, refund estimator, and withholding calculator to optimize your taxes.",
@@ -27,17 +22,6 @@ const TOOLS = [
 ] as const
 
 export default function TaxesPage() {
-    const [activeSection, setActiveSection] = useState("")
-
-    const handleBack = () => setActiveSection("")
-
-    if (activeSection === "tax-filing") {
-        return <TaxFilingInterface onBack={handleBack} />
-    }
-    if (activeSection === "tax-calculators") {
-        return <TaxCalculators onBack={handleBack} />
-    }
-
     return (
         <div className="flex flex-col">
             <Section spacing="loose" className="pt-section-gap-sm">
@@ -57,11 +41,10 @@ export default function TaxesPage() {
                 <Container>
                     <div className="grid grid-cols-3 gap-gutter">
                         {TOOLS.map((tool) => (
-                            <button
-                                key={tool.id}
-                                type="button"
-                                onClick={() => setActiveSection(tool.id)}
-                                className="group flex flex-col gap-stack-md p-10 border border-outline-variant/30 rounded-lg bg-surface-container-lowest text-left transition-colors duration-200 hover:border-primary/40"
+                            <Link
+                                key={tool.href}
+                                href={tool.href}
+                                className="group flex flex-col gap-stack-md p-10 border border-outline-variant/30 rounded-lg bg-surface-container-lowest transition-colors duration-200 hover:border-primary/40"
                             >
                                 <MaterialIcon name={tool.icon} size={28} className="text-primary" />
                                 <h3 className="font-headline-md text-headline-md text-primary">
@@ -78,7 +61,7 @@ export default function TaxesPage() {
                                         className="transition-transform duration-200 group-hover:translate-x-0.5"
                                     />
                                 </span>
-                            </button>
+                            </Link>
                         ))}
                         <Link
                             href="/education"

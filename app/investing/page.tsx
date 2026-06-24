@@ -75,6 +75,27 @@ export default function InvestingPage() {
             <Section spacing="default">
                 <Container>
                     <div className="grid grid-cols-3 gap-gutter">
+                        {/* Markets Dashboard — links directly to the dashboard page */}
+                        <Link
+                            href="/investing/markets"
+                            className="group flex flex-col gap-stack-md p-10 border border-outline-variant/30 rounded-lg bg-surface-container-lowest transition-colors duration-200 hover:border-primary/40"
+                        >
+                            <MaterialIcon name="bar_chart" size={28} className="text-primary" />
+                            <h3 className="font-headline-md text-headline-md text-primary">
+                                Markets Dashboard
+                            </h3>
+                            <p className="font-body-md text-body-md text-on-surface-variant flex-grow">
+                                Portfolio overview, holdings, market movers, screener, news sentiment, watchlist, and dividend calendar.
+                            </p>
+                            <span className="inline-flex items-center gap-stack-sm pt-stack-sm font-ui-button text-ui-button uppercase tracking-[0.05em] text-primary">
+                                Open dashboard
+                                <MaterialIcon
+                                    name="arrow_forward"
+                                    size={16}
+                                    className="transition-transform duration-200 group-hover:translate-x-0.5"
+                                />
+                            </span>
+                        </Link>
                         {TOOLS.map((tool) => (
                             <button
                                 key={tool.id}
