@@ -230,6 +230,17 @@ export default function MarketsPage() {
         factors: { name: string; score: number; color: string }[]
     } | null>(null)
 
+    // ── Plaid Investments portfolio ───────────────────────────────────────────
+    interface PlaidH { account_id: string; security_id: string; quantity: number; institution_price: number|null; institution_value: number|null; cost_basis: number|null; ticker: string|null; name: string; type: string|null; close_price: number|null }
+    interface PlaidAcc { account_id: string; name: string; balances: { current: number|null } }
+
+    const [plaidConfigured, setPlaidConfigured] = useState(false)
+    const [plaidConnected,  setPlaidConnected]  = useState(false)
+    const [plaidHoldings,   setPlaidHoldings]   = useState<PlaidH[]>([])
+    const [plaidAccounts,   setPlaidAccounts]   = useState<PlaidAcc[]>([])
+    const [plaidLinkBusy,   setPlaidLinkBusy]   = useState(false)
+    const plaidTickersRef = useRef<string[]>([])
+
     // ── WebSocket live price overlay ─────────────────────────────────────────
     const wsSymbols = useMemo(() =>
         [...new Set([...HOLDINGS.map(h => h.ticker), ...WATCHLIST_ITEMS.map(w => w.tick)])]
@@ -266,11 +277,12 @@ export default function MarketsPage() {
     }, [])
 
     const fetchQuotes = useCallback(async () => {
-        // Include holdings, watchlist, and screener tickers so all sections get live prices
+        // Include holdings, watchlist, screener, and Plaid tickers
         const allTickers = new Set([
             ...HOLDINGS.map(h => h.ticker),
             ...WATCHLIST_ITEMS.map(w => w.tick),
             ...SCREENER_DATA.map(s => s.ticker),
+            ...plaidTickersRef.current,
         ])
         allTickers.delete("BTC-USD") // Finnhub doesn't serve crypto quotes
         const symbols = Array.from(allTickers).join(",")
@@ -320,14 +332,68 @@ export default function MarketsPage() {
         } catch { /* stay on static fallback */ }
     }, [])
 
+    const fetchPlaidHoldings = useCallback(async () => {
+        try {
+            const res = await fetch("/api/plaid/holdings")
+            const json = await res.json()
+            setPlaidConfigured(json.configured !== false)
+            if (json.connected && json.data) {
+                setPlaidConnected(true)
+                setPlaidHoldings(json.data.holdings)
+                setPlaidAccounts(json.data.accounts)
+                plaidTickersRef.current = json.data.holdings
+                    .filter((h: PlaidH) => h.ticker)
+                    .map((h: PlaidH) => h.ticker as string)
+            } else {
+                setPlaidConnected(false)
+                setPlaidHoldings([])
+                plaidTickersRef.current = []
+            }
+        } catch { /* stay on demo */ }
+    }, [])
+
+    const openPlaidLink = useCallback(async () => {
+        setPlaidLinkBusy(true)
+        try {
+            const res = await fetch("/api/plaid/link-token")
+            const { link_token, error } = await res.json()
+            if (error || !link_token) return
+            const PlaidLib = (window as typeof window & { Plaid?: { create: (cfg: object) => { open: () => void } } }).Plaid
+            if (!PlaidLib) { alert("Plaid Link not ready — please refresh and try again."); return }
+            PlaidLib.create({
+                token: link_token,
+                onSuccess: async (public_token: string) => {
+                    const r = await fetch("/api/plaid/exchange", {
+                        method: "POST", headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ public_token }),
+                    })
+                    if ((await r.json()).ok) { await fetchPlaidHoldings(); await fetchQuotes() }
+                },
+                onExit: () => {},
+            }).open()
+        } finally { setPlaidLinkBusy(false) }
+    }, [fetchPlaidHoldings, fetchQuotes])
+
+    const disconnectPlaid = useCallback(async () => {
+        await fetch("/api/plaid/exchange", { method: "DELETE" })
+        setPlaidConnected(false); setPlaidHoldings([]); setPlaidAccounts([])
+        plaidTickersRef.current = []
+    }, [])
+
     // Initial fetch + 30s polling for quotes/indices; 2min for news; 15min for fear-greed
     useEffect(() => {
-        fetchIndices(); fetchQuotes(); fetchMovers(); fetchNews(); fetchFearGreed()
+        fetchIndices(); fetchQuotes(); fetchMovers(); fetchNews(); fetchFearGreed(); fetchPlaidHoldings()
         const fast = setInterval(() => { fetchIndices(); fetchQuotes() }, 30_000)
         const slow = setInterval(() => { fetchMovers(); fetchNews() }, 120_000)
         const fgi  = setInterval(fetchFearGreed, 900_000)
+        // Load Plaid Link CDN script
+        if (!document.getElementById("plaid-link-v2")) {
+            const s = document.createElement("script"); s.id = "plaid-link-v2"
+            s.src = "https://cdn.plaid.com/link/v2/stable/link-initialize.js"; s.async = true
+            document.head.appendChild(s)
+        }
         return () => { clearInterval(fast); clearInterval(slow); clearInterval(fgi) }
-    }, [fetchIndices, fetchQuotes, fetchMovers, fetchNews, fetchFearGreed])
+    }, [fetchIndices, fetchQuotes, fetchMovers, fetchNews, fetchFearGreed, fetchPlaidHoldings])
 
     const [activeRange, setActiveRange] = useState("1Y")
     const [openDrop, setOpenDrop] = useState<number | null>(null)
@@ -398,15 +464,51 @@ export default function MarketsPage() {
         }
     }, [])
 
+    // Build a unified holding shape from Plaid (if connected) or demo HOLDINGS
+    const activeHoldings = React.useMemo(() => {
+        if (!plaidConnected || !plaidHoldings.length) return HOLDINGS
+        const rows = plaidHoldings
+            .filter(h => h.ticker)
+            .map((h, i) => {
+                const live      = liveQuotes.get(h.ticker!)
+                const livePrice = live?.price ?? h.institution_price ?? h.close_price ?? 0
+                const totalCost = h.cost_basis ?? livePrice * h.quantity
+                const avgCost   = h.quantity > 0 ? totalCost / h.quantity : livePrice
+                const value     = h.quantity * livePrice
+                const ret       = avgCost > 0 ? ((livePrice - avgCost) / avgCost) * 100 : 0
+                const dayChg    = live?.changePct ?? 0
+                return { num: i + 1, ticker: h.ticker!, company: h.name, shares: h.quantity, avgCost, price: livePrice, value, dayChg, ret, weight: 0 }
+            })
+        const total = rows.reduce((s, r) => s + r.value, 0)
+        return rows.map(r => ({ ...r, weight: total > 0 ? r.value / total * 100 : 0 }))
+    }, [plaidConnected, plaidHoldings, liveQuotes])
+
+    const portfolioValue = React.useMemo(() => {
+        if (plaidConnected && activeHoldings !== HOLDINGS) {
+            return activeHoldings.reduce((s, h) => s + h.value, 0)
+        }
+        return 284_731.42
+    }, [plaidConnected, activeHoldings])
+
+    const portfolioTotalGain = React.useMemo(() => {
+        if (plaidConnected && plaidHoldings.length > 0) {
+            const costBasis = plaidHoldings.reduce((s, h) => s + (h.cost_basis ?? 0), 0)
+            const abs = portfolioValue - costBasis
+            const pct = costBasis > 0 ? abs / costBasis * 100 : 0
+            return { abs, pct }
+        }
+        return { abs: 62_418.90, pct: 28.08 }
+    }, [plaidConnected, plaidHoldings, portfolioValue])
+
     const sortedHoldings = React.useMemo(() => {
-        if (!sortCol) return HOLDINGS
-        return [...HOLDINGS].sort((a, b) => {
+        if (!sortCol) return activeHoldings
+        return [...activeHoldings].sort((a, b) => {
             const av = (a as Record<string, unknown>)[sortCol]
             const bv = (b as Record<string, unknown>)[sortCol]
             if (typeof av === "string" && typeof bv === "string") return av.localeCompare(bv) * sortDir
             return ((av as number) - (bv as number)) * sortDir
         })
-    }, [sortCol, sortDir])
+    }, [sortCol, sortDir, activeHoldings])
 
     const handleSort = (col: string) => {
         if (sortCol === col) setSortDir(d => d * -1)
@@ -501,19 +603,42 @@ export default function MarketsPage() {
             {/* ── Portfolio Overview ── */}
             <div className="grid gap-5" style={{gridTemplateColumns:"65fr 35fr"}}>
                 <div className={`${card} p-6`}>
-                    <div className="flex items-center gap-2 mb-2">
-                        <p className="font-ui-button text-[11px] uppercase tracking-widest text-on-surface-variant">Total Portfolio Value</p>
-                        <span className="text-[10px] px-2 py-0.5 rounded-full border border-outline-variant/40 bg-surface-container-low text-on-surface-variant font-ui-button uppercase tracking-wider">Demo portfolio · Live prices</span>
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                        <div className="flex items-center gap-2">
+                            <p className="font-ui-button text-[11px] uppercase tracking-widest text-on-surface-variant">Total Portfolio Value</p>
+                            {plaidConnected ? (
+                                <span className="text-[10px] px-2 py-0.5 rounded-full border border-green-600/40 bg-green-50 text-green-700 font-ui-button uppercase tracking-wider">Live portfolio · Plaid</span>
+                            ) : (
+                                <span className="text-[10px] px-2 py-0.5 rounded-full border border-outline-variant/40 bg-surface-container-low text-on-surface-variant font-ui-button uppercase tracking-wider">Demo portfolio · Live prices</span>
+                            )}
+                        </div>
+                        {plaidConfigured && (
+                            plaidConnected ? (
+                                <button onClick={disconnectPlaid} className="text-[11px] px-3 py-1 rounded border border-outline-variant/40 text-on-surface-variant hover:border-red-600/40 hover:text-red-700 transition-colors font-ui-button uppercase tracking-wider">Disconnect</button>
+                            ) : (
+                                <button onClick={openPlaidLink} disabled={plaidLinkBusy} className="text-[11px] px-3 py-1 rounded border border-primary text-primary hover:bg-primary hover:text-white transition-colors font-ui-button uppercase tracking-wider disabled:opacity-50">{plaidLinkBusy ? "Loading…" : "Connect Brokerage"}</button>
+                            )
+                        )}
                     </div>
-                    <div className="font-headline-md text-[34px] text-primary font-mono mb-1">$284,731.42</div>
+                    <div className="font-headline-md text-[34px] text-primary font-mono mb-1">
+                        ${portfolioValue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </div>
                     <div className={`font-body-md text-sm font-medium mb-5 ${posText}`}>▲ +$1,847.23 (+0.65%) today</div>
                     <div className="flex gap-2.5 mb-5">
-                        {[["Total Gain","+$62,418.90",true],["Dividend Yield","1.84%",false],["Beta","1.12",false]].map(([label,val,green])=>(
-                            <div key={label as string} className="flex-1 p-3 rounded-lg border border-outline-variant/30 bg-surface-container-low">
-                                <div className="font-ui-button text-[10px] uppercase tracking-widest text-on-surface-variant mb-1">{label}</div>
-                                <div className={`text-[15px] font-semibold font-mono ${green ? posText : "text-primary"}`}>{val}</div>
+                        <div className="flex-1 p-3 rounded-lg border border-outline-variant/30 bg-surface-container-low">
+                            <div className="font-ui-button text-[10px] uppercase tracking-widest text-on-surface-variant mb-1">Total Gain</div>
+                            <div className={`text-[15px] font-semibold font-mono ${portfolioTotalGain.abs >= 0 ? posText : negText}`}>
+                                {portfolioTotalGain.abs >= 0 ? "+" : "-"}${Math.abs(portfolioTotalGain.abs).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ({Math.abs(portfolioTotalGain.pct).toFixed(2)}%)
                             </div>
-                        ))}
+                        </div>
+                        <div className="flex-1 p-3 rounded-lg border border-outline-variant/30 bg-surface-container-low">
+                            <div className="font-ui-button text-[10px] uppercase tracking-widest text-on-surface-variant mb-1">Dividend Yield</div>
+                            <div className="text-[15px] font-semibold font-mono text-primary">1.84%</div>
+                        </div>
+                        <div className="flex-1 p-3 rounded-lg border border-outline-variant/30 bg-surface-container-low">
+                            <div className="font-ui-button text-[10px] uppercase tracking-widest text-on-surface-variant mb-1">Beta</div>
+                            <div className="text-[15px] font-semibold font-mono text-primary">1.12</div>
+                        </div>
                     </div>
                     <div className="flex gap-1 mb-3">
                         {["1D","1W","1M","3M","6M","1Y","ALL"].map(r => (
@@ -546,8 +671,25 @@ export default function MarketsPage() {
             {/* ── Holdings Table ── */}
             <div className={card}>
                 <div className="flex items-center justify-between px-5 py-4 border-b border-outline-variant/20">
-                    <h2 className="font-headline-md text-[18px] text-primary">My Holdings</h2>
-                    <button className="flex items-center gap-1.5 px-4 py-1.5 rounded border border-primary text-primary text-sm font-medium hover:bg-primary hover:text-white transition-colors">+ Add Position</button>
+                    <div>
+                        <h2 className="font-headline-md text-[18px] text-primary">My Holdings</h2>
+                        {plaidConnected && plaidAccounts.length > 0 && (
+                            <p className="text-[11px] text-on-surface-variant mt-0.5">{plaidAccounts.map(a => a.name).join(" · ")}</p>
+                        )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                        {!plaidConfigured && (
+                            <span className="text-[11px] text-on-surface-variant font-ui-button uppercase tracking-wider">Demo data — add PLAID_CLIENT_ID to connect a brokerage</span>
+                        )}
+                        {plaidConfigured && !plaidConnected && (
+                            <button onClick={openPlaidLink} disabled={plaidLinkBusy} className="flex items-center gap-1.5 px-4 py-1.5 rounded border border-primary text-primary text-sm font-medium hover:bg-primary hover:text-white transition-colors disabled:opacity-50">
+                                {plaidLinkBusy ? "Loading…" : "Connect Brokerage"}
+                            </button>
+                        )}
+                        {plaidConnected && (
+                            <button className="flex items-center gap-1.5 px-4 py-1.5 rounded border border-outline-variant/40 text-on-surface-variant text-sm font-medium hover:bg-surface-container-low transition-colors">Refresh</button>
+                        )}
+                    </div>
                 </div>
                 <div className="overflow-x-auto">
                     <table className="w-full border-collapse">
