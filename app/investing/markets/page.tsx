@@ -157,18 +157,27 @@ const WatchlistSparkline = ({ ticker, pos }: { ticker: string; pos: boolean }) =
     )
 }
 
-// ── Company logo with initials fallback ──────────────────────────────────────
+// ── Company logo — tries Finnhub URL, then Parqet CDN, then initials ─────────
 const CompanyLogo = ({ ticker, logoUrl, size = 24 }: { ticker: string; logoUrl?: string; size?: number }) => {
-    const [err, setErr] = useState(false)
-    if (logoUrl && !err) {
+    const [srcIdx, setSrcIdx] = useState(0)
+    useEffect(() => { setSrcIdx(0) }, [ticker, logoUrl])
+
+    // Source priority: API-provided URL → Parqet symbol CDN → initials fallback
+    const sources = [
+        ...(logoUrl ? [logoUrl] : []),
+        `https://assets.parqet.com/logos/symbol/${encodeURIComponent(ticker)}?format=png`,
+    ]
+    const src = srcIdx < sources.length ? sources[srcIdx] : null
+
+    if (src) {
         return (
             <Image
-                src={logoUrl}
+                src={src}
                 alt={ticker}
                 width={size}
                 height={size}
-                className="rounded object-contain flex-shrink-0"
-                onError={() => setErr(true)}
+                className="rounded object-contain flex-shrink-0 bg-white"
+                onError={() => setSrcIdx(i => i + 1)}
                 unoptimized
             />
         )
@@ -178,7 +187,7 @@ const CompanyLogo = ({ ticker, logoUrl, size = 24 }: { ticker: string; logoUrl?:
             className="rounded bg-primary/10 text-primary font-bold flex items-center justify-center flex-shrink-0 text-[10px]"
             style={{ width: size, height: size }}
         >
-            {ticker.slice(0, 2)}
+            {ticker.replace(/[^A-Z]/gi, "").slice(0, 2).toUpperCase()}
         </span>
     )
 }
@@ -510,6 +519,13 @@ export default function MarketsPage() {
         })
     }, [sortCol, sortDir, activeHoldings])
 
+    const allMovers = React.useMemo<{ ticker: string; companyName: string; price: number; changePct: number; logoUrl?: string }[]>(() => {
+        const g = liveGainers ?? GAINERS.map(m => ({ ticker: m.tick, companyName: m.name, price: m.price, changePct: m.chg, logoUrl: undefined }))
+        const l = liveLosers  ?? LOSERS.map(m  => ({ ticker: m.tick, companyName: m.name, price: m.price, changePct: m.chg, logoUrl: undefined }))
+        const a = liveActive  ?? MOST_ACTIVE.map(m => ({ ticker: m.tick, companyName: m.tick, price: m.price, changePct: m.chg, logoUrl: undefined }))
+        return [...g, ...l, ...a]
+    }, [liveGainers, liveLosers, liveActive])
+
     const handleSort = (col: string) => {
         if (sortCol === col) setSortDir(d => d * -1)
         else { setSortCol(col); setSortDir(1) }
@@ -561,6 +577,9 @@ export default function MarketsPage() {
             .mkts-range::-moz-range-thumb { width:14px; height:14px; border-radius:50%; background:#00061a; cursor:pointer; border:none; }
             .mkts-pulse { animation:mkts-pulse 2s infinite; }
             @keyframes mkts-pulse { 0%{box-shadow:0 0 0 0 rgba(63,107,63,.5)} 70%{box-shadow:0 0 0 8px rgba(63,107,63,0)} 100%{box-shadow:0 0 0 0 rgba(63,107,63,0)} }
+            .mkts-marquee { display:flex; width:max-content; animation:mkts-scroll 50s linear infinite; }
+            .mkts-marquee:hover { animation-play-state:paused; }
+            @keyframes mkts-scroll { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
         `}</style>
 
         <div className="bg-surface min-h-screen">
@@ -755,54 +774,41 @@ export default function MarketsPage() {
                 </div>
             </div>
 
-            {/* ── Market Movers ── */}
-            <div className="grid grid-cols-3 gap-5">
-                {([
-                    ["Top Gainers","↗",posText,liveGainers,GAINERS,"pos"],
-                    ["Top Losers","↘",negText,liveLosers,LOSERS,"neg"]
-                ] as const).map(([title, icon, cls, liveItems, staticItems, type]) => {
-                    const items = liveItems ?? staticItems.map(m => ({ ticker:m.tick, companyName:m.name, price:m.price, changePct:m.chg, volume:0, logoUrl:undefined, pts:m.pts }))
-                    return (
-                    <div key={title} className={`${card} p-5`}>
-                        <h3 className="font-headline-md text-[16px] text-primary mb-3 flex items-center gap-2">
-                            <span className={cls}>{icon}</span> {title}
-                        </h3>
-                        {items.map((m: MoverStock & { pts?: number[] }) => (
-                            <div key={m.ticker} className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg cursor-pointer hover:bg-surface-container-low transition-colors">
-                                <CompanyLogo ticker={m.ticker} logoUrl={m.logoUrl} size={24} />
-                                <div className="flex-1 min-w-0">
-                                    <div className="font-mono font-bold text-sm text-primary truncate">{m.ticker}</div>
-                                    <div className="text-xs text-on-surface-variant truncate">{m.companyName}</div>
+            {/* ── Market Movers marquee ── */}
+            <div className={`${card} overflow-hidden`}>
+                <div className="flex items-center gap-4 px-5 py-3 border-b border-outline-variant/20">
+                    <h2 className="font-headline-md text-[16px] text-primary flex-shrink-0">Market Movers</h2>
+                    <div className="flex items-center gap-3 text-[11px] font-ui-button uppercase tracking-wider flex-shrink-0">
+                        <span className={posText}>↗ Gainers</span>
+                        <span className={negText}>↘ Losers</span>
+                        <span className="text-on-surface-variant">⚡ Most Active</span>
+                    </div>
+                </div>
+                {/* Outer container clips overflow; gradient fades hide the loop seam */}
+                <div className="relative overflow-hidden py-3">
+                    <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-12 z-10" style={{background:"linear-gradient(to right,var(--md-sys-color-surface-container-lowest,#f9f9ff),transparent)"}} />
+                    <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-12 z-10" style={{background:"linear-gradient(to left,var(--md-sys-color-surface-container-lowest,#f9f9ff),transparent)"}} />
+                    {/* Two copies side-by-side → seamless loop via translateX(-50%) */}
+                    <div className="mkts-marquee gap-3 px-3">
+                        {[...allMovers, ...allMovers].map((m, i) => (
+                            <div
+                                key={i}
+                                className="flex items-center gap-2.5 px-3 py-2 rounded-lg border border-outline-variant/20 bg-surface-container-low flex-shrink-0 cursor-pointer hover:border-primary/40 transition-colors"
+                                style={{minWidth: 170}}
+                            >
+                                <CompanyLogo ticker={m.ticker} logoUrl={m.logoUrl} size={28} />
+                                <div className="min-w-0">
+                                    <div className="flex items-center gap-1.5">
+                                        <span className="font-mono font-bold text-[13px] text-primary">{m.ticker}</span>
+                                        <span className={`text-[11px] font-semibold px-1.5 py-0.5 rounded-full border flex-shrink-0 ${m.changePct >= 0 ? "bg-green-50 text-green-700 border-green-200" : "bg-red-50 text-red-700 border-red-200"}`}>
+                                            {m.changePct >= 0 ? "+" : ""}{m.changePct.toFixed(2)}%
+                                        </span>
+                                    </div>
+                                    <div className="font-mono text-[12px] text-on-surface-variant truncate">{fmt(m.price)}</div>
                                 </div>
-                                <span className="font-mono text-sm text-on-surface">{fmt(m.price)}</span>
-                                <span className={`text-xs font-semibold px-1.5 py-0.5 rounded-full border ${type==="pos" ? "bg-green-50 text-green-700 border-green-200" : "bg-red-50 text-red-700 border-red-200"}`}>{type==="pos"?"+":""}{m.changePct.toFixed(2)}%</span>
                             </div>
                         ))}
                     </div>
-                    )
-                })}
-                <div className={`${card} p-5`}>
-                    <h3 className="font-headline-md text-[16px] text-primary mb-3 flex items-center gap-2">
-                        <span className="text-primary/60">⚡</span> Most Active
-                    </h3>
-                    {(liveActive ?? MOST_ACTIVE.map(m => ({ ticker:m.tick, companyName:m.tick, price:m.price, changePct:m.chg, volume:m.vol, logoUrl:undefined }))).map(m => {
-                        const maxVol = (liveActive ?? MOST_ACTIVE.map(x=>({volume:x.vol}))).reduce((mx,x)=>Math.max(mx,x.volume),1)
-                        return (
-                        <div key={m.ticker} className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg cursor-pointer hover:bg-surface-container-low transition-colors">
-                            <CompanyLogo ticker={m.ticker} logoUrl={m.logoUrl} size={24} />
-                            <div className="flex-1">
-                                <div className="flex items-center justify-between mb-1">
-                                    <span className="font-mono font-bold text-sm text-primary">{m.ticker}</span>
-                                    <span className="text-xs text-on-surface-variant">{fmtShort(m.volume)}</span>
-                                </div>
-                                <div className="h-1 bg-outline-variant/30 rounded-full overflow-hidden">
-                                    <div className="h-full bg-primary/70 rounded-full" style={{width:`${Math.min(100,(m.volume/maxVol*100)).toFixed(0)}%`}}/>
-                                </div>
-                            </div>
-                            <span className={`text-xs font-semibold px-1.5 py-0.5 rounded-full border ml-2 ${m.changePct>=0 ? "bg-green-50 text-green-700 border-green-200" : "bg-red-50 text-red-700 border-red-200"}`}>{fmtPct(m.changePct)}</span>
-                        </div>
-                        )
-                    })}
                 </div>
             </div>
 
