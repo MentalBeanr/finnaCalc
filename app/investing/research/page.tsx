@@ -775,26 +775,146 @@ const FinancialStatements = () => {
   )
 }
 
+// ── Technical indicator math ──────────────────────────────────────────────────
+function sma(arr: number[], n: number): number | null {
+  if (arr.length < n) return null
+  return arr.slice(-n).reduce((a, b) => a + b, 0) / n
+}
+function ema(arr: number[], n: number): number | null {
+  if (arr.length < n) return null
+  const k = 2 / (n + 1)
+  let e = arr.slice(0, n).reduce((a, b) => a + b, 0) / n
+  for (let i = n; i < arr.length; i++) e = arr[i] * k + e * (1 - k)
+  return e
+}
+function rsi(closes: number[], n = 14): number {
+  if (closes.length <= n) return 50
+  let ag = 0, al = 0
+  for (let i = 1; i <= n; i++) { const d = closes[i] - closes[i - 1]; d > 0 ? (ag += d) : (al -= d) }
+  ag /= n; al /= n
+  for (let i = n + 1; i < closes.length; i++) {
+    const d = closes[i] - closes[i - 1]
+    ag = (ag * (n - 1) + Math.max(0, d)) / n
+    al = (al * (n - 1) + Math.max(0, -d)) / n
+  }
+  return al === 0 ? 100 : 100 - 100 / (1 + ag / al)
+}
+function macd(closes: number[]) {
+  if (closes.length < 35) return { macd: 0, signal: 0, hist: 0 }
+  const k12 = 2 / 13, k26 = 2 / 27, k9 = 2 / 10
+  let e12 = closes.slice(0, 12).reduce((a, b) => a + b, 0) / 12
+  let e26 = closes.slice(0, 26).reduce((a, b) => a + b, 0) / 26
+  for (let i = 12; i < 26; i++) e12 = closes[i] * k12 + e12 * (1 - k12)
+  const ms: number[] = []
+  for (let i = 26; i < closes.length; i++) {
+    e12 = closes[i] * k12 + e12 * (1 - k12)
+    e26 = closes[i] * k26 + e26 * (1 - k26)
+    ms.push(e12 - e26)
+  }
+  let sig = ms.slice(0, 9).reduce((a, b) => a + b, 0) / 9
+  for (let i = 9; i < ms.length; i++) sig = ms[i] * k9 + sig * (1 - k9)
+  const mv = ms[ms.length - 1]
+  return { macd: mv, signal: sig, hist: mv - sig }
+}
+function stoch(closes: number[], highs: number[], lows: number[], n = 14) {
+  if (closes.length < n) return 50
+  const hi = Math.max(...highs.slice(-n)), lo = Math.min(...lows.slice(-n))
+  return hi === lo ? 50 : ((closes[closes.length - 1] - lo) / (hi - lo)) * 100
+}
+function williams(closes: number[], highs: number[], lows: number[], n = 14) {
+  if (closes.length < n) return -50
+  const hi = Math.max(...highs.slice(-n)), lo = Math.min(...lows.slice(-n))
+  return hi === lo ? -50 : ((hi - closes[closes.length - 1]) / (hi - lo)) * -100
+}
+function cci(closes: number[], highs: number[], lows: number[], n = 20) {
+  if (closes.length < n) return 0
+  const tp = closes.map((c, i) => (c + highs[i] + lows[i]) / 3)
+  const tpSlice = tp.slice(-n)
+  const mean = tpSlice.reduce((a, b) => a + b, 0) / n
+  const md = tpSlice.reduce((a, b) => a + Math.abs(b - mean), 0) / n
+  return md === 0 ? 0 : (tpSlice[tpSlice.length - 1] - mean) / (0.015 * md)
+}
+
 // ── Section 6: Technical Analysis ─────────────────────────────────────────────
-const TechnicalAnalysis = () => {
-  const oscillators = [
-    { name: "RSI (14)",      val: "58.2",   sig: "Buy"     },
-    { name: "Stochastic %K", val: "72.4",   sig: "Buy"     },
-    { name: "CCI (20)",      val: "+124.5", sig: "Buy"     },
-    { name: "MACD",          val: "+2.14",  sig: "Buy"     },
-    { name: "Williams %R",   val: "-31.8",  sig: "Neutral" },
-    { name: "Ultimate Osc.", val: "48.3",   sig: "Sell"    },
-  ]
-  const movingAvgs = [
-    { name: "MA5",   val: "187.23", sig: "Buy"  },
-    { name: "MA10",  val: "185.44", sig: "Buy"  },
-    { name: "MA20",  val: "183.12", sig: "Buy"  },
-    { name: "MA50",  val: "181.20", sig: "Buy"  },
-    { name: "MA100", val: "172.84", sig: "Buy"  },
-    { name: "MA200", val: "163.45", sig: "Buy"  },
-    { name: "EMA20", val: "184.33", sig: "Buy"  },
-    { name: "EMA50", val: "179.98", sig: "Sell" },
-  ]
+interface TAIndicator { name: string; val: string; sig: string }
+interface TAData {
+  price: number; oscillators: TAIndicator[]; movingAvgs: TAIndicator[]
+  buyCnt: number; sellCnt: number; neutCnt: number
+  snrPrices: number[]; snrLabels: string[]; closes: number[]
+}
+
+const TechnicalAnalysis = ({ ticker }: { ticker: string }) => {
+  const [ta, setTA] = useState<TAData | null>(null)
+
+  useEffect(() => {
+    setTA(null)
+    fetch(`/api/markets/candles?symbol=${ticker}&range=1Y`)
+      .then(r => r.ok ? r.json() : null)
+      .then(json => {
+        if (!json?.data?.closes?.length) return
+        const { closes, highs, lows } = json.data as { closes: number[]; highs: number[]; lows: number[] }
+        const price = closes[closes.length - 1]
+
+        // Oscillators
+        const rsiVal   = rsi(closes)
+        const stochVal = stoch(closes, highs, lows)
+        const cciVal   = cci(closes, highs, lows)
+        const macdVals = macd(closes)
+        const willR    = williams(closes, highs, lows)
+
+        const rsiSig   = rsiVal > 70 ? "Overbought" : rsiVal < 30 ? "Oversold" : rsiVal > 55 ? "Buy" : rsiVal < 45 ? "Sell" : "Neutral"
+        const stochSig = stochVal > 80 ? "Overbought" : stochVal < 20 ? "Oversold" : stochVal > 60 ? "Buy" : stochVal < 40 ? "Sell" : "Neutral"
+        const cciSig   = cciVal > 100 ? "Buy" : cciVal < -100 ? "Sell" : "Neutral"
+        const macdSig  = macdVals.hist > 0 ? "Buy" : "Sell"
+        const willSig  = willR > -20 ? "Overbought" : willR < -80 ? "Oversold" : willR > -40 ? "Buy" : willR < -60 ? "Sell" : "Neutral"
+
+        const oscillators: TAIndicator[] = [
+          { name: "RSI (14)",      val: rsiVal.toFixed(1),              sig: rsiSig   },
+          { name: "Stochastic %K", val: stochVal.toFixed(1),            sig: stochSig },
+          { name: "CCI (20)",      val: (cciVal >= 0 ? "+" : "") + cciVal.toFixed(1), sig: cciSig },
+          { name: "MACD",          val: (macdVals.macd >= 0 ? "+" : "") + macdVals.macd.toFixed(2), sig: macdSig },
+          { name: "Williams %R",   val: willR.toFixed(1),               sig: willSig  },
+          { name: "MACD Signal",   val: macdVals.signal.toFixed(2),     sig: macdVals.hist > 0 ? "Buy" : "Sell" },
+        ]
+
+        // Moving averages — only include if enough data
+        const maRows: TAIndicator[] = []
+        const maSpec: [string, number, boolean][] = [
+          ["MA5",5,false],["MA10",10,false],["MA20",20,false],["MA50",50,false],
+          ["MA100",100,false],["MA200",200,false],["EMA20",20,true],["EMA50",50,true],
+        ]
+        for (const [name, n, isEma] of maSpec) {
+          const val = isEma ? ema(closes, n) : sma(closes, n)
+          if (val != null) maRows.push({ name, val: `$${val.toFixed(2)}`, sig: price > val ? "Buy" : "Sell" })
+        }
+
+        // Signal counts
+        const all = [...oscillators, ...maRows]
+        const buyCnt  = all.filter(i => i.sig === "Buy").length
+        const sellCnt = all.filter(i => i.sig === "Sell").length
+        const neutCnt = all.length - buyCnt - sellCnt
+
+        // Support & resistance from actual 52W data
+        const w52High = Math.max(...highs)
+        const w52Low  = Math.min(...lows)
+        const range   = w52High - w52Low
+        const sup1    = w52Low  + range * 0.25
+        const sup2    = w52Low  + range * 0.40
+        const res1    = w52High - range * 0.25
+        const res2    = w52High - range * 0.10
+        const snrPrices = [w52Low, sup1, price, res1, w52High].sort((a, b) => a - b)
+        const snrLabels = snrPrices.map(p =>
+          p === price  ? `Current $${p.toFixed(2)}` :
+          p === w52Low ? `52W Low $${p.toFixed(2)}`  :
+          p === w52High? `52W High $${p.toFixed(2)}` :
+          p < price    ? `Support $${p.toFixed(2)}`  :
+                         `Resistance $${p.toFixed(2)}`
+        )
+
+        setTA({ price, oscillators, movingAvgs: maRows, buyCnt, sellCnt, neutCnt, snrPrices, snrLabels, closes })
+      })
+      .catch(() => {})
+  }, [ticker])
 
   const arcSegments = [
     { from: [30,120],     to: [47.2,67.1],   color: "#ba1a1a" },
@@ -804,10 +924,32 @@ const TechnicalAnalysis = () => {
     { from: [192.8,67.1], to: [210,120],      color: "#3f6b3f" },
   ]
 
-  const priceToX = (p: number) => ((p - 170) / (210 - 170)) * 760 + 20
-  const snrPrices =  [175.20, 182.50, 189.84, 195.40, 202.80]
-  const snrLabels =  ["Str. Support $175.20", "Support $182.50", "Current $189.84", "Resistance $195.40", "Str. Resistance $202.80"]
-  const snrColors =  [C.pos, C.pos + "99", C.prim, C.neg + "99", C.neg]
+  // Needle position based on computed buy/sell ratio
+  const total     = ta ? ta.buyCnt + ta.sellCnt + ta.neutCnt : 1
+  const score     = ta ? (ta.buyCnt + 0.5 * ta.neutCnt) / total : 0.5
+  const angleDeg  = (1 - score) * 180
+  const angleRad  = (angleDeg * Math.PI) / 180
+  const nx        = (120 + 80 * Math.cos(angleRad)).toFixed(1)
+  const ny        = (120 - 80 * Math.sin(angleRad)).toFixed(1)
+  const signalLabel  = score >= 0.7 ? "Strong Buy" : score >= 0.55 ? "Buy" : score >= 0.45 ? "Neutral" : score >= 0.3 ? "Sell" : "Strong Sell"
+  const signalColor  = score >= 0.55 ? C.pos : score <= 0.45 ? C.neg : C.warn
+
+  if (!ta) {
+    return (
+      <div className={`${card} p-5`}>
+        <h2 className="font-headline-md text-[18px] text-primary mb-4">Technical Analysis Panel</h2>
+        <div className="text-sm text-on-surface-variant py-8 text-center">Computing indicators…</div>
+      </div>
+    )
+  }
+
+  const snrMin   = Math.min(...ta.snrPrices)
+  const snrMax   = Math.max(...ta.snrPrices)
+  const snrRange = snrMax - snrMin || 1
+  const priceToX = (p: number) => ((p - snrMin) / snrRange) * 760 + 20
+  const snrColors = ta.snrPrices.map(p =>
+    p === ta.price ? C.prim : p < ta.price ? (p === snrMin ? C.pos : C.pos + "99") : (p === snrMax ? C.neg : C.neg + "99")
+  )
 
   return (
     <div className={`${card} p-5`}>
@@ -816,7 +958,11 @@ const TechnicalAnalysis = () => {
         <div>
           <div className="flex items-center justify-between mb-3 flex-wrap gap-1">
             <span className="font-ui-button text-[10px] uppercase tracking-widest text-on-surface-variant">Oscillators</span>
-            <span className="text-xs"><span className="text-success font-semibold">4 BUY</span> · <span className="text-on-surface-variant">1 NEUTRAL</span> · <span className="text-error font-semibold">1 SELL</span></span>
+            <span className="text-xs">
+              <span className="text-success font-semibold">{ta.oscillators.filter(o => o.sig === "Buy" || o.sig === "Overbought").length} BUY</span>
+              {" · "}<span className="text-on-surface-variant">{ta.oscillators.filter(o => o.sig === "Neutral").length} NEUTRAL</span>
+              {" · "}<span className="text-error font-semibold">{ta.oscillators.filter(o => o.sig === "Sell" || o.sig === "Oversold").length} SELL</span>
+            </span>
           </div>
           <table className="w-full border-collapse">
             <thead><tr className="border-b border-outline-variant/20">
@@ -825,7 +971,7 @@ const TechnicalAnalysis = () => {
               <th className="pb-1.5 text-right text-[10px] font-ui-button uppercase tracking-widest text-on-surface-variant">Signal</th>
             </tr></thead>
             <tbody>
-              {oscillators.map((o, i) => (
+              {ta.oscillators.map((o, i) => (
                 <tr key={i} className={i % 2 ? "bg-surface-container-low/30" : ""}>
                   <td className="py-1.5 text-xs text-on-surface pr-2">{o.name}</td>
                   <td className="py-1.5 text-xs font-mono text-on-surface text-right pr-2">{o.val}</td>
@@ -838,7 +984,10 @@ const TechnicalAnalysis = () => {
         <div>
           <div className="flex items-center justify-between mb-3 flex-wrap gap-1">
             <span className="font-ui-button text-[10px] uppercase tracking-widest text-on-surface-variant">Moving Averages</span>
-            <span className="text-xs"><span className="text-success font-semibold">6 BUY</span> · <span className="text-error font-semibold">2 SELL</span></span>
+            <span className="text-xs">
+              <span className="text-success font-semibold">{ta.movingAvgs.filter(m => m.sig === "Buy").length} BUY</span>
+              {" · "}<span className="text-error font-semibold">{ta.movingAvgs.filter(m => m.sig === "Sell").length} SELL</span>
+            </span>
           </div>
           <table className="w-full border-collapse">
             <thead><tr className="border-b border-outline-variant/20">
@@ -847,7 +996,7 @@ const TechnicalAnalysis = () => {
               <th className="pb-1.5 text-right text-[10px] font-ui-button uppercase tracking-widest text-on-surface-variant">Signal</th>
             </tr></thead>
             <tbody>
-              {movingAvgs.map((o, i) => (
+              {ta.movingAvgs.map((o, i) => (
                 <tr key={i} className={i % 2 ? "bg-surface-container-low/30" : ""}>
                   <td className="py-1.5 text-xs text-on-surface pr-2">{o.name}</td>
                   <td className="py-1.5 text-xs font-mono text-on-surface text-right pr-2">{o.val}</td>
@@ -866,26 +1015,28 @@ const TechnicalAnalysis = () => {
                 fill="none" stroke={arc.color} strokeWidth="18" strokeLinecap="butt"
               />
             ))}
-            <line x1="120" y1="120" x2="156.2" y2="48.7" stroke={C.prim} strokeWidth="2.5" strokeLinecap="round" />
+            <line x1="120" y1="120" x2={nx} y2={ny} stroke={C.prim} strokeWidth="2.5" strokeLinecap="round" />
             <circle cx="120" cy="120" r="6" fill={C.prim} />
-            <text x="120" y="138" textAnchor="middle" fontSize="18" fontWeight="700" fill={C.pos} fontFamily="monospace">BUY</text>
+            <text x="120" y="138" textAnchor="middle" fontSize="15" fontWeight="700" fill={signalColor} fontFamily="monospace">{signalLabel}</text>
           </svg>
           <div className="text-xs text-on-surface-variant mt-1 text-center">
-            <span className="text-error font-semibold">Sell: 3</span> · <span>Neutral: 2</span> · <span className="text-success font-semibold">Buy: 9</span>
+            <span className="text-error font-semibold">Sell: {ta.sellCnt}</span>
+            {" · "}<span>Neutral: {ta.neutCnt}</span>
+            {" · "}<span className="text-success font-semibold">Buy: {ta.buyCnt}</span>
           </div>
         </div>
       </div>
       <div className="border-t border-outline-variant/20 pt-4">
-        <p className="font-ui-button text-[10px] uppercase tracking-widest text-on-surface-variant mb-3">Support & Resistance Levels</p>
+        <p className="font-ui-button text-[10px] uppercase tracking-widest text-on-surface-variant mb-3">52-Week Support & Resistance</p>
         <svg viewBox="0 0 800 70" width="100%" style={{ display: "block" }}>
           <line x1="20" y1="35" x2="780" y2="35" stroke={C.bord} strokeWidth="1" />
-          {snrPrices.map((price, i) => {
+          {ta.snrPrices.map((price, i) => {
             const x = priceToX(price)
-            const isDashed = i === 2
+            const isDashed = price === ta.price
             return (
               <g key={i}>
                 <line x1={x} y1="12" x2={x} y2="58" stroke={snrColors[i]} strokeWidth={isDashed ? 2 : 1.5} strokeDasharray={isDashed ? "4 3" : undefined} />
-                <text x={x} y={i % 2 === 0 ? 9 : 68} textAnchor="middle" fontSize="8" fill={snrColors[i]} fontFamily="monospace">{snrLabels[i]}</text>
+                <text x={x} y={i % 2 === 0 ? 9 : 68} textAnchor="middle" fontSize="8" fill={snrColors[i]} fontFamily="monospace">{ta.snrLabels[i]}</text>
               </g>
             )
           })}
@@ -1768,7 +1919,7 @@ export default function ResearchPage() {
           <KeyStats stockData={stockData} metrics={metrics} />
           <AnalystRatings recommendations={recommendations} />
           <FinancialStatements />
-          <TechnicalAnalysis />
+          <TechnicalAnalysis ticker={ticker} />
           <EarningsHistory earnings={earnings} />
           <Ownership />
           <NewsSentiment news={news} />

@@ -236,7 +236,14 @@ export default function MarketsPage() {
     }, [])
 
     const fetchQuotes = useCallback(async () => {
-        const symbols = HOLDINGS.map(h => h.ticker).filter(t => t !== "BTC-USD").join(",")
+        // Include holdings, watchlist, and screener tickers so all sections get live prices
+        const allTickers = new Set([
+            ...HOLDINGS.map(h => h.ticker),
+            ...WATCHLIST_ITEMS.map(w => w.tick),
+            ...SCREENER_DATA.map(s => s.ticker),
+        ])
+        allTickers.delete("BTC-USD") // Finnhub doesn't serve crypto quotes
+        const symbols = Array.from(allTickers).join(",")
         try {
             const res = await fetch(`/api/markets/quotes?symbols=${symbols}`)
             if (!res.ok) return
@@ -245,6 +252,11 @@ export default function MarketsPage() {
                 const map = new Map<string, QuoteData>()
                 for (const q of json.data as QuoteData[]) map.set(q.ticker, q)
                 setLiveQuotes(map)
+                // Patch screener rows with live prices
+                setScreenerRows(prev => prev.map(r => {
+                    const live = map.get(r.ticker)
+                    return live ? { ...r, price: live.price } : r
+                }))
             }
         } catch { /* stay on static fallback */ }
     }, [])
@@ -449,7 +461,10 @@ export default function MarketsPage() {
             {/* ── Portfolio Overview ── */}
             <div className="grid gap-5" style={{gridTemplateColumns:"65fr 35fr"}}>
                 <div className={`${card} p-6`}>
-                    <p className="font-ui-button text-[11px] uppercase tracking-widest text-on-surface-variant mb-1">Total Portfolio Value</p>
+                    <div className="flex items-center gap-2 mb-2">
+                        <p className="font-ui-button text-[11px] uppercase tracking-widest text-on-surface-variant">Total Portfolio Value</p>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full border border-outline-variant/40 bg-surface-container-low text-on-surface-variant font-ui-button uppercase tracking-wider">Demo portfolio · Live prices</span>
+                    </div>
                     <div className="font-headline-md text-[34px] text-primary font-mono mb-1">$284,731.42</div>
                     <div className={`font-body-md text-sm font-medium mb-5 ${posText}`}>▲ +$1,847.23 (+0.65%) today</div>
                     <div className="flex gap-2.5 mb-5">
@@ -613,6 +628,7 @@ export default function MarketsPage() {
             <div className={card}>
                 <div className="flex items-center justify-between px-5 py-4 cursor-pointer" onClick={() => setScreenerOpen(o => !o)}>
                     <h2 className="font-headline-md text-[18px] text-primary">Stock Screener</h2>
+                    <span className="ml-2 text-[10px] px-2 py-0.5 rounded-full border border-outline-variant/40 bg-surface-container-low text-on-surface-variant font-ui-button uppercase tracking-wider">Live prices · Demo P/E &amp; fundamentals</span>
                     <span className={`text-on-surface-variant text-lg transition-transform duration-300 ${screenerOpen ? "rotate-180" : ""}`}>▾</span>
                 </div>
                 <div className={`mkts-scr-body ${screenerOpen ? "open" : ""}`}>
