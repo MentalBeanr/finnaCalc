@@ -667,38 +667,61 @@ const AnalystRatings = ({ recommendations }: { recommendations: RecommendationDa
 }
 
 // ── Section 5: Financial Statements ──────────────────────────────────────────
-const FinancialStatements = () => {
-  const [tab, setTab] = useState<"income"|"balance"|"cashflow"|"ratios">("income")
+interface EdgarFinancials {
+  ticker: string; years: string[]
+  income: { revenue: (number|null)[]; grossProfit: (number|null)[]; opIncome: (number|null)[]; netIncome: (number|null)[]; eps: (number|null)[]; rnd: (number|null)[]; sga: (number|null)[] }
+  balance: { assets: (number|null)[]; liabilities: (number|null)[]; equity: (number|null)[]; cash: (number|null)[]; longTermDebt: (number|null)[] }
+  cashflow: { cfo: (number|null)[]; cfi: (number|null)[]; cff: (number|null)[]; capex: (number|null)[] }
+}
 
-  const incomeData = [
-    { label: "Revenue ($B)",       vals: [274.5, 365.8, 394.3, 383.3, 385.6] },
-    { label: "Gross Profit ($B)",  vals: [104.9, 152.8, 170.8, 169.1, 172.3] },
-    { label: "Op Income ($B)",     vals: [66.3,  108.9, 119.4, 114.3, 117.8] },
-    { label: "Net Income ($B)",    vals: [57.4,  94.7,  99.8,  97.0,  98.2]  },
-    { label: "EPS ($)",            vals: [3.28,  5.61,  6.11,  6.13,  6.42]  },
-    { label: "EBITDA ($B)",        vals: [77.4,  120.2, 130.9, 125.8, 129.4] },
-    { label: "R&D ($B)",           vals: [18.8,  21.9,  26.3,  29.9,  31.4]  },
-    { label: "SG&A ($B)",          vals: [19.9,  21.9,  25.1,  24.9,  26.1]  },
-  ]
-  const balanceData = [
-    { label: "Total Assets ($B)",       vals: [323.9, 351.0, 352.8, 352.6, 337.4] },
-    { label: "Total Liab. ($B)",        vals: [258.5, 287.9, 302.1, 290.4, 277.3] },
-    { label: "Total Equity ($B)",       vals: [65.3,  63.1,  50.7,  62.1,  60.1]  },
-    { label: "Cash ($B)",               vals: [90.9,  62.6,  48.3,  61.6,  55.2]  },
-    { label: "ST Debt ($B)",            vals: [13.8,  10.0,  11.1,  11.5,  10.1]  },
-    { label: "LT Debt ($B)",            vals: [98.7,  109.1, 98.9,  95.3,  91.8]  },
-    { label: "Goodwill ($B)",           vals: [0.0,   0.0,   0.0,   0.0,   0.0]   },
-    { label: "Ret. Earnings ($B)",      vals: [-70.4, -62.0, -3.1, -214.0, -299.5] },
-  ]
-  const cashflowData = [
-    { label: "Op. CF ($B)",        vals: [80.7,  104.0, 122.2, 110.5, 107.9] },
-    { label: "Investing CF ($B)",  vals: [-4.3, -14.5, -22.4,   3.7,  -5.2]  },
-    { label: "Financing CF ($B)",  vals: [-86.8,-93.4,-110.7,-108.5,-101.4]  },
-    { label: "Free CF ($B)",       vals: [73.4,  92.9, 111.4,  99.6,  96.7]  },
-    { label: "CapEx ($B)",         vals: [-7.3, -11.1, -10.7, -10.9, -11.2]  },
-    { label: "Dividends ($B)",     vals: [-14.1,-14.5, -14.8, -15.1, -15.2]  },
-    { label: "Buybacks ($B)",      vals: [-72.4,-85.5, -89.4, -77.6, -81.5]  },
-  ]
+const FinancialStatements = ({ ticker }: { ticker: string }) => {
+  const [tab, setTab] = useState<"income"|"balance"|"cashflow"|"ratios">("income")
+  const [edgar, setEdgar] = useState<EdgarFinancials | null>(null)
+  const [edgarLoading, setEdgarLoading] = useState(true)
+
+  useEffect(() => {
+    setEdgar(null); setEdgarLoading(true)
+    fetch(`/api/edgar/financials?ticker=${ticker}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(j => { if (j?.data) setEdgar(j.data) })
+      .catch(() => {})
+      .finally(() => setEdgarLoading(false))
+  }, [ticker])
+
+  // Determine display scale from the max revenue value
+  const maxRev = edgar?.income.revenue.find(v => v != null) ?? 0
+  const isB = maxRev >= 1e9
+  const div = isB ? 1e9 : 1e6
+  const suf = isB ? "B" : "M"
+  const fv  = (v: number | null) => v == null ? null : +(v / div).toFixed(1)
+  const fvEps = (v: number | null) => v == null ? null : +v.toFixed(2)
+
+  const years = edgar?.years ?? []
+
+  const incomeData = edgar ? [
+    { label: `Revenue ($${suf})`,     vals: edgar.income.revenue.map(fv) },
+    { label: `Gross Profit ($${suf})`,vals: edgar.income.grossProfit.map(fv) },
+    { label: `Op Income ($${suf})`,   vals: edgar.income.opIncome.map(fv) },
+    { label: `Net Income ($${suf})`,  vals: edgar.income.netIncome.map(fv) },
+    { label: "EPS ($)",               vals: edgar.income.eps.map(fvEps) },
+    { label: `R&D ($${suf})`,         vals: edgar.income.rnd.map(fv) },
+    { label: `SG&A ($${suf})`,        vals: edgar.income.sga.map(fv) },
+  ] : []
+
+  const balanceData = edgar ? [
+    { label: `Total Assets ($${suf})`,  vals: edgar.balance.assets.map(fv) },
+    { label: `Total Liab. ($${suf})`,   vals: edgar.balance.liabilities.map(fv) },
+    { label: `Total Equity ($${suf})`,  vals: edgar.balance.equity.map(fv) },
+    { label: `Cash ($${suf})`,          vals: edgar.balance.cash.map(fv) },
+    { label: `LT Debt ($${suf})`,       vals: edgar.balance.longTermDebt.map(fv) },
+  ] : []
+
+  const cashflowData = edgar ? [
+    { label: `Op. CF ($${suf})`,       vals: edgar.cashflow.cfo.map(fv) },
+    { label: `Investing CF ($${suf})`, vals: edgar.cashflow.cfi.map(fv) },
+    { label: `Financing CF ($${suf})`, vals: edgar.cashflow.cff.map(fv) },
+    { label: `CapEx ($${suf})`,        vals: edgar.cashflow.capex.map(fv) },
+  ] : []
 
   const activeData = tab === "income" ? incomeData : tab === "balance" ? balanceData : cashflowData
 
@@ -716,7 +739,9 @@ const FinancialStatements = () => {
   return (
     <div className={`${card} p-5`}>
       <div className="flex items-center gap-2 mb-3">
-        <span className="text-[10px] px-2 py-0.5 rounded-full border border-outline-variant/40 bg-surface-container-low text-on-surface-variant font-ui-button uppercase tracking-wider">Demo data · Premium data source required</span>
+        <span className="text-[10px] px-2 py-0.5 rounded-full border border-outline-variant/40 bg-surface-container-low text-on-surface-variant font-ui-button uppercase tracking-wider">
+          {edgarLoading ? "Loading EDGAR…" : edgar ? `SEC EDGAR · ${ticker}` : "EDGAR unavailable · showing demo data"}
+        </span>
       </div>
       <div className="flex gap-1 border-b border-outline-variant/20 mb-5 flex-wrap">
         {[["income","Income Statement"],["balance","Balance Sheet"],["cashflow","Cash Flow"],["ratios","Ratios"]].map(([t, label]) => (
@@ -745,25 +770,36 @@ const FinancialStatements = () => {
             </div>
           ))}
         </div>
+      ) : edgarLoading ? (
+        <div className="flex items-center justify-center h-32 text-on-surface-variant text-sm">Loading SEC EDGAR data…</div>
+      ) : activeData.length === 0 ? (
+        <div className="flex items-center justify-center h-32 text-on-surface-variant text-sm">No EDGAR data available for {ticker}</div>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full border-collapse">
             <thead>
               <tr className="border-b border-outline-variant/20">
-                {["Metric","FY2020","FY2021","FY2022","FY2023","FY2024(TTM)","YoY%","Trend"].map(c => (
+                {["Metric", ...years, "YoY %", "Trend"].map(c => (
                   <th key={c} className="px-3 py-2 text-left text-[11px] font-ui-button uppercase tracking-widest text-on-surface-variant whitespace-nowrap">{c}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {activeData.map((row, i) => {
-                const yoy = ((row.vals[4] - row.vals[3]) / Math.abs(row.vals[3])) * 100
+                const nonNull = row.vals.filter((v): v is number => v != null)
+                const last = nonNull.at(-1) ?? 0
+                const prev = nonNull.at(-2) ?? last
+                const yoy  = prev !== 0 ? ((last - prev) / Math.abs(prev)) * 100 : 0
                 return (
                   <tr key={i} className={i % 2 ? "bg-surface-container-low/40" : ""}>
                     <td className="px-3 py-2.5 text-xs text-on-surface whitespace-nowrap">{row.label}</td>
-                    {row.vals.map((v, j) => <td key={j} className="px-3 py-2.5 text-xs font-mono text-on-surface">{v.toFixed(1)}</td>)}
+                    {row.vals.map((v, j) => (
+                      <td key={j} className="px-3 py-2.5 text-xs font-mono text-on-surface">
+                        {v == null ? "—" : v.toFixed(Math.abs(v) < 10 ? 2 : 1)}
+                      </td>
+                    ))}
                     <td className={`px-3 py-2.5 text-xs font-mono font-semibold ${yoy >= 0 ? "text-success" : "text-error"}`}>{yoy >= 0 ? "+" : ""}{yoy.toFixed(1)}%</td>
-                    <td className="px-3 py-2.5"><SVGSparkline data={row.vals} /></td>
+                    <td className="px-3 py-2.5"><SVGSparkline data={nonNull} /></td>
                   </tr>
                 )
               })}
@@ -1145,9 +1181,26 @@ const EarningsHistory = ({ earnings }: { earnings: EarningsData | null }) => {
 }
 
 // ── Section 8: Ownership ──────────────────────────────────────────────────────
-const Ownership = () => {
+interface EdgarHolder {
+  name: string; cik: string | null
+  filedAt: string | null; reportPeriod: string | null; edgarUrl: string
+}
+
+const Ownership = ({ ticker }: { ticker: string }) => {
   const ownDonutRef = useRef<HTMLCanvasElement>(null)
   const ownInst = useRef<any>(null)
+  const [holders, setHolders] = useState<EdgarHolder[]>([])
+  const [holdersTotal, setHoldersTotal] = useState<number | null>(null)
+  const [holdersLoading, setHoldersLoading] = useState(true)
+
+  useEffect(() => {
+    setHolders([]); setHoldersTotal(null); setHoldersLoading(true)
+    fetch(`/api/edgar/holders?ticker=${ticker}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(j => { if (j?.data) { setHolders(j.data); setHoldersTotal(j.total ?? null) } })
+      .catch(() => {})
+      .finally(() => setHoldersLoading(false))
+  }, [ticker])
 
   useEffect(() => {
     let dead = false
@@ -1166,18 +1219,6 @@ const Ownership = () => {
     return () => { dead = true; ownInst.current?.destroy() }
   }, [])
 
-  const institutions = [
-    { name:"Vanguard Group",   shares:"1.28B",  pct:"8.29%", chg:"+2.4M", pos:true,  val:"$242.9B" },
-    { name:"BlackRock Inc",    shares:"1.04B",  pct:"6.74%", chg:"+1.1M", pos:true,  val:"$197.4B" },
-    { name:"State Street",     shares:"598.4M", pct:"3.87%", chg:"-3.2M", pos:false, val:"$113.6B" },
-    { name:"Fidelity Mgmt",    shares:"352.1M", pct:"2.28%", chg:"+5.4M", pos:true,  val:"$66.8B"  },
-    { name:"Geode Capital",    shares:"302.8M", pct:"1.96%", chg:"+0.9M", pos:true,  val:"$57.5B"  },
-    { name:"T. Rowe Price",    shares:"221.4M", pct:"1.43%", chg:"-1.8M", pos:false, val:"$42.0B"  },
-    { name:"Morgan Stanley",   shares:"201.8M", pct:"1.31%", chg:"+4.2M", pos:true,  val:"$38.3B"  },
-    { name:"Norges Bank",      shares:"188.7M", pct:"1.22%", chg:"-0.6M", pos:false, val:"$35.8B"  },
-    { name:"Northern Trust",   shares:"177.9M", pct:"1.15%", chg:"+1.3M", pos:true,  val:"$33.8B"  },
-    { name:"BofA Securities",  shares:"143.2M", pct:"0.93%", chg:"-2.1M", pos:false, val:"$27.2B"  },
-  ]
   const insiders = [
     { date:"Jun 5",  name:"T. Cook",    role:"CEO", type:"Sell",       shares:"50,000",  value:"$9.49M"  },
     { date:"May 28", name:"L. Maestri", role:"CFO", type:"Option Ex.", shares:"120,000", value:"$17.77M" },
@@ -1194,11 +1235,19 @@ const Ownership = () => {
     return <span className={blueBadge}>{t}</span>
   }
 
+  const fmtDate = (s: string | null) => s
+    ? new Date(s).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+    : "—"
+
   return (
     <div className={`${card} p-5`}>
       <div className="flex items-center gap-2 mb-3">
         <h2 className="font-headline-md text-[18px] text-primary">Ownership & Institutional Holdings</h2>
-        <span className="text-[10px] px-2 py-0.5 rounded-full border border-outline-variant/40 bg-surface-container-low text-on-surface-variant font-ui-button uppercase tracking-wider">Demo data · Premium data source required</span>
+        <span className="text-[10px] px-2 py-0.5 rounded-full border border-outline-variant/40 bg-surface-container-low text-on-surface-variant font-ui-button uppercase tracking-wider">
+          {holdersLoading ? "Loading EDGAR…"
+            : holders.length ? `SEC 13-F Filers · ${holdersTotal != null ? holdersTotal.toLocaleString() + " total" : ""}`
+            : "EDGAR · No 13-F filings found"}
+        </span>
       </div>
       <div className="grid grid-cols-3 gap-5">
         <div>
@@ -1209,28 +1258,43 @@ const Ownership = () => {
               <span key={p} className={neutBadge + " px-3 py-1 text-[10px]"}>{p}</span>
             ))}
           </div>
+          <p className="text-[10px] text-on-surface-variant/60 text-center mt-2">Donut · demo data</p>
         </div>
         <div>
-          <p className="font-ui-button text-[10px] uppercase tracking-widest text-on-surface-variant mb-2">Top Institutional Holders</p>
-          <table className="w-full border-collapse">
-            <thead><tr className="border-b border-outline-variant/20">
-              {["Institution","Shares","% Port","Change","Value"].map(h => <th key={h} className="px-2 py-1.5 text-left text-[10px] font-ui-button uppercase tracking-widest text-on-surface-variant whitespace-nowrap">{h}</th>)}
-            </tr></thead>
-            <tbody>
-              {institutions.map((inst, i) => (
-                <tr key={i} className={i % 2 ? "bg-surface-container-low/40" : ""}>
-                  <td className="px-2 py-2 text-xs text-on-surface whitespace-nowrap">{inst.name}</td>
-                  <td className="px-2 py-2 text-xs font-mono text-on-surface">{inst.shares}</td>
-                  <td className="px-2 py-2 text-xs text-on-surface-variant">{inst.pct}</td>
-                  <td className={`px-2 py-2 text-xs font-mono ${inst.pos ? "text-success" : "text-error"}`}>{inst.pos ? "▲" : "▼"} {inst.chg}</td>
-                  <td className="px-2 py-2 text-xs font-mono text-on-surface">{inst.val}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <p className="font-ui-button text-[10px] uppercase tracking-widest text-on-surface-variant mb-2">
+            Recent 13-F Filers · SEC EDGAR
+          </p>
+          {holdersLoading ? (
+            <div className="text-xs text-on-surface-variant py-4">Loading…</div>
+          ) : holders.length === 0 ? (
+            <div className="text-xs text-on-surface-variant py-4">No 13-F filings found for {ticker}</div>
+          ) : (
+            <table className="w-full border-collapse">
+              <thead><tr className="border-b border-outline-variant/20">
+                {["Institution","Filed","Period","EDGAR"].map(h => <th key={h} className="px-2 py-1.5 text-left text-[10px] font-ui-button uppercase tracking-widest text-on-surface-variant whitespace-nowrap">{h}</th>)}
+              </tr></thead>
+              <tbody>
+                {holders.map((h, i) => (
+                  <tr key={i} className={i % 2 ? "bg-surface-container-low/40" : ""}>
+                    <td className="px-2 py-2 text-xs text-on-surface whitespace-nowrap max-w-[140px] truncate" title={h.name}>{h.name}</td>
+                    <td className="px-2 py-2 text-xs text-on-surface-variant whitespace-nowrap">{fmtDate(h.filedAt)}</td>
+                    <td className="px-2 py-2 text-xs text-on-surface-variant whitespace-nowrap">{h.reportPeriod ? h.reportPeriod.slice(0,7) : "—"}</td>
+                    <td className="px-2 py-2">
+                      <a href={h.edgarUrl} target="_blank" rel="noopener noreferrer"
+                         className="text-[10px] text-primary hover:underline">View →</a>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+          <p className="text-[10px] text-on-surface-variant/60 mt-2">
+            Source: SEC EDGAR EFTS · Share counts in individual filing XML
+          </p>
         </div>
         <div>
           <p className="font-ui-button text-[10px] uppercase tracking-widest text-on-surface-variant mb-2">Recent Insider Transactions</p>
+          <p className="text-[10px] text-on-surface-variant/60 mb-2">Demo data · Form 4 parsing coming soon</p>
           <table className="w-full border-collapse">
             <thead><tr className="border-b border-outline-variant/20">
               {["Date","Insider","Role","Type","Shares","Value"].map(h => <th key={h} className="px-2 py-1.5 text-left text-[10px] font-ui-button uppercase tracking-widest text-on-surface-variant whitespace-nowrap">{h}</th>)}
@@ -1918,10 +1982,10 @@ export default function ResearchPage() {
           <PriceChart range={range} setRange={setRange} chartType={chartType} ticker={ticker} />
           <KeyStats stockData={stockData} metrics={metrics} />
           <AnalystRatings recommendations={recommendations} />
-          <FinancialStatements />
+          <FinancialStatements ticker={ticker} />
           <TechnicalAnalysis ticker={ticker} />
           <EarningsHistory earnings={earnings} />
-          <Ownership />
+          <Ownership ticker={ticker} />
           <NewsSentiment news={news} />
           <ComparisonTool />
           <ValuationModels />
