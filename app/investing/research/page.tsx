@@ -22,6 +22,29 @@ const C = {
 // ── Utility functions ─────────────────────────────────────────────────────────
 const fmtPct = (v: number) => (v >= 0 ? "+" : "") + v.toFixed(2) + "%"
 
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+interface StockData {
+  symbol:    string
+  name:      string
+  logo:      string | null
+  industry:  string | null
+  price:     number
+  change:    number
+  changePct: number
+  open:      number
+  high:      number
+  low:       number
+  prevClose: number
+  marketCap: number | null
+}
+
+interface SearchSuggestion {
+  symbol: string
+  name:   string
+  type:   string
+}
+
 // ── Price data generator ──────────────────────────────────────────────────────
 const genPriceData = (range: string) => {
   const cfg: Record<string, { pts: number; base: number; amp: number; trend: number }> = {
@@ -76,18 +99,124 @@ const SVGSparkline = ({ data, w = 60, h = 20 }: { data: number[]; w?: number; h?
 }
 
 // ── Section 1: Command Bar ────────────────────────────────────────────────────
-const CommandBar = ({ range, setRange, chartType, setChartType }: {
+const CommandBar = ({ range, setRange, chartType, setChartType, ticker, onTickerChange, stockData, onStockData }: {
   range: string; setRange: (r: string) => void
   chartType: string; setChartType: (t: string) => void
+  ticker: string
+  onTickerChange: (s: string) => void
+  stockData: StockData | null
+  onStockData: (d: StockData) => void
 }) => {
   const [compare, setCompare] = useState(false)
+  const [query, setQuery] = useState(ticker)
+  const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([])
+  const [showDrop, setShowDrop] = useState(false)
+  const [searching, setSearching] = useState(false)
+  const [loadingStock, setLoadingStock] = useState(false)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const dropRef = useRef<HTMLDivElement>(null)
   const ranges = ["1D","5D","1M","3M","6M","1Y","2Y","5Y","MAX"]
+
+  // Dismiss dropdown on click-outside
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (dropRef.current && !dropRef.current.contains(e.target as Node)) {
+        setShowDrop(false)
+      }
+    }
+    document.addEventListener("mousedown", handler)
+    return () => document.removeEventListener("mousedown", handler)
+  }, [])
+
+  // Keep query in sync when ticker changes externally (e.g. initial load)
+  useEffect(() => { setQuery(ticker) }, [ticker])
+
+  const fetchSuggestions = useCallback(async (q: string) => {
+    if (q.trim().length < 1) { setSuggestions([]); return }
+    setSearching(true)
+    try {
+      const res = await fetch(`/api/stock-search?q=${encodeURIComponent(q)}`)
+      const json = await res.json()
+      setSuggestions(json.results ?? [])
+    } catch {
+      setSuggestions([])
+    } finally {
+      setSearching(false)
+    }
+  }, [])
+
+  const handleQueryChange = (v: string) => {
+    setQuery(v)
+    setShowDrop(true)
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => fetchSuggestions(v), 280)
+  }
+
+  const loadStock = useCallback(async (symbol: string) => {
+    const s = symbol.trim().toUpperCase()
+    if (!s) return
+    setLoadingStock(true)
+    setShowDrop(false)
+    setQuery(s)
+    try {
+      const res = await fetch(`/api/stock?symbol=${encodeURIComponent(s)}`)
+      const json = await res.json()
+      if (json.data) {
+        onTickerChange(s)
+        onStockData(json.data as StockData)
+      }
+    } catch { /* stay on current data */ }
+    finally { setLoadingStock(false) }
+  }, [onTickerChange, onStockData])
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter")  loadStock(query)
+    if (e.key === "Escape") setShowDrop(false)
+  }
+
+  const isPos    = (stockData?.change ?? 0) >= 0
+  const price    = stockData?.price    != null ? `$${stockData.price.toFixed(2)}` : "—"
+  const changeAmt = stockData != null
+    ? `${isPos ? "+" : ""}$${stockData.change.toFixed(2)}`
+    : "+$0.00"
+  const changePctStr = stockData != null
+    ? `(${isPos ? "+" : ""}${stockData.changePct.toFixed(2)}%)`
+    : "(0.00%)"
+
   return (
     <div className={`${card} p-5 space-y-4`}>
       <div className="flex flex-wrap gap-3 items-center">
-        <div className="flex-1 min-w-[220px] flex items-center gap-2 border border-outline-variant/30 rounded-lg px-3 py-2 bg-surface-container-low">
-          <span className="font-mono text-xs text-on-surface-variant bg-surface-container border border-outline-variant/30 rounded px-1.5 py-0.5">&gt;_</span>
-          <input className="flex-1 bg-transparent font-mono text-sm text-primary outline-none placeholder:text-on-surface-variant/50" placeholder="Enter ticker or company name — e.g. AAPL, Tesla, NVDA" />
+        {/* Search input with autocomplete dropdown */}
+        <div className="relative flex-1 min-w-[220px]" ref={dropRef}>
+          <div className="flex items-center gap-2 border border-outline-variant/30 rounded-lg px-3 py-2 bg-surface-container-low">
+            <span className="font-mono text-xs text-on-surface-variant bg-surface-container border border-outline-variant/30 rounded px-1.5 py-0.5">&gt;_</span>
+            <input
+              className="flex-1 bg-transparent font-mono text-sm text-primary outline-none placeholder:text-on-surface-variant/50"
+              placeholder="Enter ticker or company name — e.g. AAPL, Tesla, NVDA"
+              value={query}
+              onChange={e => handleQueryChange(e.target.value)}
+              onKeyDown={handleKeyDown}
+              onFocus={() => { if (suggestions.length > 0) setShowDrop(true) }}
+              spellCheck={false}
+              autoComplete="off"
+            />
+            {searching && <span className="text-xs text-on-surface-variant animate-pulse shrink-0">…</span>}
+          </div>
+          {showDrop && suggestions.length > 0 && (
+            <div className="absolute top-full left-0 right-0 mt-1 bg-surface border border-outline-variant/30 rounded-lg shadow-lg z-50 overflow-hidden">
+              {suggestions.map(s => (
+                <button
+                  key={s.symbol}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-surface-container-low transition-colors border-b border-outline-variant/10 last:border-0"
+                  onMouseDown={() => loadStock(s.symbol)}
+                >
+                  <span className="font-mono text-sm font-bold text-primary w-16 shrink-0">{s.symbol}</span>
+                  <span className="text-sm text-on-surface-variant truncate">{s.name}</span>
+                  <span className="ml-auto text-xs text-on-surface-variant/60 shrink-0">{s.type}</span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
         <button onClick={() => setCompare(c => !c)} className="px-3 py-2 border border-outline-variant/30 rounded-lg text-sm text-on-surface-variant hover:border-primary/40 hover:text-primary transition-colors whitespace-nowrap">
           + Compare
@@ -95,7 +224,7 @@ const CommandBar = ({ range, setRange, chartType, setChartType }: {
         {compare && (
           <div className="flex items-center gap-2 border border-outline-variant/30 rounded-lg px-3 py-2 bg-surface-container-low min-w-[180px]">
             <span className="font-mono text-xs text-on-surface-variant">vs</span>
-            <input className="flex-1 bg-transparent font-mono text-sm text-primary outline-none placeholder:text-on-surface-variant/50" placeholder="MSFT, GOOGL..." />
+            <input className="flex-1 bg-transparent font-mono text-sm text-primary outline-none placeholder:text-on-surface-variant/50" placeholder="MSFT, GOOGL…" />
           </div>
         )}
         <div className="flex gap-0.5 flex-wrap">
@@ -108,23 +237,27 @@ const CommandBar = ({ range, setRange, chartType, setChartType }: {
             <button key={t} onClick={() => setChartType(t)} className={`px-3 py-1.5 text-xs font-medium transition-all ${chartType === t ? "bg-primary text-white" : "text-on-surface-variant hover:bg-surface-container-low"}`}>{t}</button>
           ))}
         </div>
-        <button className="px-4 py-2 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary/90 transition-colors whitespace-nowrap">
-          Analyze →
+        <button
+          onClick={() => loadStock(query)}
+          disabled={loadingStock}
+          className="px-4 py-2 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary/90 transition-colors whitespace-nowrap disabled:opacity-60"
+        >
+          {loadingStock ? "Loading…" : "Analyze →"}
         </button>
       </div>
       <div className="flex flex-wrap items-center gap-4 pt-2 border-t border-outline-variant/20">
         <div className="flex items-center gap-3 flex-wrap">
-          <span className="font-mono font-bold text-2xl text-primary">AAPL</span>
-          <span className="text-on-surface-variant text-sm">Apple Inc.</span>
-          <span className={neutBadge}>NASDAQ: AAPL</span>
-          <span className={neutBadge}>Technology</span>
-          <span className={neutBadge}>Consumer Electronics</span>
+          <span className="font-mono font-bold text-2xl text-primary">{ticker}</span>
+          <span className="text-on-surface-variant text-sm">{stockData?.name ?? ticker}</span>
+          <span className={neutBadge}>{ticker}</span>
+          {stockData?.industry && <span className={neutBadge}>{stockData.industry}</span>}
         </div>
         <div className="flex items-center gap-3 ml-auto flex-wrap">
           <div>
-            <span className="font-mono font-bold text-3xl text-primary">$189.84</span>
-            <span className="ml-2 text-success font-medium text-sm">+$2.31 (+1.23%)</span>
-            <span className="ml-3 text-xs text-on-surface-variant">After Hours: $188.92 (-0.48%)</span>
+            <span className="font-mono font-bold text-3xl text-primary">{price}</span>
+            <span className={`ml-2 font-medium text-sm ${isPos ? "text-success" : "text-error"}`}>
+              {changeAmt} {changePctStr}
+            </span>
           </div>
           <div className="flex gap-2">
             {["★ Watchlist","⚑ Set Alert","Portfolio +"].map(a => (
@@ -138,7 +271,7 @@ const CommandBar = ({ range, setRange, chartType, setChartType }: {
 }
 
 // ── Section 2: Price Chart ────────────────────────────────────────────────────
-const PriceChart = ({ range, setRange, chartType }: { range: string; setRange: (r: string) => void; chartType: string }) => {
+const PriceChart = ({ range, setRange, chartType, ticker }: { range: string; setRange: (r: string) => void; chartType: string; ticker: string }) => {
   const mainRef = useRef<HTMLCanvasElement>(null)
   const volRef = useRef<HTMLCanvasElement>(null)
   const rsiRef = useRef<HTMLCanvasElement>(null)
@@ -149,11 +282,24 @@ const PriceChart = ({ range, setRange, chartType }: { range: string; setRange: (
   const [showRSI, setShowRSI] = useState(false)
   const ranges = ["1D","5D","1M","3M","6M","1Y","2Y","5Y","MAX"]
 
-  const buildCharts = useCallback(async (r: string, type: string, withRSI: boolean) => {
+  const buildCharts = useCallback(async (symbol: string, r: string, type: string, withRSI: boolean) => {
     const m = await import("chart.js")
     m.Chart.register(...m.registerables)
 
-    const prices = genPriceData(r)
+    // Fetch real candle data; fall back to generated demo data on any error
+    let prices: number[]
+    try {
+      const res = await fetch(`/api/markets/candles?symbol=${encodeURIComponent(symbol)}&range=${r}`)
+      if (res.ok) {
+        const json = await res.json()
+        prices = json.data?.closes?.length ? (json.data.closes as number[]) : genPriceData(r)
+      } else {
+        prices = genPriceData(r)
+      }
+    } catch {
+      prices = genPriceData(r)
+    }
+
     const labels = prices.map((_, i) => i % Math.max(1, Math.floor(prices.length / 8)) === 0 ? String(i) : "")
     const ma50 = calcMA(prices, Math.min(50, Math.floor(prices.length / 2)))
     const ma200 = calcMA(prices, Math.min(200, Math.floor(prices.length * 0.9)))
@@ -236,7 +382,7 @@ const PriceChart = ({ range, setRange, chartType }: { range: string; setRange: (
   }, [])
 
   useEffect(() => {
-    buildCharts(range, chartType, showRSI)
+    buildCharts(ticker, range, chartType, showRSI)
     return () => {
       mainInst.current?.destroy()
       volInst.current?.destroy()
@@ -245,7 +391,7 @@ const PriceChart = ({ range, setRange, chartType }: { range: string; setRange: (
       volInst.current = null
       rsiInst.current = null
     }
-  }, [range, chartType, showRSI, buildCharts])
+  }, [ticker, range, chartType, showRSI, buildCharts])
 
   return (
     <div className={`${card} p-5`}>
@@ -1529,6 +1675,16 @@ const RiskQuality = () => {
 export default function ResearchPage() {
   const [range, setRange] = useState("1Y")
   const [chartType, setChartType] = useState("Line")
+  const [ticker, setTicker] = useState("AAPL")
+  const [stockData, setStockData] = useState<StockData | null>(null)
+
+  // Load AAPL quote on mount so the header shows real data immediately
+  useEffect(() => {
+    fetch("/api/stock?symbol=AAPL")
+      .then(r => (r.ok ? r.json() : null))
+      .then(json => { if (json?.data) setStockData(json.data as StockData) })
+      .catch(() => {})
+  }, [])
 
   return (
     <>
@@ -1546,8 +1702,13 @@ export default function ResearchPage() {
             <h1 className="font-headline-md text-headline-md text-primary">Stock Research Tools</h1>
           </div>
 
-          <CommandBar range={range} setRange={setRange} chartType={chartType} setChartType={setChartType} />
-          <PriceChart range={range} setRange={setRange} chartType={chartType} />
+          <CommandBar
+            range={range} setRange={setRange}
+            chartType={chartType} setChartType={setChartType}
+            ticker={ticker} onTickerChange={setTicker}
+            stockData={stockData} onStockData={setStockData}
+          />
+          <PriceChart range={range} setRange={setRange} chartType={chartType} ticker={ticker} />
           <KeyStats />
           <AnalystRatings />
           <FinancialStatements />
