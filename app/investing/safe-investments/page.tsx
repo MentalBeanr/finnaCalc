@@ -607,16 +607,46 @@ function ETFExplorer() {
     const [active, setActive] = useState("VT")
     const [amount, setAmount] = useState(10000)
     const [years, setYears] = useState(10)
+    const [livePrice, setLivePrice]   = useState<number | null>(null)
+    const [liveW52H,  setLiveW52H]    = useState<number | null>(null)
+    const [liveW52L,  setLiveW52L]    = useState<number | null>(null)
+    const [liveYield, setLiveYield]   = useState<number | null>(null)
+    const [liveChg,   setLiveChg]     = useState<number | null>(null)
+
+    useEffect(() => {
+        setLivePrice(null); setLiveW52H(null); setLiveW52L(null); setLiveYield(null); setLiveChg(null)
+        const safe = (p: Promise<Response>) => p.then(r => r.ok ? r.json() : null).catch(() => null)
+        Promise.all([
+            safe(fetch(`/api/stock?symbol=${active}`)),
+            safe(fetch(`/api/stock/metrics?symbol=${active}`)),
+        ]).then(([q, m]) => {
+            if (q?.data) { setLivePrice(q.data.price); setLiveChg(q.data.changePct) }
+            if (m?.data) {
+                if (m.data.w52High  != null) setLiveW52H(m.data.w52High)
+                if (m.data.w52Low   != null) setLiveW52L(m.data.w52Low)
+                if (m.data.dividendYield != null) setLiveYield(m.data.dividendYield)
+            }
+        })
+    }, [active])
+
     const etf = ETFS[active]
     const rate = etf.r10 / 100
     const finalValue = amount * Math.pow(1 + rate, years)
     const priceSeries = growthSeries(1, 24, etf.r1 / 100, 100, 0.04, active.charCodeAt(0) + active.charCodeAt(1))
 
+    const fmtP = (n: number | null) => n != null ? `$${n.toFixed(2)}` : etf.high52  // fallback to static
+    const fmtY = (n: number | null, fallback: string) => n != null ? n.toFixed(2) + "%" : fallback
+
     const stats: [string, string][] = [
         ["Full Name", etf.name], ["Issuer", etf.issuer], ["Index Tracked", etf.index], ["Inception", etf.inception],
         ["Expense Ratio", etf.expense], ["AUM", compact(etf.aum)], ["Avg Daily Volume", etf.volume], ["Holdings", etf.holdings],
-        ["P/E (weighted)", etf.pe], ["Dividend Yield", etf.yield], ["Distribution", etf.dist], ["52W High / Low", `${etf.high52} / ${etf.low52}`],
-        ["YTD Return", pct(etf.ytd)], ["1Y / 3Y", `${pct(etf.r1)} / ${pct(etf.r3)}`], ["5Y / 10Y Ann.", `${pct(etf.r5)} / ${pct(etf.r10)}`],
+        ["P/E (weighted)", etf.pe],
+        ["Dividend Yield", fmtY(liveYield, etf.yield)],
+        ["Distribution", etf.dist],
+        ["52W High / Low", `${fmtP(liveW52H)} / ${liveW52L != null ? `$${liveW52L.toFixed(2)}` : etf.low52}`],
+        ["Current Price", livePrice != null ? `$${livePrice.toFixed(2)}${liveChg != null ? ` (${liveChg >= 0 ? "+" : ""}${liveChg.toFixed(2)}% today)` : ""}` : "—"],
+        ["1Y / 3Y (historical)", `${pct(etf.r1)} / ${pct(etf.r3)}`],
+        ["5Y / 10Y Ann. (historical)", `${pct(etf.r5)} / ${pct(etf.r10)}`],
     ]
 
     return (

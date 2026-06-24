@@ -1,11 +1,12 @@
 "use client"
 
-import React, { useEffect, useRef, useState, useCallback } from "react"
+import React, { useEffect, useMemo, useRef, useState, useCallback } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { Container } from "@/components/ds/container"
 import { MaterialIcon } from "@/components/ds/material-icon"
 import type { QuoteData, IndexQuote, MoverStock, NewsArticle } from "@/lib/markets/types"
+import { useMarketStream } from "@/lib/hooks/useMarketStream"
 
 // ── Data ──────────────────────────────────────────────────────────────────────
 
@@ -224,6 +225,35 @@ export default function MarketsPage() {
     const [liveLosers, setLiveLosers] = useState<MoverStock[] | null>(null)
     const [liveActive, setLiveActive] = useState<MoverStock[] | null>(null)
     const [liveNews, setLiveNews] = useState<NewsArticle[] | null>(null)
+    const [fearGreed, setFearGreed] = useState<{
+        score: number; label: string; color: string; vix: number | null
+        factors: { name: string; score: number; color: string }[]
+    } | null>(null)
+
+    // ── WebSocket live price overlay ─────────────────────────────────────────
+    const wsSymbols = useMemo(() =>
+        [...new Set([...HOLDINGS.map(h => h.ticker), ...WATCHLIST_ITEMS.map(w => w.tick)])]
+            .filter(t => t !== "BTC-USD"),
+        []
+    )
+    const wsTickRef = useRef<Map<string, number>>(new Map())
+    useMarketStream(wsSymbols, (ticker, price) => { wsTickRef.current.set(ticker, price) })
+
+    // Merge WebSocket ticks into liveQuotes at 1-second cadence (avoids per-trade re-renders)
+    useEffect(() => {
+        const t = setInterval(() => {
+            if (!wsTickRef.current.size) return
+            setLiveQuotes(prev => {
+                const next = new Map(prev)
+                for (const [ticker, price] of wsTickRef.current) {
+                    const ex = next.get(ticker)
+                    if (ex) next.set(ticker, { ...ex, price })
+                }
+                return next
+            })
+        }, 1000)
+        return () => clearInterval(t)
+    }, [])
 
     // ── Live data fetchers ────────────────────────────────────────────────────
     const fetchIndices = useCallback(async () => {
@@ -236,7 +266,14 @@ export default function MarketsPage() {
     }, [])
 
     const fetchQuotes = useCallback(async () => {
-        const symbols = HOLDINGS.map(h => h.ticker).filter(t => t !== "BTC-USD").join(",")
+        // Include holdings, watchlist, and screener tickers so all sections get live prices
+        const allTickers = new Set([
+            ...HOLDINGS.map(h => h.ticker),
+            ...WATCHLIST_ITEMS.map(w => w.tick),
+            ...SCREENER_DATA.map(s => s.ticker),
+        ])
+        allTickers.delete("BTC-USD") // Finnhub doesn't serve crypto quotes
+        const symbols = Array.from(allTickers).join(",")
         try {
             const res = await fetch(`/api/markets/quotes?symbols=${symbols}`)
             if (!res.ok) return
@@ -245,6 +282,11 @@ export default function MarketsPage() {
                 const map = new Map<string, QuoteData>()
                 for (const q of json.data as QuoteData[]) map.set(q.ticker, q)
                 setLiveQuotes(map)
+                // Patch screener rows with live prices
+                setScreenerRows(prev => prev.map(r => {
+                    const live = map.get(r.ticker)
+                    return live ? { ...r, price: live.price } : r
+                }))
             }
         } catch { /* stay on static fallback */ }
     }, [])
@@ -269,13 +311,23 @@ export default function MarketsPage() {
         } catch { /* stay on static fallback */ }
     }, [])
 
-    // Initial fetch + 30s polling for quotes/indices; 2min for news
+    const fetchFearGreed = useCallback(async () => {
+        try {
+            const res = await fetch("/api/markets/fear-greed")
+            if (!res.ok) return
+            const json = await res.json()
+            if (json.data) setFearGreed(json.data)
+        } catch { /* stay on static fallback */ }
+    }, [])
+
+    // Initial fetch + 30s polling for quotes/indices; 2min for news; 15min for fear-greed
     useEffect(() => {
-        fetchIndices(); fetchQuotes(); fetchMovers(); fetchNews()
+        fetchIndices(); fetchQuotes(); fetchMovers(); fetchNews(); fetchFearGreed()
         const fast = setInterval(() => { fetchIndices(); fetchQuotes() }, 30_000)
         const slow = setInterval(() => { fetchMovers(); fetchNews() }, 120_000)
-        return () => { clearInterval(fast); clearInterval(slow) }
-    }, [fetchIndices, fetchQuotes, fetchMovers, fetchNews])
+        const fgi  = setInterval(fetchFearGreed, 900_000)
+        return () => { clearInterval(fast); clearInterval(slow); clearInterval(fgi) }
+    }, [fetchIndices, fetchQuotes, fetchMovers, fetchNews, fetchFearGreed])
 
     const [activeRange, setActiveRange] = useState("1Y")
     const [openDrop, setOpenDrop] = useState<number | null>(null)
@@ -449,7 +501,10 @@ export default function MarketsPage() {
             {/* ── Portfolio Overview ── */}
             <div className="grid gap-5" style={{gridTemplateColumns:"65fr 35fr"}}>
                 <div className={`${card} p-6`}>
-                    <p className="font-ui-button text-[11px] uppercase tracking-widest text-on-surface-variant mb-1">Total Portfolio Value</p>
+                    <div className="flex items-center gap-2 mb-2">
+                        <p className="font-ui-button text-[11px] uppercase tracking-widest text-on-surface-variant">Total Portfolio Value</p>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full border border-outline-variant/40 bg-surface-container-low text-on-surface-variant font-ui-button uppercase tracking-wider">Demo portfolio · Live prices</span>
+                    </div>
                     <div className="font-headline-md text-[34px] text-primary font-mono mb-1">$284,731.42</div>
                     <div className={`font-body-md text-sm font-medium mb-5 ${posText}`}>▲ +$1,847.23 (+0.65%) today</div>
                     <div className="flex gap-2.5 mb-5">
@@ -613,6 +668,7 @@ export default function MarketsPage() {
             <div className={card}>
                 <div className="flex items-center justify-between px-5 py-4 cursor-pointer" onClick={() => setScreenerOpen(o => !o)}>
                     <h2 className="font-headline-md text-[18px] text-primary">Stock Screener</h2>
+                    <span className="ml-2 text-[10px] px-2 py-0.5 rounded-full border border-outline-variant/40 bg-surface-container-low text-on-surface-variant font-ui-button uppercase tracking-wider">Live prices · Demo P/E &amp; fundamentals</span>
                     <span className={`text-on-surface-variant text-lg transition-transform duration-300 ${screenerOpen ? "rotate-180" : ""}`}>▾</span>
                 </div>
                 <div className={`mkts-scr-body ${screenerOpen ? "open" : ""}`}>
@@ -700,27 +756,40 @@ export default function MarketsPage() {
 
                 <div className={`${card} p-5`}>
                     <h3 className="font-headline-md text-[16px] text-primary text-center mb-1">Fear &amp; Greed Index</h3>
-                    <p className="text-xs text-on-surface-variant text-center mb-3">CNN Market Sentiment · Updated daily</p>
-                    <svg viewBox="0 0 240 130" width="100%" style={{maxWidth:240,display:"block",margin:"0 auto"}}>
-                        <defs>
-                            <linearGradient id="gGrad2" x1="0%" y1="0%" x2="100%" y2="0%">
-                                <stop offset="0%" stopColor="#ba1a1a"/>
-                                <stop offset="40%" stopColor="#b45309"/>
-                                <stop offset="100%" stopColor="#3f6b3f"/>
-                            </linearGradient>
-                        </defs>
-                        <path d="M 20 120 A 100 100 0 0 1 220 120" fill="none" stroke="#e3e3de" strokeWidth="14" strokeLinecap="round"/>
-                        <path d="M 20 120 A 100 100 0 0 1 220 120" fill="none" stroke="url(#gGrad2)" strokeWidth="14" strokeLinecap="round"/>
-                        <line x1="120" y1="120" x2="166" y2="41" stroke="#00061a" strokeWidth="2.5" strokeLinecap="round"/>
-                        <circle cx="120" cy="120" r="6" fill="#00061a"/>
-                        <text x="14" y="138" fontSize="9" fill="#ba1a1a" fontFamily="sans-serif">Fear</text>
-                        <text x="195" y="138" fontSize="9" fill="#3f6b3f" fontFamily="sans-serif">Greed</text>
-                        <text x="120" y="95" textAnchor="middle" fontSize="22" fontWeight="700" fill="#3f6b3f" fontFamily="sans-serif">67</text>
-                        <text x="120" y="111" textAnchor="middle" fontSize="11" fill="#3f6b3f" fontFamily="sans-serif">Greed</text>
-                    </svg>
+                    <p className="text-xs text-on-surface-variant text-center mb-3">
+                        {fearGreed
+                            ? `Composite${fearGreed.vix != null ? ` · VIX ${fearGreed.vix}` : ""} · Live`
+                            : "Composite · Updated every 15 min"}
+                    </p>
+                    {(() => {
+                        const s   = fearGreed?.score ?? 67
+                        const rad = (1 - s / 100) * Math.PI
+                        const nx  = (120 + 90 * Math.cos(rad)).toFixed(1)
+                        const ny  = (120 - 90 * Math.sin(rad)).toFixed(1)
+                        const col = fearGreed?.color ?? "#3f6b3f"
+                        return (
+                            <svg viewBox="0 0 240 130" width="100%" style={{maxWidth:240,display:"block",margin:"0 auto"}}>
+                                <defs>
+                                    <linearGradient id="gGrad2" x1="0%" y1="0%" x2="100%" y2="0%">
+                                        <stop offset="0%" stopColor="#ba1a1a"/>
+                                        <stop offset="40%" stopColor="#b45309"/>
+                                        <stop offset="100%" stopColor="#3f6b3f"/>
+                                    </linearGradient>
+                                </defs>
+                                <path d="M 20 120 A 100 100 0 0 1 220 120" fill="none" stroke="#e3e3de" strokeWidth="14" strokeLinecap="round"/>
+                                <path d="M 20 120 A 100 100 0 0 1 220 120" fill="none" stroke="url(#gGrad2)" strokeWidth="14" strokeLinecap="round"/>
+                                <line x1="120" y1="120" x2={nx} y2={ny} stroke="#00061a" strokeWidth="2.5" strokeLinecap="round"/>
+                                <circle cx="120" cy="120" r="6" fill="#00061a"/>
+                                <text x="14" y="138" fontSize="9" fill="#ba1a1a" fontFamily="sans-serif">Fear</text>
+                                <text x="195" y="138" fontSize="9" fill="#3f6b3f" fontFamily="sans-serif">Greed</text>
+                                <text x="120" y="95" textAnchor="middle" fontSize="22" fontWeight="700" fill={col} fontFamily="sans-serif">{s}</text>
+                                <text x="120" y="111" textAnchor="middle" fontSize="11" fill={col} fontFamily="sans-serif">{fearGreed?.label ?? "Greed"}</text>
+                            </svg>
+                        )
+                    })()}
                     <div className="mt-4 space-y-2">
                         <p className="font-ui-button text-[10px] uppercase tracking-widest text-on-surface-variant mb-2">Contributing Factors</p>
-                        {FACTORS.map(f => (
+                        {(fearGreed?.factors ?? FACTORS).map(f => (
                             <div key={f.name} className="flex items-center gap-2">
                                 <span className="text-xs text-on-surface-variant w-32 flex-shrink-0">{f.name}</span>
                                 <div className="flex-1 h-1 bg-outline-variant/40 rounded-full overflow-hidden">

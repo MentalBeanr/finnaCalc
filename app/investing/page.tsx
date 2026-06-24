@@ -27,6 +27,13 @@ const CARDS = [
         cta: "View safe options",
     },
     {
+        href: "/investing/trading",
+        icon: "candlestick_chart",
+        title: "Paper trading",
+        body: "Practice buying and selling stocks with Alpaca paper trading — no real money required. Connect live when ready.",
+        cta: "Open trading desk",
+    },
+    {
         href: "/education",
         icon: "school",
         title: "Learn investing basics",

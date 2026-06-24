@@ -667,38 +667,61 @@ const AnalystRatings = ({ recommendations }: { recommendations: RecommendationDa
 }
 
 // ── Section 5: Financial Statements ──────────────────────────────────────────
-const FinancialStatements = () => {
-  const [tab, setTab] = useState<"income"|"balance"|"cashflow"|"ratios">("income")
+interface EdgarFinancials {
+  ticker: string; years: string[]
+  income: { revenue: (number|null)[]; grossProfit: (number|null)[]; opIncome: (number|null)[]; netIncome: (number|null)[]; eps: (number|null)[]; rnd: (number|null)[]; sga: (number|null)[] }
+  balance: { assets: (number|null)[]; liabilities: (number|null)[]; equity: (number|null)[]; cash: (number|null)[]; longTermDebt: (number|null)[] }
+  cashflow: { cfo: (number|null)[]; cfi: (number|null)[]; cff: (number|null)[]; capex: (number|null)[] }
+}
 
-  const incomeData = [
-    { label: "Revenue ($B)",       vals: [274.5, 365.8, 394.3, 383.3, 385.6] },
-    { label: "Gross Profit ($B)",  vals: [104.9, 152.8, 170.8, 169.1, 172.3] },
-    { label: "Op Income ($B)",     vals: [66.3,  108.9, 119.4, 114.3, 117.8] },
-    { label: "Net Income ($B)",    vals: [57.4,  94.7,  99.8,  97.0,  98.2]  },
-    { label: "EPS ($)",            vals: [3.28,  5.61,  6.11,  6.13,  6.42]  },
-    { label: "EBITDA ($B)",        vals: [77.4,  120.2, 130.9, 125.8, 129.4] },
-    { label: "R&D ($B)",           vals: [18.8,  21.9,  26.3,  29.9,  31.4]  },
-    { label: "SG&A ($B)",          vals: [19.9,  21.9,  25.1,  24.9,  26.1]  },
-  ]
-  const balanceData = [
-    { label: "Total Assets ($B)",       vals: [323.9, 351.0, 352.8, 352.6, 337.4] },
-    { label: "Total Liab. ($B)",        vals: [258.5, 287.9, 302.1, 290.4, 277.3] },
-    { label: "Total Equity ($B)",       vals: [65.3,  63.1,  50.7,  62.1,  60.1]  },
-    { label: "Cash ($B)",               vals: [90.9,  62.6,  48.3,  61.6,  55.2]  },
-    { label: "ST Debt ($B)",            vals: [13.8,  10.0,  11.1,  11.5,  10.1]  },
-    { label: "LT Debt ($B)",            vals: [98.7,  109.1, 98.9,  95.3,  91.8]  },
-    { label: "Goodwill ($B)",           vals: [0.0,   0.0,   0.0,   0.0,   0.0]   },
-    { label: "Ret. Earnings ($B)",      vals: [-70.4, -62.0, -3.1, -214.0, -299.5] },
-  ]
-  const cashflowData = [
-    { label: "Op. CF ($B)",        vals: [80.7,  104.0, 122.2, 110.5, 107.9] },
-    { label: "Investing CF ($B)",  vals: [-4.3, -14.5, -22.4,   3.7,  -5.2]  },
-    { label: "Financing CF ($B)",  vals: [-86.8,-93.4,-110.7,-108.5,-101.4]  },
-    { label: "Free CF ($B)",       vals: [73.4,  92.9, 111.4,  99.6,  96.7]  },
-    { label: "CapEx ($B)",         vals: [-7.3, -11.1, -10.7, -10.9, -11.2]  },
-    { label: "Dividends ($B)",     vals: [-14.1,-14.5, -14.8, -15.1, -15.2]  },
-    { label: "Buybacks ($B)",      vals: [-72.4,-85.5, -89.4, -77.6, -81.5]  },
-  ]
+const FinancialStatements = ({ ticker }: { ticker: string }) => {
+  const [tab, setTab] = useState<"income"|"balance"|"cashflow"|"ratios">("income")
+  const [edgar, setEdgar] = useState<EdgarFinancials | null>(null)
+  const [edgarLoading, setEdgarLoading] = useState(true)
+
+  useEffect(() => {
+    setEdgar(null); setEdgarLoading(true)
+    fetch(`/api/edgar/financials?ticker=${ticker}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(j => { if (j?.data) setEdgar(j.data) })
+      .catch(() => {})
+      .finally(() => setEdgarLoading(false))
+  }, [ticker])
+
+  // Determine display scale from the max revenue value
+  const maxRev = edgar?.income.revenue.find(v => v != null) ?? 0
+  const isB = maxRev >= 1e9
+  const div = isB ? 1e9 : 1e6
+  const suf = isB ? "B" : "M"
+  const fv  = (v: number | null) => v == null ? null : +(v / div).toFixed(1)
+  const fvEps = (v: number | null) => v == null ? null : +v.toFixed(2)
+
+  const years = edgar?.years ?? []
+
+  const incomeData = edgar ? [
+    { label: `Revenue ($${suf})`,     vals: edgar.income.revenue.map(fv) },
+    { label: `Gross Profit ($${suf})`,vals: edgar.income.grossProfit.map(fv) },
+    { label: `Op Income ($${suf})`,   vals: edgar.income.opIncome.map(fv) },
+    { label: `Net Income ($${suf})`,  vals: edgar.income.netIncome.map(fv) },
+    { label: "EPS ($)",               vals: edgar.income.eps.map(fvEps) },
+    { label: `R&D ($${suf})`,         vals: edgar.income.rnd.map(fv) },
+    { label: `SG&A ($${suf})`,        vals: edgar.income.sga.map(fv) },
+  ] : []
+
+  const balanceData = edgar ? [
+    { label: `Total Assets ($${suf})`,  vals: edgar.balance.assets.map(fv) },
+    { label: `Total Liab. ($${suf})`,   vals: edgar.balance.liabilities.map(fv) },
+    { label: `Total Equity ($${suf})`,  vals: edgar.balance.equity.map(fv) },
+    { label: `Cash ($${suf})`,          vals: edgar.balance.cash.map(fv) },
+    { label: `LT Debt ($${suf})`,       vals: edgar.balance.longTermDebt.map(fv) },
+  ] : []
+
+  const cashflowData = edgar ? [
+    { label: `Op. CF ($${suf})`,       vals: edgar.cashflow.cfo.map(fv) },
+    { label: `Investing CF ($${suf})`, vals: edgar.cashflow.cfi.map(fv) },
+    { label: `Financing CF ($${suf})`, vals: edgar.cashflow.cff.map(fv) },
+    { label: `CapEx ($${suf})`,        vals: edgar.cashflow.capex.map(fv) },
+  ] : []
 
   const activeData = tab === "income" ? incomeData : tab === "balance" ? balanceData : cashflowData
 
@@ -716,7 +739,9 @@ const FinancialStatements = () => {
   return (
     <div className={`${card} p-5`}>
       <div className="flex items-center gap-2 mb-3">
-        <span className="text-[10px] px-2 py-0.5 rounded-full border border-outline-variant/40 bg-surface-container-low text-on-surface-variant font-ui-button uppercase tracking-wider">Demo data · Premium data source required</span>
+        <span className="text-[10px] px-2 py-0.5 rounded-full border border-outline-variant/40 bg-surface-container-low text-on-surface-variant font-ui-button uppercase tracking-wider">
+          {edgarLoading ? "Loading EDGAR…" : edgar ? `SEC EDGAR · ${ticker}` : "EDGAR unavailable · showing demo data"}
+        </span>
       </div>
       <div className="flex gap-1 border-b border-outline-variant/20 mb-5 flex-wrap">
         {[["income","Income Statement"],["balance","Balance Sheet"],["cashflow","Cash Flow"],["ratios","Ratios"]].map(([t, label]) => (
@@ -745,25 +770,36 @@ const FinancialStatements = () => {
             </div>
           ))}
         </div>
+      ) : edgarLoading ? (
+        <div className="flex items-center justify-center h-32 text-on-surface-variant text-sm">Loading SEC EDGAR data…</div>
+      ) : activeData.length === 0 ? (
+        <div className="flex items-center justify-center h-32 text-on-surface-variant text-sm">No EDGAR data available for {ticker}</div>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full border-collapse">
             <thead>
               <tr className="border-b border-outline-variant/20">
-                {["Metric","FY2020","FY2021","FY2022","FY2023","FY2024(TTM)","YoY%","Trend"].map(c => (
+                {["Metric", ...years, "YoY %", "Trend"].map(c => (
                   <th key={c} className="px-3 py-2 text-left text-[11px] font-ui-button uppercase tracking-widest text-on-surface-variant whitespace-nowrap">{c}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {activeData.map((row, i) => {
-                const yoy = ((row.vals[4] - row.vals[3]) / Math.abs(row.vals[3])) * 100
+                const nonNull = row.vals.filter((v): v is number => v != null)
+                const last = nonNull.at(-1) ?? 0
+                const prev = nonNull.at(-2) ?? last
+                const yoy  = prev !== 0 ? ((last - prev) / Math.abs(prev)) * 100 : 0
                 return (
                   <tr key={i} className={i % 2 ? "bg-surface-container-low/40" : ""}>
                     <td className="px-3 py-2.5 text-xs text-on-surface whitespace-nowrap">{row.label}</td>
-                    {row.vals.map((v, j) => <td key={j} className="px-3 py-2.5 text-xs font-mono text-on-surface">{v.toFixed(1)}</td>)}
+                    {row.vals.map((v, j) => (
+                      <td key={j} className="px-3 py-2.5 text-xs font-mono text-on-surface">
+                        {v == null ? "—" : v.toFixed(Math.abs(v) < 10 ? 2 : 1)}
+                      </td>
+                    ))}
                     <td className={`px-3 py-2.5 text-xs font-mono font-semibold ${yoy >= 0 ? "text-success" : "text-error"}`}>{yoy >= 0 ? "+" : ""}{yoy.toFixed(1)}%</td>
-                    <td className="px-3 py-2.5"><SVGSparkline data={row.vals} /></td>
+                    <td className="px-3 py-2.5"><SVGSparkline data={nonNull} /></td>
                   </tr>
                 )
               })}
@@ -775,26 +811,146 @@ const FinancialStatements = () => {
   )
 }
 
+// ── Technical indicator math ──────────────────────────────────────────────────
+function sma(arr: number[], n: number): number | null {
+  if (arr.length < n) return null
+  return arr.slice(-n).reduce((a, b) => a + b, 0) / n
+}
+function ema(arr: number[], n: number): number | null {
+  if (arr.length < n) return null
+  const k = 2 / (n + 1)
+  let e = arr.slice(0, n).reduce((a, b) => a + b, 0) / n
+  for (let i = n; i < arr.length; i++) e = arr[i] * k + e * (1 - k)
+  return e
+}
+function rsi(closes: number[], n = 14): number {
+  if (closes.length <= n) return 50
+  let ag = 0, al = 0
+  for (let i = 1; i <= n; i++) { const d = closes[i] - closes[i - 1]; d > 0 ? (ag += d) : (al -= d) }
+  ag /= n; al /= n
+  for (let i = n + 1; i < closes.length; i++) {
+    const d = closes[i] - closes[i - 1]
+    ag = (ag * (n - 1) + Math.max(0, d)) / n
+    al = (al * (n - 1) + Math.max(0, -d)) / n
+  }
+  return al === 0 ? 100 : 100 - 100 / (1 + ag / al)
+}
+function macd(closes: number[]) {
+  if (closes.length < 35) return { macd: 0, signal: 0, hist: 0 }
+  const k12 = 2 / 13, k26 = 2 / 27, k9 = 2 / 10
+  let e12 = closes.slice(0, 12).reduce((a, b) => a + b, 0) / 12
+  let e26 = closes.slice(0, 26).reduce((a, b) => a + b, 0) / 26
+  for (let i = 12; i < 26; i++) e12 = closes[i] * k12 + e12 * (1 - k12)
+  const ms: number[] = []
+  for (let i = 26; i < closes.length; i++) {
+    e12 = closes[i] * k12 + e12 * (1 - k12)
+    e26 = closes[i] * k26 + e26 * (1 - k26)
+    ms.push(e12 - e26)
+  }
+  let sig = ms.slice(0, 9).reduce((a, b) => a + b, 0) / 9
+  for (let i = 9; i < ms.length; i++) sig = ms[i] * k9 + sig * (1 - k9)
+  const mv = ms[ms.length - 1]
+  return { macd: mv, signal: sig, hist: mv - sig }
+}
+function stoch(closes: number[], highs: number[], lows: number[], n = 14) {
+  if (closes.length < n) return 50
+  const hi = Math.max(...highs.slice(-n)), lo = Math.min(...lows.slice(-n))
+  return hi === lo ? 50 : ((closes[closes.length - 1] - lo) / (hi - lo)) * 100
+}
+function williams(closes: number[], highs: number[], lows: number[], n = 14) {
+  if (closes.length < n) return -50
+  const hi = Math.max(...highs.slice(-n)), lo = Math.min(...lows.slice(-n))
+  return hi === lo ? -50 : ((hi - closes[closes.length - 1]) / (hi - lo)) * -100
+}
+function cci(closes: number[], highs: number[], lows: number[], n = 20) {
+  if (closes.length < n) return 0
+  const tp = closes.map((c, i) => (c + highs[i] + lows[i]) / 3)
+  const tpSlice = tp.slice(-n)
+  const mean = tpSlice.reduce((a, b) => a + b, 0) / n
+  const md = tpSlice.reduce((a, b) => a + Math.abs(b - mean), 0) / n
+  return md === 0 ? 0 : (tpSlice[tpSlice.length - 1] - mean) / (0.015 * md)
+}
+
 // ── Section 6: Technical Analysis ─────────────────────────────────────────────
-const TechnicalAnalysis = () => {
-  const oscillators = [
-    { name: "RSI (14)",      val: "58.2",   sig: "Buy"     },
-    { name: "Stochastic %K", val: "72.4",   sig: "Buy"     },
-    { name: "CCI (20)",      val: "+124.5", sig: "Buy"     },
-    { name: "MACD",          val: "+2.14",  sig: "Buy"     },
-    { name: "Williams %R",   val: "-31.8",  sig: "Neutral" },
-    { name: "Ultimate Osc.", val: "48.3",   sig: "Sell"    },
-  ]
-  const movingAvgs = [
-    { name: "MA5",   val: "187.23", sig: "Buy"  },
-    { name: "MA10",  val: "185.44", sig: "Buy"  },
-    { name: "MA20",  val: "183.12", sig: "Buy"  },
-    { name: "MA50",  val: "181.20", sig: "Buy"  },
-    { name: "MA100", val: "172.84", sig: "Buy"  },
-    { name: "MA200", val: "163.45", sig: "Buy"  },
-    { name: "EMA20", val: "184.33", sig: "Buy"  },
-    { name: "EMA50", val: "179.98", sig: "Sell" },
-  ]
+interface TAIndicator { name: string; val: string; sig: string }
+interface TAData {
+  price: number; oscillators: TAIndicator[]; movingAvgs: TAIndicator[]
+  buyCnt: number; sellCnt: number; neutCnt: number
+  snrPrices: number[]; snrLabels: string[]; closes: number[]
+}
+
+const TechnicalAnalysis = ({ ticker }: { ticker: string }) => {
+  const [ta, setTA] = useState<TAData | null>(null)
+
+  useEffect(() => {
+    setTA(null)
+    fetch(`/api/markets/candles?symbol=${ticker}&range=1Y`)
+      .then(r => r.ok ? r.json() : null)
+      .then(json => {
+        if (!json?.data?.closes?.length) return
+        const { closes, highs, lows } = json.data as { closes: number[]; highs: number[]; lows: number[] }
+        const price = closes[closes.length - 1]
+
+        // Oscillators
+        const rsiVal   = rsi(closes)
+        const stochVal = stoch(closes, highs, lows)
+        const cciVal   = cci(closes, highs, lows)
+        const macdVals = macd(closes)
+        const willR    = williams(closes, highs, lows)
+
+        const rsiSig   = rsiVal > 70 ? "Overbought" : rsiVal < 30 ? "Oversold" : rsiVal > 55 ? "Buy" : rsiVal < 45 ? "Sell" : "Neutral"
+        const stochSig = stochVal > 80 ? "Overbought" : stochVal < 20 ? "Oversold" : stochVal > 60 ? "Buy" : stochVal < 40 ? "Sell" : "Neutral"
+        const cciSig   = cciVal > 100 ? "Buy" : cciVal < -100 ? "Sell" : "Neutral"
+        const macdSig  = macdVals.hist > 0 ? "Buy" : "Sell"
+        const willSig  = willR > -20 ? "Overbought" : willR < -80 ? "Oversold" : willR > -40 ? "Buy" : willR < -60 ? "Sell" : "Neutral"
+
+        const oscillators: TAIndicator[] = [
+          { name: "RSI (14)",      val: rsiVal.toFixed(1),              sig: rsiSig   },
+          { name: "Stochastic %K", val: stochVal.toFixed(1),            sig: stochSig },
+          { name: "CCI (20)",      val: (cciVal >= 0 ? "+" : "") + cciVal.toFixed(1), sig: cciSig },
+          { name: "MACD",          val: (macdVals.macd >= 0 ? "+" : "") + macdVals.macd.toFixed(2), sig: macdSig },
+          { name: "Williams %R",   val: willR.toFixed(1),               sig: willSig  },
+          { name: "MACD Signal",   val: macdVals.signal.toFixed(2),     sig: macdVals.hist > 0 ? "Buy" : "Sell" },
+        ]
+
+        // Moving averages — only include if enough data
+        const maRows: TAIndicator[] = []
+        const maSpec: [string, number, boolean][] = [
+          ["MA5",5,false],["MA10",10,false],["MA20",20,false],["MA50",50,false],
+          ["MA100",100,false],["MA200",200,false],["EMA20",20,true],["EMA50",50,true],
+        ]
+        for (const [name, n, isEma] of maSpec) {
+          const val = isEma ? ema(closes, n) : sma(closes, n)
+          if (val != null) maRows.push({ name, val: `$${val.toFixed(2)}`, sig: price > val ? "Buy" : "Sell" })
+        }
+
+        // Signal counts
+        const all = [...oscillators, ...maRows]
+        const buyCnt  = all.filter(i => i.sig === "Buy").length
+        const sellCnt = all.filter(i => i.sig === "Sell").length
+        const neutCnt = all.length - buyCnt - sellCnt
+
+        // Support & resistance from actual 52W data
+        const w52High = Math.max(...highs)
+        const w52Low  = Math.min(...lows)
+        const range   = w52High - w52Low
+        const sup1    = w52Low  + range * 0.25
+        const sup2    = w52Low  + range * 0.40
+        const res1    = w52High - range * 0.25
+        const res2    = w52High - range * 0.10
+        const snrPrices = [w52Low, sup1, price, res1, w52High].sort((a, b) => a - b)
+        const snrLabels = snrPrices.map(p =>
+          p === price  ? `Current $${p.toFixed(2)}` :
+          p === w52Low ? `52W Low $${p.toFixed(2)}`  :
+          p === w52High? `52W High $${p.toFixed(2)}` :
+          p < price    ? `Support $${p.toFixed(2)}`  :
+                         `Resistance $${p.toFixed(2)}`
+        )
+
+        setTA({ price, oscillators, movingAvgs: maRows, buyCnt, sellCnt, neutCnt, snrPrices, snrLabels, closes })
+      })
+      .catch(() => {})
+  }, [ticker])
 
   const arcSegments = [
     { from: [30,120],     to: [47.2,67.1],   color: "#ba1a1a" },
@@ -804,10 +960,32 @@ const TechnicalAnalysis = () => {
     { from: [192.8,67.1], to: [210,120],      color: "#3f6b3f" },
   ]
 
-  const priceToX = (p: number) => ((p - 170) / (210 - 170)) * 760 + 20
-  const snrPrices =  [175.20, 182.50, 189.84, 195.40, 202.80]
-  const snrLabels =  ["Str. Support $175.20", "Support $182.50", "Current $189.84", "Resistance $195.40", "Str. Resistance $202.80"]
-  const snrColors =  [C.pos, C.pos + "99", C.prim, C.neg + "99", C.neg]
+  // Needle position based on computed buy/sell ratio
+  const total     = ta ? ta.buyCnt + ta.sellCnt + ta.neutCnt : 1
+  const score     = ta ? (ta.buyCnt + 0.5 * ta.neutCnt) / total : 0.5
+  const angleDeg  = (1 - score) * 180
+  const angleRad  = (angleDeg * Math.PI) / 180
+  const nx        = (120 + 80 * Math.cos(angleRad)).toFixed(1)
+  const ny        = (120 - 80 * Math.sin(angleRad)).toFixed(1)
+  const signalLabel  = score >= 0.7 ? "Strong Buy" : score >= 0.55 ? "Buy" : score >= 0.45 ? "Neutral" : score >= 0.3 ? "Sell" : "Strong Sell"
+  const signalColor  = score >= 0.55 ? C.pos : score <= 0.45 ? C.neg : C.warn
+
+  if (!ta) {
+    return (
+      <div className={`${card} p-5`}>
+        <h2 className="font-headline-md text-[18px] text-primary mb-4">Technical Analysis Panel</h2>
+        <div className="text-sm text-on-surface-variant py-8 text-center">Computing indicators…</div>
+      </div>
+    )
+  }
+
+  const snrMin   = Math.min(...ta.snrPrices)
+  const snrMax   = Math.max(...ta.snrPrices)
+  const snrRange = snrMax - snrMin || 1
+  const priceToX = (p: number) => ((p - snrMin) / snrRange) * 760 + 20
+  const snrColors = ta.snrPrices.map(p =>
+    p === ta.price ? C.prim : p < ta.price ? (p === snrMin ? C.pos : C.pos + "99") : (p === snrMax ? C.neg : C.neg + "99")
+  )
 
   return (
     <div className={`${card} p-5`}>
@@ -816,7 +994,11 @@ const TechnicalAnalysis = () => {
         <div>
           <div className="flex items-center justify-between mb-3 flex-wrap gap-1">
             <span className="font-ui-button text-[10px] uppercase tracking-widest text-on-surface-variant">Oscillators</span>
-            <span className="text-xs"><span className="text-success font-semibold">4 BUY</span> · <span className="text-on-surface-variant">1 NEUTRAL</span> · <span className="text-error font-semibold">1 SELL</span></span>
+            <span className="text-xs">
+              <span className="text-success font-semibold">{ta.oscillators.filter(o => o.sig === "Buy" || o.sig === "Overbought").length} BUY</span>
+              {" · "}<span className="text-on-surface-variant">{ta.oscillators.filter(o => o.sig === "Neutral").length} NEUTRAL</span>
+              {" · "}<span className="text-error font-semibold">{ta.oscillators.filter(o => o.sig === "Sell" || o.sig === "Oversold").length} SELL</span>
+            </span>
           </div>
           <table className="w-full border-collapse">
             <thead><tr className="border-b border-outline-variant/20">
@@ -825,7 +1007,7 @@ const TechnicalAnalysis = () => {
               <th className="pb-1.5 text-right text-[10px] font-ui-button uppercase tracking-widest text-on-surface-variant">Signal</th>
             </tr></thead>
             <tbody>
-              {oscillators.map((o, i) => (
+              {ta.oscillators.map((o, i) => (
                 <tr key={i} className={i % 2 ? "bg-surface-container-low/30" : ""}>
                   <td className="py-1.5 text-xs text-on-surface pr-2">{o.name}</td>
                   <td className="py-1.5 text-xs font-mono text-on-surface text-right pr-2">{o.val}</td>
@@ -838,7 +1020,10 @@ const TechnicalAnalysis = () => {
         <div>
           <div className="flex items-center justify-between mb-3 flex-wrap gap-1">
             <span className="font-ui-button text-[10px] uppercase tracking-widest text-on-surface-variant">Moving Averages</span>
-            <span className="text-xs"><span className="text-success font-semibold">6 BUY</span> · <span className="text-error font-semibold">2 SELL</span></span>
+            <span className="text-xs">
+              <span className="text-success font-semibold">{ta.movingAvgs.filter(m => m.sig === "Buy").length} BUY</span>
+              {" · "}<span className="text-error font-semibold">{ta.movingAvgs.filter(m => m.sig === "Sell").length} SELL</span>
+            </span>
           </div>
           <table className="w-full border-collapse">
             <thead><tr className="border-b border-outline-variant/20">
@@ -847,7 +1032,7 @@ const TechnicalAnalysis = () => {
               <th className="pb-1.5 text-right text-[10px] font-ui-button uppercase tracking-widest text-on-surface-variant">Signal</th>
             </tr></thead>
             <tbody>
-              {movingAvgs.map((o, i) => (
+              {ta.movingAvgs.map((o, i) => (
                 <tr key={i} className={i % 2 ? "bg-surface-container-low/30" : ""}>
                   <td className="py-1.5 text-xs text-on-surface pr-2">{o.name}</td>
                   <td className="py-1.5 text-xs font-mono text-on-surface text-right pr-2">{o.val}</td>
@@ -866,26 +1051,28 @@ const TechnicalAnalysis = () => {
                 fill="none" stroke={arc.color} strokeWidth="18" strokeLinecap="butt"
               />
             ))}
-            <line x1="120" y1="120" x2="156.2" y2="48.7" stroke={C.prim} strokeWidth="2.5" strokeLinecap="round" />
+            <line x1="120" y1="120" x2={nx} y2={ny} stroke={C.prim} strokeWidth="2.5" strokeLinecap="round" />
             <circle cx="120" cy="120" r="6" fill={C.prim} />
-            <text x="120" y="138" textAnchor="middle" fontSize="18" fontWeight="700" fill={C.pos} fontFamily="monospace">BUY</text>
+            <text x="120" y="138" textAnchor="middle" fontSize="15" fontWeight="700" fill={signalColor} fontFamily="monospace">{signalLabel}</text>
           </svg>
           <div className="text-xs text-on-surface-variant mt-1 text-center">
-            <span className="text-error font-semibold">Sell: 3</span> · <span>Neutral: 2</span> · <span className="text-success font-semibold">Buy: 9</span>
+            <span className="text-error font-semibold">Sell: {ta.sellCnt}</span>
+            {" · "}<span>Neutral: {ta.neutCnt}</span>
+            {" · "}<span className="text-success font-semibold">Buy: {ta.buyCnt}</span>
           </div>
         </div>
       </div>
       <div className="border-t border-outline-variant/20 pt-4">
-        <p className="font-ui-button text-[10px] uppercase tracking-widest text-on-surface-variant mb-3">Support & Resistance Levels</p>
+        <p className="font-ui-button text-[10px] uppercase tracking-widest text-on-surface-variant mb-3">52-Week Support & Resistance</p>
         <svg viewBox="0 0 800 70" width="100%" style={{ display: "block" }}>
           <line x1="20" y1="35" x2="780" y2="35" stroke={C.bord} strokeWidth="1" />
-          {snrPrices.map((price, i) => {
+          {ta.snrPrices.map((price, i) => {
             const x = priceToX(price)
-            const isDashed = i === 2
+            const isDashed = price === ta.price
             return (
               <g key={i}>
                 <line x1={x} y1="12" x2={x} y2="58" stroke={snrColors[i]} strokeWidth={isDashed ? 2 : 1.5} strokeDasharray={isDashed ? "4 3" : undefined} />
-                <text x={x} y={i % 2 === 0 ? 9 : 68} textAnchor="middle" fontSize="8" fill={snrColors[i]} fontFamily="monospace">{snrLabels[i]}</text>
+                <text x={x} y={i % 2 === 0 ? 9 : 68} textAnchor="middle" fontSize="8" fill={snrColors[i]} fontFamily="monospace">{ta.snrLabels[i]}</text>
               </g>
             )
           })}
@@ -994,9 +1181,26 @@ const EarningsHistory = ({ earnings }: { earnings: EarningsData | null }) => {
 }
 
 // ── Section 8: Ownership ──────────────────────────────────────────────────────
-const Ownership = () => {
+interface EdgarHolder {
+  name: string; cik: string | null
+  filedAt: string | null; reportPeriod: string | null; edgarUrl: string
+}
+
+const Ownership = ({ ticker }: { ticker: string }) => {
   const ownDonutRef = useRef<HTMLCanvasElement>(null)
   const ownInst = useRef<any>(null)
+  const [holders, setHolders] = useState<EdgarHolder[]>([])
+  const [holdersTotal, setHoldersTotal] = useState<number | null>(null)
+  const [holdersLoading, setHoldersLoading] = useState(true)
+
+  useEffect(() => {
+    setHolders([]); setHoldersTotal(null); setHoldersLoading(true)
+    fetch(`/api/edgar/holders?ticker=${ticker}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(j => { if (j?.data) { setHolders(j.data); setHoldersTotal(j.total ?? null) } })
+      .catch(() => {})
+      .finally(() => setHoldersLoading(false))
+  }, [ticker])
 
   useEffect(() => {
     let dead = false
@@ -1015,18 +1219,6 @@ const Ownership = () => {
     return () => { dead = true; ownInst.current?.destroy() }
   }, [])
 
-  const institutions = [
-    { name:"Vanguard Group",   shares:"1.28B",  pct:"8.29%", chg:"+2.4M", pos:true,  val:"$242.9B" },
-    { name:"BlackRock Inc",    shares:"1.04B",  pct:"6.74%", chg:"+1.1M", pos:true,  val:"$197.4B" },
-    { name:"State Street",     shares:"598.4M", pct:"3.87%", chg:"-3.2M", pos:false, val:"$113.6B" },
-    { name:"Fidelity Mgmt",    shares:"352.1M", pct:"2.28%", chg:"+5.4M", pos:true,  val:"$66.8B"  },
-    { name:"Geode Capital",    shares:"302.8M", pct:"1.96%", chg:"+0.9M", pos:true,  val:"$57.5B"  },
-    { name:"T. Rowe Price",    shares:"221.4M", pct:"1.43%", chg:"-1.8M", pos:false, val:"$42.0B"  },
-    { name:"Morgan Stanley",   shares:"201.8M", pct:"1.31%", chg:"+4.2M", pos:true,  val:"$38.3B"  },
-    { name:"Norges Bank",      shares:"188.7M", pct:"1.22%", chg:"-0.6M", pos:false, val:"$35.8B"  },
-    { name:"Northern Trust",   shares:"177.9M", pct:"1.15%", chg:"+1.3M", pos:true,  val:"$33.8B"  },
-    { name:"BofA Securities",  shares:"143.2M", pct:"0.93%", chg:"-2.1M", pos:false, val:"$27.2B"  },
-  ]
   const insiders = [
     { date:"Jun 5",  name:"T. Cook",    role:"CEO", type:"Sell",       shares:"50,000",  value:"$9.49M"  },
     { date:"May 28", name:"L. Maestri", role:"CFO", type:"Option Ex.", shares:"120,000", value:"$17.77M" },
@@ -1043,11 +1235,19 @@ const Ownership = () => {
     return <span className={blueBadge}>{t}</span>
   }
 
+  const fmtDate = (s: string | null) => s
+    ? new Date(s).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+    : "—"
+
   return (
     <div className={`${card} p-5`}>
       <div className="flex items-center gap-2 mb-3">
         <h2 className="font-headline-md text-[18px] text-primary">Ownership & Institutional Holdings</h2>
-        <span className="text-[10px] px-2 py-0.5 rounded-full border border-outline-variant/40 bg-surface-container-low text-on-surface-variant font-ui-button uppercase tracking-wider">Demo data · Premium data source required</span>
+        <span className="text-[10px] px-2 py-0.5 rounded-full border border-outline-variant/40 bg-surface-container-low text-on-surface-variant font-ui-button uppercase tracking-wider">
+          {holdersLoading ? "Loading EDGAR…"
+            : holders.length ? `SEC 13-F Filers · ${holdersTotal != null ? holdersTotal.toLocaleString() + " total" : ""}`
+            : "EDGAR · No 13-F filings found"}
+        </span>
       </div>
       <div className="grid grid-cols-3 gap-5">
         <div>
@@ -1058,28 +1258,43 @@ const Ownership = () => {
               <span key={p} className={neutBadge + " px-3 py-1 text-[10px]"}>{p}</span>
             ))}
           </div>
+          <p className="text-[10px] text-on-surface-variant/60 text-center mt-2">Donut · demo data</p>
         </div>
         <div>
-          <p className="font-ui-button text-[10px] uppercase tracking-widest text-on-surface-variant mb-2">Top Institutional Holders</p>
-          <table className="w-full border-collapse">
-            <thead><tr className="border-b border-outline-variant/20">
-              {["Institution","Shares","% Port","Change","Value"].map(h => <th key={h} className="px-2 py-1.5 text-left text-[10px] font-ui-button uppercase tracking-widest text-on-surface-variant whitespace-nowrap">{h}</th>)}
-            </tr></thead>
-            <tbody>
-              {institutions.map((inst, i) => (
-                <tr key={i} className={i % 2 ? "bg-surface-container-low/40" : ""}>
-                  <td className="px-2 py-2 text-xs text-on-surface whitespace-nowrap">{inst.name}</td>
-                  <td className="px-2 py-2 text-xs font-mono text-on-surface">{inst.shares}</td>
-                  <td className="px-2 py-2 text-xs text-on-surface-variant">{inst.pct}</td>
-                  <td className={`px-2 py-2 text-xs font-mono ${inst.pos ? "text-success" : "text-error"}`}>{inst.pos ? "▲" : "▼"} {inst.chg}</td>
-                  <td className="px-2 py-2 text-xs font-mono text-on-surface">{inst.val}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <p className="font-ui-button text-[10px] uppercase tracking-widest text-on-surface-variant mb-2">
+            Recent 13-F Filers · SEC EDGAR
+          </p>
+          {holdersLoading ? (
+            <div className="text-xs text-on-surface-variant py-4">Loading…</div>
+          ) : holders.length === 0 ? (
+            <div className="text-xs text-on-surface-variant py-4">No 13-F filings found for {ticker}</div>
+          ) : (
+            <table className="w-full border-collapse">
+              <thead><tr className="border-b border-outline-variant/20">
+                {["Institution","Filed","Period","EDGAR"].map(h => <th key={h} className="px-2 py-1.5 text-left text-[10px] font-ui-button uppercase tracking-widest text-on-surface-variant whitespace-nowrap">{h}</th>)}
+              </tr></thead>
+              <tbody>
+                {holders.map((h, i) => (
+                  <tr key={i} className={i % 2 ? "bg-surface-container-low/40" : ""}>
+                    <td className="px-2 py-2 text-xs text-on-surface whitespace-nowrap max-w-[140px] truncate" title={h.name}>{h.name}</td>
+                    <td className="px-2 py-2 text-xs text-on-surface-variant whitespace-nowrap">{fmtDate(h.filedAt)}</td>
+                    <td className="px-2 py-2 text-xs text-on-surface-variant whitespace-nowrap">{h.reportPeriod ? h.reportPeriod.slice(0,7) : "—"}</td>
+                    <td className="px-2 py-2">
+                      <a href={h.edgarUrl} target="_blank" rel="noopener noreferrer"
+                         className="text-[10px] text-primary hover:underline">View →</a>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+          <p className="text-[10px] text-on-surface-variant/60 mt-2">
+            Source: SEC EDGAR EFTS · Share counts in individual filing XML
+          </p>
         </div>
         <div>
           <p className="font-ui-button text-[10px] uppercase tracking-widest text-on-surface-variant mb-2">Recent Insider Transactions</p>
+          <p className="text-[10px] text-on-surface-variant/60 mb-2">Demo data · Form 4 parsing coming soon</p>
           <table className="w-full border-collapse">
             <thead><tr className="border-b border-outline-variant/20">
               {["Date","Insider","Role","Type","Shares","Value"].map(h => <th key={h} className="px-2 py-1.5 text-left text-[10px] font-ui-button uppercase tracking-widest text-on-surface-variant whitespace-nowrap">{h}</th>)}
@@ -1767,10 +1982,10 @@ export default function ResearchPage() {
           <PriceChart range={range} setRange={setRange} chartType={chartType} ticker={ticker} />
           <KeyStats stockData={stockData} metrics={metrics} />
           <AnalystRatings recommendations={recommendations} />
-          <FinancialStatements />
-          <TechnicalAnalysis />
+          <FinancialStatements ticker={ticker} />
+          <TechnicalAnalysis ticker={ticker} />
           <EarningsHistory earnings={earnings} />
-          <Ownership />
+          <Ownership ticker={ticker} />
           <NewsSentiment news={news} />
           <ComparisonTool />
           <ValuationModels />
