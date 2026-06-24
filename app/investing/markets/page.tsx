@@ -393,7 +393,8 @@ export default function MarketsPage() {
     useEffect(() => {
         fetchIndices(); fetchQuotes(); fetchMovers(); fetchNews(); fetchFearGreed(); fetchPlaidHoldings()
         const fast = setInterval(() => { fetchIndices(); fetchQuotes() }, 30_000)
-        const slow = setInterval(() => { fetchMovers(); fetchNews() }, 120_000)
+        const slow = setInterval(() => { fetchMovers() }, 120_000)
+        const news = setInterval(fetchNews, 60_000)
         const fgi  = setInterval(fetchFearGreed, 900_000)
         // Load Plaid Link CDN script
         if (!document.getElementById("plaid-link-v2")) {
@@ -401,7 +402,7 @@ export default function MarketsPage() {
             s.src = "https://cdn.plaid.com/link/v2/stable/link-initialize.js"; s.async = true
             document.head.appendChild(s)
         }
-        return () => { clearInterval(fast); clearInterval(slow); clearInterval(fgi) }
+        return () => { clearInterval(fast); clearInterval(slow); clearInterval(news); clearInterval(fgi) }
     }, [fetchIndices, fetchQuotes, fetchMovers, fetchNews, fetchFearGreed, fetchPlaidHoldings])
 
     const [activeRange, setActiveRange] = useState("1Y")
