@@ -68,3 +68,193 @@
     @apply bg-surface-container border border-dashed border-outline-variant p-4 text-center text-on-surface-variant rounded;
   }
 }
+
+/* =============================================
+   ANIMATION SYSTEM
+   ============================================= */
+
+html {
+  scroll-behavior: smooth;
+}
+
+* {
+  will-change: auto;
+}
+
+/* Pre-reveal state — JS adds this before observing */
+.will-animate {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+/* Scroll-to-top button — no colors, only layout */
+#scroll-to-top {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  background: transparent;
+}
+
+#scroll-to-top.visible {
+  pointer-events: auto;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* ── Keyframes ─────────────────────────────── */
+
+  @keyframes skeleton-shimmer {
+    0%   { background-position: -200% 0; }
+    100% { background-position:  200% 0; }
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  @keyframes fade-up {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes fade-left {
+    from { opacity: 0; transform: translateX(-16px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+
+  @keyframes scale-in {
+    from { opacity: 0; transform: scale(0.97); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+
+  @keyframes flash-pulse {
+    0%   { transform: scale(1); }
+    35%  { transform: scale(1.04); }
+    100% { transform: scale(1); }
+  }
+
+  @keyframes dropdown-appear {
+    from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  @keyframes tooltip-appear {
+    from { opacity: 0; transform: scale(0.92); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+
+  /* ── Utility animation classes ──────────────── */
+
+  .anim-fade-up {
+    animation: fade-up 400ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .anim-fade-left {
+    animation: fade-left 350ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .anim-scale-in {
+    animation: scale-in 450ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .skeleton {
+    background-image: linear-gradient(
+      90deg,
+      transparent 0%,
+      currentColor 40%,
+      transparent 60%
+    );
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.6s infinite linear;
+    opacity: 0.08;
+  }
+
+  .btn-loading-spinner {
+    animation: spin 700ms linear infinite;
+  }
+
+  .flash-positive,
+  .flash-negative {
+    animation: flash-pulse 300ms ease-out;
+  }
+
+  /* ── Micro-interaction utilities ────────────── */
+
+  .hover-lift {
+    transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .hover-lift:hover {
+    transform: translateY(-2px);
+  }
+
+  .btn-scale {
+    transition: transform 150ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .btn-scale:hover {
+    transform: scale(1.02);
+  }
+
+  .btn-scale:active {
+    transform: scale(0.97);
+    transition-duration: 80ms;
+  }
+
+  .row-hover {
+    transition: transform 150ms ease;
+  }
+
+  .row-hover:hover {
+    transform: translateX(2px);
+  }
+
+  .chevron-rotate {
+    transition: transform 200ms cubic-bezier(0.4, 0, 0.2, 1);
+    display: inline-block;
+  }
+
+  .chevron-rotate.open {
+    transform: rotate(180deg);
+  }
+
+  /* ── Scroll-to-top entrance/exit ─────────────── */
+
+  #scroll-to-top {
+    transition: opacity 300ms ease, transform 300ms cubic-bezier(0.16, 1, 0.3, 1);
+    transform: translateY(8px);
+  }
+
+  #scroll-to-top.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* ── Dropdown & tooltip ──────────────────────── */
+
+  .dropdown-open {
+    animation: dropdown-appear 180ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    transform-origin: top center;
+  }
+
+  .tooltip-show {
+    animation: tooltip-appear 150ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    transform-origin: bottom center;
+  }
+
+  /* ── Is-animating guard ──────────────────────── */
+
+  .is-animating {
+    pointer-events: none;
+  }
+}

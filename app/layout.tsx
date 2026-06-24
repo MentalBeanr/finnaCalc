@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import { Libre_Caslon_Text, Hanken_Grotesk } from "next/font/google"
+import Script from "next/script"
 import "./globals.css"
 import { AuthProvider } from "@/lib/auth"
 import { Toaster } from "@/components/ui/sonner"
@@ -46,6 +47,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
                     <ChatBot />
                     <Toaster />
                 </AuthProvider>
+                <Script src="/animations.js" strategy="afterInteractive" />
             </body>
         </html>
     )
