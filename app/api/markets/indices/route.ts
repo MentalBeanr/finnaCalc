@@ -1,46 +1,37 @@
 /**
  * GET /api/markets/indices
  *
- * Returns market summary bar data: S&P 500, NASDAQ, DOW, Russell 2K,
- * VIX, 10Y yield proxy, EUR/USD, BTC/USD — each with a sparkline of
- * recent closes for the mini chart.
+ * Returns market bar data: S&P 500, NASDAQ, DOW, Russell 2K,
+ * VIX proxy, 10Y yield proxy, EUR/USD, BTC/USD — each with a
+ * sparkline of recent closes.
  *
- * Proxy approach: use ETF tickers as proxies for indices (Polygon free
- * tier does not serve index symbols like SPX directly).
- *   SPY  → S&P 500
- *   QQQ  → NASDAQ-100
- *   DIA  → DOW
- *   IWM  → Russell 2000
- *   VIXY → VIX proxy
- *   TLT  → 10Y yield proxy (inverse)
- *   FXE  → EUR/USD proxy
- *   BITO → BTC proxy
+ * Uses ETF proxies because Finnhub free tier doesn't serve index symbols.
+ *   SPY  → S&P 500       QQQ  → NASDAQ-100
+ *   DIA  → DOW           IWM  → Russell 2000
+ *   VIXY → VIX proxy     TLT  → 10Y yield proxy
+ *   FXE  → EUR/USD       BITO → BTC proxy
  */
 import { NextResponse } from "next/server"
-import { getSnapshots, getAggs } from "@/lib/markets/polygon"
+import { getQuote, getCandles } from "@/lib/markets/finnhub"
 import type { MarketsApiResponse, IndexQuote } from "@/lib/markets/types"
 
 const PROXIES = [
-    { name: "S&P 500",    symbol: "SPY",  display: "SPY"  },
-    { name: "NASDAQ",     symbol: "QQQ",  display: "QQQ"  },
-    { name: "DOW",        symbol: "DIA",  display: "DIA"  },
-    { name: "Russell 2K", symbol: "IWM",  display: "IWM"  },
-    { name: "VIX",        symbol: "VIXY", display: "VIXY" },
-    { name: "10Y Yield",  symbol: "TLT",  display: "TLT"  },
-    { name: "EUR/USD",    symbol: "FXE",  display: "FXE"  },
-    { name: "BTC/USD",    symbol: "BITO", display: "BITO" },
+    { name: "S&P 500",    symbol: "SPY"  },
+    { name: "NASDAQ",     symbol: "QQQ"  },
+    { name: "DOW",        symbol: "DIA"  },
+    { name: "Russell 2K", symbol: "IWM"  },
+    { name: "VIX",        symbol: "VIXY" },
+    { name: "10Y Yield",  symbol: "TLT"  },
+    { name: "EUR/USD",    symbol: "FXE"  },
+    { name: "BTC/USD",    symbol: "BITO" },
 ]
 
-// Fetch 10-day closing prices for sparklines
-async function getSparkline(symbol: string): Promise<number[]> {
+async function sparkline(symbol: string): Promise<number[]> {
     try {
-        const to = new Date()
-        const from = new Date()
-        from.setDate(from.getDate() - 14) // 14 calendar days → ~10 trading days
-        const toStr = to.toISOString().slice(0, 10)
-        const fromStr = from.toISOString().slice(0, 10)
-        const aggs = await getAggs(symbol, fromStr, toStr, 1, "day")
-        return (aggs.results ?? []).slice(-12).map(b => b.c)
+        const to   = Math.floor(Date.now() / 1000)
+        const from = to - 14 * 24 * 3600 // 14 calendar days ≈ 10 trading days
+        const c    = await getCandles(symbol, from, to, "D")
+        return c.s === "ok" ? c.c.slice(-12) : []
     } catch {
         return []
     }
@@ -48,27 +39,21 @@ async function getSparkline(symbol: string): Promise<number[]> {
 
 export async function GET() {
     try {
-        const tickers = PROXIES.map(p => p.symbol)
-        const [snap] = await Promise.all([getSnapshots(tickers)])
-
-        const quoteMap = new Map(
-            (snap.tickers ?? []).map(t => [t.ticker, t])
+        const results = await Promise.all(
+            PROXIES.map(async (p) => {
+                const [q, pts] = await Promise.all([getQuote(p.symbol), sparkline(p.symbol)])
+                return { p, q, pts }
+            })
         )
 
-        // Fetch sparklines in parallel (best-effort)
-        const sparklines = await Promise.all(PROXIES.map(p => getSparkline(p.symbol)))
-
-        const indices: IndexQuote[] = PROXIES.map((p, i) => {
-            const t = quoteMap.get(p.symbol)
-            return {
-                name: p.name,
-                symbol: p.display,
-                price: t?.day?.c ?? t?.lastTrade?.p ?? 0,
-                change: t?.todaysChange ?? 0,
-                changePct: t?.todaysChangePerc ?? 0,
-                pts: sparklines[i].length > 0 ? sparklines[i] : [0],
-            }
-        })
+        const indices: IndexQuote[] = results.map(({ p, q, pts }) => ({
+            name:      p.name,
+            symbol:    p.symbol,
+            price:     q.c,
+            change:    q.d,
+            changePct: q.dp,
+            pts:       pts.length > 0 ? pts : [q.pc, q.c],
+        }))
 
         const body: MarketsApiResponse<IndexQuote[]> = { data: indices, cachedAt: Date.now() }
         return NextResponse.json(body, {

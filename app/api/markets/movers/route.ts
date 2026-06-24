@@ -1,61 +1,54 @@
 /**
- * GET /api/markets/movers?type=gainers|losers|active
+ * GET /api/markets/movers
  *
- * Returns top 6 gainers, losers, or most-active stocks for the day.
- * Logos resolved via Clearbit using the ticker → domain map.
+ * Returns gainers, losers, and most-active in one call to minimise
+ * round-trips and avoid hitting Finnhub's 60 req/min free limit.
+ *
+ * Strategy: fetch quotes for a curated liquid pool, sort by changePct
+ * for gainers/losers, sort by |changePct| for active.
  */
-import { NextRequest, NextResponse } from "next/server"
-import { getMovers, getSnapshots } from "@/lib/markets/polygon"
+import { NextResponse } from "next/server"
+import { getQuote, getProfile } from "@/lib/markets/finnhub"
 import type { MarketsApiResponse, MoverStock } from "@/lib/markets/types"
 
-// Common tickers for "most active" — Polygon free tier doesn't have a
-// dedicated most-active endpoint, so we snapshot a curated liquid set.
-const ACTIVE_TICKERS = ["SPY","NVDA","TSLA","AAPL","AMD","QQQ","AMZN","META","MSFT","SOXL"]
+// Curated pool of liquid, well-known tickers
+const POOL = [
+    "AAPL","MSFT","NVDA","GOOGL","AMZN","TSLA","META","AMD",
+    "JPM","JNJ","COIN","PLTR","MARA","SMCI","NVAX","MRNA","RIVN","INTC",
+]
 
-const CLEARBIT_DOMAINS: Record<string, string> = {
-    AAPL:"apple.com", MSFT:"microsoft.com", NVDA:"nvidia.com", GOOGL:"google.com",
-    AMZN:"amazon.com", TSLA:"tesla.com", META:"meta.com", AMD:"amd.com",
-    JPM:"jpmorganchase.com", JNJ:"jnj.com", SPY:"ssga.com", QQQ:"invesco.com",
-    SOXL:"direxion.com", COIN:"coinbase.com", PLTR:"palantir.com",
-}
-
-function logo(ticker: string) {
-    const d = CLEARBIT_DOMAINS[ticker]
-    return d ? `https://logo.clearbit.com/${d}` : undefined
-}
-
-export async function GET(req: NextRequest) {
-    const type = (req.nextUrl.searchParams.get("type") ?? "gainers") as "gainers" | "losers" | "active"
-
+export async function GET() {
     try {
-        let stocks: MoverStock[]
+        const results = await Promise.all(
+            POOL.map(async (ticker) => {
+                const [q, profile] = await Promise.all([
+                    getQuote(ticker),
+                    getProfile(ticker).catch(() => null),
+                ])
+                return {
+                    ticker,
+                    companyName: profile?.name ?? ticker,
+                    price:       q.c,
+                    changePct:   q.dp,
+                    volume:      0,
+                    logoUrl:     profile?.logo || undefined,
+                } satisfies MoverStock
+            })
+        )
 
-        if (type === "active") {
-            const snap = await getSnapshots(ACTIVE_TICKERS)
-            const sorted = [...(snap.tickers ?? [])].sort((a, b) => (b.day?.v ?? 0) - (a.day?.v ?? 0))
-            stocks = sorted.slice(0, 6).map(t => ({
-                ticker: t.ticker,
-                companyName: t.ticker,
-                price: t.day?.c ?? t.lastTrade?.p ?? 0,
-                changePct: t.todaysChangePerc ?? 0,
-                volume: t.day?.v ?? 0,
-                logoUrl: logo(t.ticker),
-            }))
-        } else {
-            const snap = await getMovers(type)
-            stocks = (snap.tickers ?? []).slice(0, 6).map(t => ({
-                ticker: t.ticker,
-                companyName: t.ticker,
-                price: t.day?.c ?? t.lastTrade?.p ?? 0,
-                changePct: t.todaysChangePerc ?? 0,
-                volume: t.day?.v ?? 0,
-                logoUrl: logo(t.ticker),
-            }))
+        const valid = results.filter(r => r.price > 0)
+        const sorted = [...valid].sort((a, b) => b.changePct - a.changePct)
+
+        const gainers = sorted.slice(0, 6)
+        const losers  = [...sorted].reverse().slice(0, 6)
+        const active  = [...valid].sort((a, b) => Math.abs(b.changePct) - Math.abs(a.changePct)).slice(0, 6)
+
+        const body: MarketsApiResponse<{ gainers: MoverStock[]; losers: MoverStock[]; active: MoverStock[] }> = {
+            data: { gainers, losers, active },
+            cachedAt: Date.now(),
         }
-
-        const body: MarketsApiResponse<MoverStock[]> = { data: stocks, cachedAt: Date.now() }
         return NextResponse.json(body, {
-            headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120" },
+            headers: { "Cache-Control": "public, s-maxage=120, stale-while-revalidate=300" },
         })
     } catch (err) {
         const message = err instanceof Error ? err.message : "Unknown error"

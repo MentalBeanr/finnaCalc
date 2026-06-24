@@ -251,14 +251,12 @@ export default function MarketsPage() {
 
     const fetchMovers = useCallback(async () => {
         try {
-            const [g, l, a] = await Promise.all([
-                fetch("/api/markets/movers?type=gainers").then(r => r.ok ? r.json() : null),
-                fetch("/api/markets/movers?type=losers").then(r => r.ok ? r.json() : null),
-                fetch("/api/markets/movers?type=active").then(r => r.ok ? r.json() : null),
-            ])
-            if (g?.data) setLiveGainers(g.data)
-            if (l?.data) setLiveLosers(l.data)
-            if (a?.data) setLiveActive(a.data)
+            const res = await fetch("/api/markets/movers")
+            if (!res.ok) return
+            const json = await res.json()
+            if (json.data?.gainers) setLiveGainers(json.data.gainers)
+            if (json.data?.losers)  setLiveLosers(json.data.losers)
+            if (json.data?.active)  setLiveActive(json.data.active)
         } catch { /* stay on static fallback */ }
     }, [])
 
