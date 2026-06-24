@@ -91,3 +91,45 @@ export const getCandles = (symbol: string, from: number, to: number, resolution 
 export const getNews = (count = 5) =>
     get<FinnhubNewsArticle[]>("/news", { category: "general", minId: "0" })
         .then(articles => articles.slice(0, count))
+
+/** Key metrics: 52W hi/lo, beta, P/E, EPS, margins, ROE, ROA, etc. */
+export const getMetrics = (symbol: string) =>
+    get<{ metric: Record<string, number>; symbol: string }>(
+        "/stock/metric", { symbol, metric: "all" }
+    )
+
+export interface FinnhubRecommendation {
+    buy: number; hold: number; period: string
+    sell: number; strongBuy: number; strongSell: number; symbol: string
+}
+/** Analyst recommendation history, most recent month first. */
+export const getRecommendations = (symbol: string) =>
+    get<FinnhubRecommendation[]>("/stock/recommendation", { symbol })
+
+export interface FinnhubEarning {
+    actual: number | null; estimate: number | null
+    period: string; quarter: number; symbol: string; year: number
+}
+/** Quarterly EPS history: actual vs estimate (last 4 quarters). */
+export const getEarnings = (symbol: string) =>
+    get<FinnhubEarning[]>("/stock/earnings", { symbol })
+
+export interface FinnhubCalendarItem {
+    date: string; epsActual: number | null; epsEstimate: number | null
+    hour: string; quarter: number
+    revenueActual: number | null; revenueEstimate: number | null
+    symbol: string; year: number
+}
+/** Upcoming earnings calendar within a date range. */
+export const getEarningsCalendar = (symbol: string, from: string, to: string) =>
+    get<{ earningsCalendar: FinnhubCalendarItem[] }>(
+        "/calendar/earnings", { symbol, from, to }
+    )
+
+export interface FinnhubCompanyNews {
+    category: string; datetime: number; headline: string; id: number
+    image: string; related: string; source: string; summary: string; url: string
+}
+/** Company-specific news for a date range. */
+export const getCompanyNews = (symbol: string, from: string, to: string) =>
+    get<FinnhubCompanyNews[]>("/company-news", { symbol, from, to })

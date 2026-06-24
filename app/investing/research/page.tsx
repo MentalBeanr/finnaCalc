@@ -45,6 +45,60 @@ interface SearchSuggestion {
   type:   string
 }
 
+interface StockMetrics {
+  w52High: number | null; w52Low: number | null; beta: number | null
+  peTTM: number | null; forwardPE: number | null; epsAnnual: number | null
+  dividendYield: number | null; priceToSales: number | null; priceToBook: number | null
+  grossMargin: number | null; netMargin: number | null; operatingMargin: number | null
+  roe: number | null; roa: number | null; currentRatio: number | null
+  quickRatio: number | null; debtToEquity: number | null
+  avgVolume10D: number | null; revenueGrowthTTM: number | null; epsGrowthTTM: number | null
+}
+
+interface RecommendationData {
+  buy: number; hold: number; sell: number
+  strongBuy: number; strongSell: number; period: string; total: number
+}
+
+interface EarningsItem {
+  quarter: string; estimate: number | null; actual: number | null
+  year: number; qNum: number
+}
+interface UpcomingEarnings {
+  date: string; epsEstimate: number | null; revenueEstimate: number | null; hour: string
+}
+interface EarningsData {
+  history: EarningsItem[]
+  upcoming: UpcomingEarnings | null
+}
+
+interface NewsArticle {
+  id: number; headline: string; source: string; summary: string
+  url: string; image: string; timeAgo: string; sentiment: "Bullish" | "Bearish" | "Neutral"
+}
+
+// ── Number formatters ─────────────────────────────────────────────────────────
+const fmtN = (v: number | null | undefined, dec = 2, suf = ""): string =>
+  v == null || !isFinite(v) ? "—" : v.toFixed(dec) + suf
+
+const fmtLarge = (n: number | null | undefined): string => {
+  if (n == null || !isFinite(n)) return "—"
+  const abs = Math.abs(n)
+  if (abs >= 1e12) return "$" + (n / 1e12).toFixed(2) + "T"
+  if (abs >= 1e9)  return "$" + (n / 1e9).toFixed(2)  + "B"
+  if (abs >= 1e6)  return "$" + (n / 1e6).toFixed(2)  + "M"
+  return "$" + n.toFixed(0)
+}
+
+const fmtPctVal = (v: number | null | undefined): string =>
+  v == null || !isFinite(v) ? "—" : v.toFixed(2) + "%"
+
+const fmtVol = (v: number | null | undefined): string => {
+  if (v == null || !isFinite(v)) return "—"
+  if (v >= 1000) return (v / 1000).toFixed(1) + "M"
+  return v.toFixed(1) + "K"
+}
+
 // ── Price data generator ──────────────────────────────────────────────────────
 const genPriceData = (range: string) => {
   const cfg: Record<string, { pts: number; base: number; amp: number; trend: number }> = {
@@ -271,7 +325,10 @@ const CommandBar = ({ range, setRange, chartType, setChartType, ticker, onTicker
 }
 
 // ── Section 2: Price Chart ────────────────────────────────────────────────────
-const PriceChart = ({ range, setRange, chartType, ticker }: { range: string; setRange: (r: string) => void; chartType: string; ticker: string }) => {
+const PriceChart = ({ range, setRange, chartType, ticker, onLegendUpdate }: {
+  range: string; setRange: (r: string) => void; chartType: string; ticker: string
+  onLegendUpdate?: (v: { close: number; ma50: number; ma200: number; prices: number[] }) => void
+}) => {
   const mainRef = useRef<HTMLCanvasElement>(null)
   const volRef = useRef<HTMLCanvasElement>(null)
   const rsiRef = useRef<HTMLCanvasElement>(null)
@@ -280,6 +337,7 @@ const PriceChart = ({ range, setRange, chartType, ticker }: { range: string; set
   const rsiInst = useRef<any>(null)
   const [showIndicators, setShowIndicators] = useState(false)
   const [showRSI, setShowRSI] = useState(false)
+  const [legend, setLegend] = useState({ close: 0, ma50: 0, ma200: 0 })
   const ranges = ["1D","5D","1M","3M","6M","1Y","2Y","5Y","MAX"]
 
   const buildCharts = useCallback(async (symbol: string, r: string, type: string, withRSI: boolean) => {
@@ -303,6 +361,14 @@ const PriceChart = ({ range, setRange, chartType, ticker }: { range: string; set
     const labels = prices.map((_, i) => i % Math.max(1, Math.floor(prices.length / 8)) === 0 ? String(i) : "")
     const ma50 = calcMA(prices, Math.min(50, Math.floor(prices.length / 2)))
     const ma200 = calcMA(prices, Math.min(200, Math.floor(prices.length * 0.9)))
+
+    // Expose computed values to parent (legend display + TechnicalAnalysis)
+    const lastClose = prices[prices.length - 1] ?? 0
+    const lastMA50  = (ma50.filter(v => v !== null)  as number[]).slice(-1)[0] ?? 0
+    const lastMA200 = (ma200.filter(v => v !== null) as number[]).slice(-1)[0] ?? 0
+    const snap = { close: lastClose, ma50: lastMA50, ma200: lastMA200, prices }
+    setLegend(snap)
+    onLegendUpdate?.(snap)
 
     mainInst.current?.destroy()
     if (mainRef.current) {
@@ -425,9 +491,9 @@ const PriceChart = ({ range, setRange, chartType, ticker }: { range: string; set
       {showRSI && <div className="relative mt-1" style={{ height: 60 }}><canvas ref={rsiRef} /></div>}
       <div className="flex gap-5 mt-3 pt-3 border-t border-outline-variant/20 flex-wrap">
         {[
-          { label: "Close", color: C.prim, style: "solid" as const, val: "$189.84" },
-          { label: "50 MA", color: C.blue, style: "dashed" as const, val: "$181.20" },
-          { label: "200 MA", color: C.org, style: "dashed" as const, val: "$163.45" },
+          { label: "Close",  color: C.prim, style: "solid"  as const, val: legend.close  ? `$${legend.close.toFixed(2)}`  : "—" },
+          { label: "50 MA",  color: C.blue, style: "dashed" as const, val: legend.ma50   ? `$${legend.ma50.toFixed(2)}`   : "—" },
+          { label: "200 MA", color: C.org,  style: "dashed" as const, val: legend.ma200  ? `$${legend.ma200.toFixed(2)}`  : "—" },
         ].map(item => (
           <div key={item.label} className="flex items-center gap-2 text-xs">
             <svg width={24} height={8}><line x1={0} y1={4} x2={24} y2={4} stroke={item.color} strokeWidth={item.style === "dashed" ? 1.5 : 2} strokeDasharray={item.style === "dashed" ? "4 3" : undefined} /></svg>
@@ -441,7 +507,7 @@ const PriceChart = ({ range, setRange, chartType, ticker }: { range: string; set
 }
 
 // ── Section 3: Key Statistics ─────────────────────────────────────────────────
-const KeyStats = () => {
+const KeyStats = ({ stockData, metrics }: { stockData: StockData | null; metrics: StockMetrics | null }) => {
   const cardTitle = "font-ui-button text-[10px] uppercase tracking-widest text-on-surface-variant border-b border-outline-variant/20 pb-2 mb-3"
   const Row = ({ label, value, positive, negative }: { label: string; value: string; positive?: boolean; negative?: boolean }) => (
     <div className="flex items-center justify-between py-1.5 even:bg-surface-container-low/30 px-2 rounded">
@@ -449,185 +515,152 @@ const KeyStats = () => {
       <span className={`text-sm font-mono font-medium ${positive ? "text-success" : negative ? "text-error" : "text-primary"}`}>{value}</span>
     </div>
   )
+
+  const price     = stockData?.price ?? null
+  const hi52      = metrics?.w52High  ?? null
+  const lo52      = metrics?.w52Low   ?? null
+  const pct52     = hi52 && lo52 && price
+    ? Math.round(((price - lo52) / (hi52 - lo52)) * 100)
+    : null
+
   return (
     <div className="grid grid-cols-4 gap-4">
       <div className={`${card} p-4`}>
         <div className={cardTitle}>Valuation</div>
-        <Row label="Market Cap" value="$2.93T" />
-        <Row label="P/E (TTM)" value="31.4x" />
-        <Row label="Forward P/E" value="28.7x" />
-        <Row label="PEG Ratio" value="2.84" />
-        <Row label="Price/Sales" value="7.9x" />
-        <Row label="Price/Book" value="47.8x" />
-        <Row label="EV/EBITDA" value="24.4x" />
-        <Row label="EV/Revenue" value="7.4x" />
+        <Row label="Market Cap"  value={fmtLarge(stockData?.marketCap)} />
+        <Row label="P/E (TTM)"   value={metrics?.peTTM   != null ? fmtN(metrics.peTTM, 1, "x") : "—"} />
+        <Row label="Forward P/E" value={metrics?.forwardPE != null ? fmtN(metrics.forwardPE, 1, "x") : "—"} />
+        <Row label="Price/Sales" value={metrics?.priceToSales != null ? fmtN(metrics.priceToSales, 1, "x") : "—"} />
+        <Row label="Price/Book"  value={metrics?.priceToBook  != null ? fmtN(metrics.priceToBook, 1, "x") : "—"} />
+        <Row label="Gross Margin" value={fmtPctVal(metrics?.grossMargin)} positive={(metrics?.grossMargin ?? 0) > 0} />
+        <Row label="EV/EBITDA"   value="—" />
+        <Row label="EV/Revenue"  value="—" />
       </div>
       <div className={`${card} p-4`}>
         <div className={cardTitle}>Financials</div>
-        <Row label="Revenue (TTM)" value="$383.3B" />
-        <Row label="Net Income" value="$97.0B" />
-        <Row label="EPS (TTM)" value="$6.11" />
-        <Row label="EPS (Forward)" value="$6.61" />
-        <Row label="Profit Margin" value="25.3%" positive />
-        <Row label="Op Margin" value="29.8%" positive />
-        <Row label="ROE" value="171.9%" positive />
-        <Row label="ROA" value="22.6%" positive />
+        <Row label="Revenue (TTM)" value="—" />
+        <Row label="Net Income"    value="—" />
+        <Row label="EPS (TTM)"     value={metrics?.epsAnnual != null ? `$${fmtN(metrics.epsAnnual, 2)}` : "—"} />
+        <Row label="Profit Margin" value={fmtPctVal(metrics?.netMargin)} positive={(metrics?.netMargin ?? 0) > 0} />
+        <Row label="Op Margin"     value={fmtPctVal(metrics?.operatingMargin)} positive={(metrics?.operatingMargin ?? 0) > 0} />
+        <Row label="ROE"           value={fmtPctVal(metrics?.roe)} positive={(metrics?.roe ?? 0) > 0} />
+        <Row label="ROA"           value={fmtPctVal(metrics?.roa)} positive={(metrics?.roa ?? 0) > 0} />
+        <Row label="Div Yield"     value={fmtPctVal(metrics?.dividendYield)} />
       </div>
       <div className={`${card} p-4`}>
         <div className={cardTitle}>Trading Info</div>
-        <Row label="52W High" value="$198.23" />
-        <Row label="52W Low" value="$143.90" />
+        <Row label="52W High" value={hi52 != null ? `$${fmtN(hi52, 2)}` : "—"} />
+        <Row label="52W Low"  value={lo52 != null ? `$${fmtN(lo52, 2)}` : "—"} />
         <div className="py-1.5 px-2">
-          <div className="flex justify-between text-xs text-on-surface-variant mb-1"><span>52W Position</span><span className="text-primary font-mono">84%</span></div>
+          <div className="flex justify-between text-xs text-on-surface-variant mb-1">
+            <span>52W Position</span>
+            <span className="text-primary font-mono">{pct52 != null ? pct52 + "%" : "—"}</span>
+          </div>
           <div className="h-2 bg-surface-container rounded-full overflow-hidden">
-            <div className="h-full rounded-full bg-red-400" style={{ width: "84%" }} />
+            <div className="h-full rounded-full bg-primary/60" style={{ width: pct52 != null ? `${pct52}%` : "0%" }} />
           </div>
         </div>
-        <Row label="Avg Vol (30D)" value="57.8M" />
-        <Row label="Beta (5Y)" value="1.24" />
-        <Row label="Short Float" value="0.72%" />
-        <Row label="Shares Out" value="15.44B" />
-        <Row label="Float" value="15.32B" />
+        <Row label="Avg Vol (10D)" value={fmtVol(metrics?.avgVolume10D)} />
+        <Row label="Beta (5Y)"     value={metrics?.beta != null ? fmtN(metrics.beta, 2) : "—"} />
+        <Row label="Day Open"      value={stockData?.open  != null ? `$${fmtN(stockData.open, 2)}` : "—"} />
+        <Row label="Day High"      value={stockData?.high  != null ? `$${fmtN(stockData.high, 2)}` : "—"} />
+        <Row label="Day Low"       value={stockData?.low   != null ? `$${fmtN(stockData.low, 2)}`  : "—"} />
       </div>
       <div className={`${card} p-4`}>
-        <div className={cardTitle}>Dividends & Growth</div>
-        <Row label="Div/Share" value="$1.00" />
-        <Row label="Div Yield" value="0.53%" />
-        <Row label="Payout Ratio" value="15.5%" />
-        <Row label="5Y Div Growth" value="+5.8%" positive />
-        <Row label="Rev Growth (YoY)" value="+7.8%" positive />
-        <Row label="EPS Growth (YoY)" value="+12.4%" positive />
-        <Row label="Next Earnings" value="Jul 25, 2025" />
-        <Row label="Analyst Count" value="42" />
+        <div className={cardTitle}>Growth</div>
+        <Row label="Rev Growth (YoY)"
+          value={metrics?.revenueGrowthTTM != null ? (metrics.revenueGrowthTTM >= 0 ? "+" : "") + fmtPctVal(metrics.revenueGrowthTTM) : "—"}
+          positive={(metrics?.revenueGrowthTTM ?? 0) > 0}
+          negative={(metrics?.revenueGrowthTTM ?? 0) < 0}
+        />
+        <Row label="EPS Growth (YoY)"
+          value={metrics?.epsGrowthTTM != null ? (metrics.epsGrowthTTM >= 0 ? "+" : "") + fmtPctVal(metrics.epsGrowthTTM) : "—"}
+          positive={(metrics?.epsGrowthTTM ?? 0) > 0}
+          negative={(metrics?.epsGrowthTTM ?? 0) < 0}
+        />
+        <Row label="Debt/Equity"   value={metrics?.debtToEquity != null ? fmtN(metrics.debtToEquity, 2, "x") : "—"} />
+        <Row label="Current Ratio" value={metrics?.currentRatio != null ? fmtN(metrics.currentRatio, 2, "x") : "—"} />
+        <Row label="Quick Ratio"   value={metrics?.quickRatio   != null ? fmtN(metrics.quickRatio, 2, "x") : "—"} />
+        <Row label="Prev Close"    value={stockData?.prevClose   != null ? `$${fmtN(stockData.prevClose, 2)}` : "—"} />
+        <Row label="EPS (Annual)"  value={metrics?.epsAnnual != null ? `$${fmtN(metrics.epsAnnual, 2)}` : "—"} />
+        <Row label="Div Yield"     value={fmtPctVal(metrics?.dividendYield)} />
       </div>
     </div>
   )
 }
 
 // ── Section 4: Analyst Ratings ────────────────────────────────────────────────
-const AnalystRatings = () => {
+const AnalystRatings = ({ recommendations }: { recommendations: RecommendationData | null }) => {
   const donutRef = useRef<HTMLCanvasElement>(null)
-  const distRef = useRef<HTMLCanvasElement>(null)
   const donutInst = useRef<any>(null)
-  const distInst = useRef<any>(null)
+
+  const recs = recommendations
+  const buyTotal  = (recs?.buy ?? 0) + (recs?.strongBuy ?? 0)
+  const holdTotal = recs?.hold ?? 0
+  const sellTotal = (recs?.sell ?? 0) + (recs?.strongSell ?? 0)
+  const total     = recs?.total ?? ((buyTotal + holdTotal + sellTotal) || 1)
+  const buyPct    = Math.round(buyTotal  / total * 100)
+  const holdPct   = Math.round(holdTotal / total * 100)
+  const sellPct   = Math.round(sellTotal / total * 100)
+
+  const label = buyPct >= 70 ? "Strong Buy" : buyPct >= 50 ? "Buy" : holdPct >= 50 ? "Hold" : "Sell"
+  const labelColor = buyPct >= 50 ? C.pos : buyPct >= 30 ? C.warn : C.neg
 
   useEffect(() => {
+    if (!recs) return
     let dead = false
     const init = async () => {
       const m = await import("chart.js")
       m.Chart.register(...m.registerables)
-      if (dead) return
-      if (donutRef.current) {
-        donutInst.current?.destroy()
-        donutInst.current = new m.Chart(donutRef.current.getContext("2d")!, {
-          type: "doughnut",
-          data: { labels: ["Buy","Hold","Sell"], datasets: [{ data: [26, 12, 4], backgroundColor: [C.pos, C.warn, C.neg], borderWidth: 0 }] },
-          options: { responsive: true, maintainAspectRatio: true, cutout: "72%", plugins: { legend: { display: false }, tooltip: { backgroundColor: C.prim, bodyColor: "#fff" } } },
-        })
-      }
-      if (distRef.current) {
-        distInst.current?.destroy()
-        distInst.current = new m.Chart(distRef.current.getContext("2d")!, {
-          type: "bar",
-          data: {
-            labels: ["$165-175","$175-185","$185-195","$195-205","$205-215","$215-225","$225-235","$235-245","$245-255"],
-            datasets: [{ data: [2,3,5,8,10,7,4,2,1], backgroundColor: C.prim + "66", borderWidth: 0 }],
-          },
-          options: {
-            responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { display: false }, tooltip: { backgroundColor: C.prim, bodyColor: "#fff" } },
-            scales: { x: { ticks: { color: C.muted, font: { size: 9 }, maxRotation: 45 } }, y: { ticks: { color: C.muted, font: { size: 9 } } } },
-          },
-        })
-      }
+      if (dead || !donutRef.current) return
+      donutInst.current?.destroy()
+      donutInst.current = new m.Chart(donutRef.current.getContext("2d")!, {
+        type: "doughnut",
+        data: {
+          labels: ["Buy / Strong Buy", "Hold", "Sell / Strong Sell"],
+          datasets: [{ data: [buyTotal, holdTotal, sellTotal], backgroundColor: [C.pos, C.warn, C.neg], borderWidth: 0 }],
+        },
+        options: { responsive: true, maintainAspectRatio: true, cutout: "72%", plugins: { legend: { display: false }, tooltip: { backgroundColor: C.prim, bodyColor: "#fff" } } },
+      })
     }
     init()
-    return () => { dead = true; donutInst.current?.destroy(); distInst.current?.destroy() }
-  }, [])
-
-  const ratings = [
-    { date:"Jun 12 2025", firm:"Goldman Sachs",  analyst:"M. Wilson",  action:"Reiterate", oldPT:"$195", newPT:"$220", rating:"Buy"        },
-    { date:"Jun 8 2025",  firm:"Morgan Stanley", analyst:"K. Huberty", action:"Upgrade",   oldPT:"$180", newPT:"$215", rating:"Overweight"  },
-    { date:"May 30 2025", firm:"JPMorgan",        analyst:"S. Mossman", action:"Reiterate", oldPT:"$210", newPT:"$225", rating:"Overweight"  },
-    { date:"May 22 2025", firm:"Barclays",        analyst:"T. O'Brien", action:"Downgrade", oldPT:"$230", newPT:"$200", rating:"Equal Weight" },
-    { date:"May 15 2025", firm:"UBS",             analyst:"D. Vogt",    action:"Initiate",  oldPT:"—",    newPT:"$210", rating:"Buy"         },
-    { date:"May 9 2025",  firm:"Citi",            analyst:"A. Bhutani", action:"Reiterate", oldPT:"$205", newPT:"$215", rating:"Buy"         },
-    { date:"Apr 28 2025", firm:"Wedbush",         analyst:"D. Ives",    action:"Upgrade",   oldPT:"$175", newPT:"$230", rating:"Outperform"  },
-    { date:"Apr 15 2025", firm:"BofA Securities", analyst:"W. Power",   action:"Reiterate", oldPT:"$200", newPT:"$220", rating:"Buy"         },
-  ]
-  const actionBadge = (a: string) => {
-    if (a === "Upgrade") return <span className={posBadge}>{a}</span>
-    if (a === "Downgrade") return <span className={negBadge}>{a}</span>
-    if (a === "Initiate") return <span className={blueBadge}>{a}</span>
-    return <span className={neutBadge}>{a}</span>
-  }
+    return () => { dead = true; donutInst.current?.destroy() }
+  }, [recs, buyTotal, holdTotal, sellTotal])
 
   return (
     <div className={`${card} p-5`}>
-      <h2 className="font-headline-md text-[18px] text-primary mb-4">Analyst Ratings & Price Targets</h2>
-      <div className="grid gap-6 mb-5" style={{ gridTemplateColumns: "55fr 45fr" }}>
-        <div>
-          <p className="font-ui-button text-[10px] uppercase tracking-widest text-on-surface-variant mb-3">Consensus Rating</p>
-          <div className="flex items-center gap-6">
-            <div className="relative w-[140px] h-[140px] flex-shrink-0">
-              <canvas ref={donutRef} />
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <span className="font-mono font-bold text-sm text-success">Strong Buy</span>
+      <h2 className="font-headline-md text-[18px] text-primary mb-4">Analyst Ratings & Consensus</h2>
+      <div className="flex items-center gap-10 flex-wrap">
+        <div className="flex items-center gap-6">
+          <div className="relative w-[140px] h-[140px] flex-shrink-0">
+            <canvas ref={donutRef} />
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <span className="font-mono font-bold text-sm" style={{ color: labelColor }}>{recs ? label : "—"}</span>
+            </div>
+          </div>
+          <div className="flex gap-4">
+            {([["Buy", buyPct, C.pos], ["Hold", holdPct, C.warn], ["Sell", sellPct, C.neg]] as const).map(([l, v, c]) => (
+              <div key={l} className="text-center">
+                <div className="font-mono font-bold text-lg" style={{ color: c }}>{recs ? v + "%" : "—"}</div>
+                <div className="text-xs text-on-surface-variant">{l}</div>
               </div>
-            </div>
-            <div className="flex gap-4">
-              {[["Buy","62%",C.pos],["Hold","29%",C.warn],["Sell","10%",C.neg]].map(([l,v,c]) => (
-                <div key={l as string} className="text-center">
-                  <div className="font-mono font-bold text-lg" style={{ color: c as string }}>{v as string}</div>
-                  <div className="text-xs text-on-surface-variant">{l as string}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-        <div>
-          <p className="font-ui-button text-[10px] uppercase tracking-widest text-on-surface-variant mb-2">12-Month Price Target</p>
-          <div className="flex items-baseline gap-3 mb-3">
-            <span className="font-mono font-bold text-2xl text-success">$215.40</span>
-            <span className={posBadge}>+13.5% upside</span>
-          </div>
-          <div className="relative mb-3">
-            <div className="h-2 bg-surface-container rounded-full overflow-hidden">
-              <div className="h-full rounded-full" style={{ background: "linear-gradient(to right, #ba1a1a, #b45309, #3f6b3f)" }} />
-            </div>
-            <div className="flex justify-between text-[10px] text-on-surface-variant mt-1">
-              <span>Low $165</span>
-              <span className="text-primary font-bold">Current $189.84</span>
-              <span className="text-success">Target $215.40</span>
-              <span>High $275</span>
-            </div>
-          </div>
-          <div className="relative" style={{ height: 80 }}><canvas ref={distRef} /></div>
-        </div>
-      </div>
-      <div className="overflow-x-auto">
-        <table className="w-full border-collapse">
-          <thead>
-            <tr className="border-b border-outline-variant/20">
-              {["Date","Firm","Analyst","Action","Old Target","New Target","Rating"].map(h => (
-                <th key={h} className="px-3 py-2 text-left text-[11px] font-ui-button uppercase tracking-widest text-on-surface-variant whitespace-nowrap">{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {ratings.map((r, i) => (
-              <tr key={i} className={i % 2 ? "bg-surface-container-low/40" : ""}>
-                <td className="px-3 py-2.5 text-xs text-on-surface-variant whitespace-nowrap">{r.date}</td>
-                <td className="px-3 py-2.5 text-xs text-on-surface font-medium whitespace-nowrap">{r.firm}</td>
-                <td className="px-3 py-2.5 text-xs text-on-surface-variant whitespace-nowrap">{r.analyst}</td>
-                <td className="px-3 py-2.5 whitespace-nowrap">{actionBadge(r.action)}</td>
-                <td className="px-3 py-2.5 text-xs font-mono text-on-surface-variant">{r.oldPT}</td>
-                <td className="px-3 py-2.5 text-xs font-mono font-semibold text-primary">{r.newPT}</td>
-                <td className="px-3 py-2.5 text-xs text-on-surface">{r.rating}</td>
-              </tr>
             ))}
-          </tbody>
-        </table>
+          </div>
+        </div>
+        <div className="text-sm text-on-surface-variant space-y-1">
+          {recs ? (
+            <>
+              <div>Strong Buy: <span className="font-mono font-semibold text-success">{recs.strongBuy}</span></div>
+              <div>Buy: <span className="font-mono font-semibold text-success">{recs.buy}</span></div>
+              <div>Hold: <span className="font-mono font-semibold text-[#b45309]">{recs.hold}</span></div>
+              <div>Sell: <span className="font-mono font-semibold text-error">{recs.sell}</span></div>
+              <div>Strong Sell: <span className="font-mono font-semibold text-error">{recs.strongSell}</span></div>
+              <div className="text-[10px] pt-1 text-on-surface-variant/60">Period: {recs.period}</div>
+            </>
+          ) : (
+            <span>Loading…</span>
+          )}
+        </div>
       </div>
     </div>
   )
@@ -682,6 +715,9 @@ const FinancialStatements = () => {
 
   return (
     <div className={`${card} p-5`}>
+      <div className="flex items-center gap-2 mb-3">
+        <span className="text-[10px] px-2 py-0.5 rounded-full border border-outline-variant/40 bg-surface-container-low text-on-surface-variant font-ui-button uppercase tracking-wider">Demo data · Premium data source required</span>
+      </div>
       <div className="flex gap-1 border-b border-outline-variant/20 mb-5 flex-wrap">
         {[["income","Income Statement"],["balance","Balance Sheet"],["cashflow","Cash Flow"],["ratios","Ratios"]].map(([t, label]) => (
           <button key={t} onClick={() => setTab(t as typeof tab)} className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${tab === t ? "border-primary text-primary" : "border-transparent text-on-surface-variant hover:text-primary"}`}>{label}</button>
@@ -860,15 +896,18 @@ const TechnicalAnalysis = () => {
 }
 
 // ── Section 7: Earnings History ───────────────────────────────────────────────
-const EarningsHistory = () => {
+const EarningsHistory = ({ earnings }: { earnings: EarningsData | null }) => {
   const epsChartRef = useRef<HTMLCanvasElement>(null)
   const epsInst = useRef<any>(null)
-  const quarters = ["Q1'23","Q2'23","Q3'23","Q4'23","Q1'24","Q2'24","Q3'24","Q4'24"]
-  const est =    [1.43, 1.19, 1.39, 2.11, 1.50, 1.34, 1.60, 2.35]
-  const actual = [1.52, 1.26, 1.46, 2.18, 1.53, 1.40, 1.64, 2.40]
-  const reactions = ["+2.2%","-0.8%","+2.4%","+3.1%","-0.5%","+4.5%","+0.7%","+1.8%"]
+
+  const history  = earnings?.history  ?? []
+  const upcoming = earnings?.upcoming ?? null
+  const quarters = history.map(h => h.quarter)
+  const est      = history.map(h => h.estimate ?? 0)
+  const actual   = history.map(h => h.actual   ?? 0)
 
   useEffect(() => {
+    if (!history.length) return
     let dead = false
     const init = async () => {
       const m = await import("chart.js")
@@ -880,7 +919,7 @@ const EarningsHistory = () => {
         data: {
           labels: quarters,
           datasets: [
-            { label: "EPS Estimate", data: est, borderWidth: 2, borderColor: C.muted, backgroundColor: "transparent" },
+            { label: "EPS Estimate", data: est,    borderWidth: 2, borderColor: C.muted, backgroundColor: "transparent" },
             { label: "EPS Actual",   data: actual, backgroundColor: actual.map((a, i) => a >= est[i] ? C.pos : C.neg), borderWidth: 0 },
           ],
         },
@@ -893,46 +932,63 @@ const EarningsHistory = () => {
     }
     init()
     return () => { dead = true; epsInst.current?.destroy() }
-  }, [])
+  }, [history, quarters, est, actual])
 
   return (
     <div className={`${card} p-5`}>
-      <h2 className="font-headline-md text-[18px] text-primary mb-4">Earnings & Revenue History</h2>
+      <h2 className="font-headline-md text-[18px] text-primary mb-4">Earnings History</h2>
       <div className="grid gap-5 mb-5" style={{ gridTemplateColumns: "60fr 40fr" }}>
         <div>
           <p className="font-ui-button text-[10px] uppercase tracking-widest text-on-surface-variant mb-3">EPS: Estimate vs Actual</p>
-          <div style={{ height: 220 }}><canvas ref={epsChartRef} /></div>
+          <div style={{ height: 220 }}>
+            {history.length ? <canvas ref={epsChartRef} /> : <div className="flex items-center justify-center h-full text-on-surface-variant text-sm">Loading…</div>}
+          </div>
         </div>
         <div>
-          <p className="font-ui-button text-[10px] uppercase tracking-widest text-on-surface-variant mb-2">Earnings History</p>
+          <p className="font-ui-button text-[10px] uppercase tracking-widest text-on-surface-variant mb-2">Quarterly EPS</p>
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-xs">
               <thead><tr className="border-b border-outline-variant/20">
-                {["Qtr","Est","Act","Surp","Reaction"].map(h => <th key={h} className="px-2 py-1.5 text-left text-[10px] font-ui-button uppercase tracking-widest text-on-surface-variant whitespace-nowrap">{h}</th>)}
+                {["Qtr","Est","Act","Surp"].map(h => <th key={h} className="px-2 py-1.5 text-left text-[10px] font-ui-button uppercase tracking-widest text-on-surface-variant whitespace-nowrap">{h}</th>)}
               </tr></thead>
               <tbody>
-                {quarters.map((q, i) => {
-                  const surp = ((actual[i] - est[i]) / est[i] * 100).toFixed(1)
+                {history.map((q, i) => {
+                  const e = q.estimate ?? 0
+                  const a = q.actual   ?? 0
+                  const surp = e !== 0 ? ((a - e) / Math.abs(e) * 100).toFixed(1) : "—"
                   return (
                     <tr key={i} className={i % 2 ? "bg-surface-container-low/40" : ""}>
-                      <td className="px-2 py-2 font-mono font-bold text-primary">{q}</td>
-                      <td className="px-2 py-2 font-mono text-on-surface-variant">${est[i].toFixed(2)}</td>
-                      <td className="px-2 py-2 font-mono text-on-surface">${actual[i].toFixed(2)}</td>
-                      <td className={`px-2 py-2 font-mono font-semibold ${+surp >= 0 ? "text-success" : "text-error"}`}>{+surp >= 0 ? "+" : ""}{surp}%</td>
-                      <td className={`px-2 py-2 font-mono font-semibold ${reactions[i].startsWith("+") ? "text-success" : "text-error"}`}>{reactions[i]}</td>
+                      <td className="px-2 py-2 font-mono font-bold text-primary">{q.quarter}</td>
+                      <td className="px-2 py-2 font-mono text-on-surface-variant">{q.estimate != null ? `$${e.toFixed(2)}` : "—"}</td>
+                      <td className="px-2 py-2 font-mono text-on-surface">{q.actual != null ? `$${a.toFixed(2)}` : "—"}</td>
+                      <td className={`px-2 py-2 font-mono font-semibold ${surp === "—" ? "text-on-surface-variant" : +surp >= 0 ? "text-success" : "text-error"}`}>
+                        {surp !== "—" && +surp >= 0 ? "+" : ""}{surp}{surp !== "—" ? "%" : ""}
+                      </td>
                     </tr>
                   )
                 })}
+                {!history.length && <tr><td colSpan={4} className="px-2 py-4 text-on-surface-variant text-center">Loading…</td></tr>}
               </tbody>
             </table>
           </div>
         </div>
       </div>
-      <div className="border-l-4 border-[#b45309] bg-amber-50 p-4 rounded-r-lg">
-        <div className="font-medium text-sm text-on-surface mb-1">Next Earnings: <strong>Jul 25, 2025</strong> (After Market Close)</div>
-        <div className="text-sm text-on-surface-variant">Est. EPS: <strong className="text-on-surface">$1.34</strong> · Est. Revenue: <strong className="text-on-surface">$89.2B</strong></div>
-        <div className="text-xs text-on-surface-variant mt-1">In 32 days · Options implied move: <strong className="text-[#b45309]">±4.2%</strong></div>
-      </div>
+      {upcoming ? (
+        <div className="border-l-4 border-[#b45309] bg-amber-50 dark:bg-amber-950/20 p-4 rounded-r-lg">
+          <div className="font-medium text-sm text-on-surface mb-1">
+            Next Earnings: <strong>{upcoming.date}</strong>
+            {upcoming.hour === "amc" ? " (After Market Close)" : upcoming.hour === "bmo" ? " (Before Market Open)" : ""}
+          </div>
+          <div className="text-sm text-on-surface-variant">
+            {upcoming.epsEstimate != null && <>Est. EPS: <strong className="text-on-surface">${upcoming.epsEstimate.toFixed(2)}</strong> · </>}
+            {upcoming.revenueEstimate != null && <>Est. Revenue: <strong className="text-on-surface">{fmtLarge(upcoming.revenueEstimate * 1e6)}</strong></>}
+          </div>
+        </div>
+      ) : (
+        <div className="border-l-4 border-outline-variant/40 bg-surface-container-low/30 p-4 rounded-r-lg">
+          <div className="text-sm text-on-surface-variant">No upcoming earnings date available.</div>
+        </div>
+      )}
     </div>
   )
 }
@@ -989,7 +1045,10 @@ const Ownership = () => {
 
   return (
     <div className={`${card} p-5`}>
-      <h2 className="font-headline-md text-[18px] text-primary mb-4">Ownership & Institutional Holdings</h2>
+      <div className="flex items-center gap-2 mb-3">
+        <h2 className="font-headline-md text-[18px] text-primary">Ownership & Institutional Holdings</h2>
+        <span className="text-[10px] px-2 py-0.5 rounded-full border border-outline-variant/40 bg-surface-container-low text-on-surface-variant font-ui-button uppercase tracking-wider">Demo data · Premium data source required</span>
+      </div>
       <div className="grid grid-cols-3 gap-5">
         <div>
           <p className="font-ui-button text-[10px] uppercase tracking-widest text-on-surface-variant mb-3">Ownership Breakdown</p>
@@ -1045,30 +1104,22 @@ const Ownership = () => {
 }
 
 // ── Section 9: News & Sentiment ────────────────────────────────────────────────
-const NewsSentiment = () => {
+const NewsSentiment = ({ news }: { news: NewsArticle[] | null }) => {
   const [tab, setTab] = useState<"news"|"sec"|"transcripts"|"social">("news")
-  const [expandedAI, setExpandedAI] = useState<number | null>(null)
+  const [expandedSummary, setExpandedSummary] = useState<number | null>(null)
   const socialRef = useRef<HTMLCanvasElement>(null)
-  const buzzRef = useRef<HTMLCanvasElement>(null)
   const socialInst = useRef<any>(null)
-  const buzzInst = useRef<any>(null)
 
-  const articles = [
-    { src:"Reuters",   time:"2h ago",  hl:"Fed signals potential rate cuts amid cooling inflation data",             sent:"Bullish", rel:"High",   ai:"Federal Reserve officials signaled openness to rate cuts. Markets rallied on the news." },
-    { src:"Bloomberg", time:"4h ago",  hl:"NVIDIA reports record Q3 earnings, data center revenue surges 206%",     sent:"Bullish", rel:"High",   ai:"NVIDIA beat expectations on strong AI chip demand. Guidance raised for Q4 significantly." },
-    { src:"WSJ",       time:"6h ago",  hl:"Tesla delivery numbers disappoint analysts for third consecutive quarter", sent:"Bearish", rel:"Medium", ai:"Tesla missed delivery estimates amid pricing pressure. Management cited macro headwinds." },
-    { src:"CNBC",      time:"8h ago",  hl:"Apple Vision Pro sees strong enterprise adoption in Q4 pipeline",        sent:"Bullish", rel:"High",   ai:"Enterprise orders accelerating for Vision Pro. Healthcare and aerospace leading adoption." },
-    { src:"FT",        time:"10h ago", hl:"JPMorgan upgrades Amazon to Overweight, raises price target to $230",    sent:"Bullish", rel:"Medium", ai:"AWS margin expansion and ad growth cited. Retail profitability improving quarter over quarter." },
-    { src:"Barron's",  time:"14h ago", hl:"Market volatility expected to rise ahead of Fed meeting next week",      sent:"Neutral", rel:"Low",    ai:"Options pricing implies elevated volatility. Historically markets trend sideways pre-FOMC." },
-    { src:"Bloomberg", time:"1d ago",  hl:"Apple iPhone 16 pre-orders exceed expectations in China",                sent:"Bullish", rel:"High",   ai:"China pre-orders surpassing iPhone 15 cycle. Strong upgrade demand across urban markets." },
-    { src:"Reuters",   time:"1d ago",  hl:"Microsoft Azure growth accelerates, beating cloud revenue estimates",    sent:"Bullish", rel:"Medium", ai:"Azure grew 29% year-over-year. AI services contributing meaningfully to cloud growth." },
-  ]
-  const srcColor = (s: string) =>
-    s === "Reuters" ? "bg-orange-50 text-orange-700 border-orange-200" :
-    s === "Bloomberg" ? "bg-blue-50 text-blue-700 border-blue-200" :
-    s === "WSJ" ? "bg-gray-100 text-gray-700 border-gray-200" :
-    s === "CNBC" ? "bg-red-50 text-red-700 border-red-200" :
-    "bg-surface-container text-on-surface-variant border-outline-variant/30"
+  const articles = news ?? []
+
+  const srcColor = (s: string) => {
+    const sl = s.toLowerCase()
+    if (sl.includes("reuters"))   return "bg-orange-50 text-orange-700 border-orange-200"
+    if (sl.includes("bloomberg")) return "bg-blue-50 text-blue-700 border-blue-200"
+    if (sl.includes("wsj") || sl.includes("wall street")) return "bg-gray-100 text-gray-700 border-gray-200"
+    if (sl.includes("cnbc"))      return "bg-red-50 text-red-700 border-red-200"
+    return "bg-surface-container text-on-surface-variant border-outline-variant/30"
+  }
 
   const secFilings = [
     { type:"10-K",    date:"Feb 2 2025",  desc:"Annual Report for FY2024" },
@@ -1093,37 +1144,22 @@ const NewsSentiment = () => {
   ]
 
   useEffect(() => {
+    if (tab !== "social") return
     let dead = false
     const init = async () => {
       const m = await import("chart.js")
       m.Chart.register(...m.registerables)
-      if (dead) return
-      if (tab === "news" && buzzRef.current) {
-        buzzInst.current?.destroy()
-        buzzInst.current = new m.Chart(buzzRef.current.getContext("2d")!, {
-          type: "bar",
-          data: { labels: ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"], datasets: [{ data: [82,95,78,110,142,138,156], backgroundColor: C.blue + "aa", borderWidth: 0 }] },
-          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { backgroundColor: C.prim, bodyColor: "#fff" } }, scales: { x: { ticks: { color: C.muted, font: { size: 9 } } }, y: { ticks: { color: C.muted, font: { size: 9 } } } } },
-        })
-      }
-      if (tab === "social" && socialRef.current) {
-        socialInst.current?.destroy()
-        const sentData = [45,48,43,42,38,41,44,48,50,53,55,52,54,57,58,55,52,54,56,57,58,60,62,61,63,64,63,65,66,67]
-        socialInst.current = new m.Chart(socialRef.current.getContext("2d")!, {
-          type: "line",
-          data: { labels: sentData.map((_, i) => `Day ${i+1}`), datasets: [{ data: sentData, borderColor: C.blue, borderWidth: 2, pointRadius: 0, fill: true, backgroundColor: "rgba(21,101,192,0.1)", tension: 0.4 }] },
-          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { backgroundColor: C.prim, bodyColor: "#fff" } }, scales: { x: { ticks: { color: C.muted, font: { size: 9 }, maxTicksLimit: 6 } }, y: { min: 30, max: 80, ticks: { color: C.muted, font: { size: 9 } } } } },
-        })
-      }
+      if (dead || !socialRef.current) return
+      socialInst.current?.destroy()
+      const sentData = [45,48,43,42,38,41,44,48,50,53,55,52,54,57,58,55,52,54,56,57,58,60,62,61,63,64,63,65,66,67]
+      socialInst.current = new m.Chart(socialRef.current.getContext("2d")!, {
+        type: "line",
+        data: { labels: sentData.map((_, i) => `Day ${i+1}`), datasets: [{ data: sentData, borderColor: C.blue, borderWidth: 2, pointRadius: 0, fill: true, backgroundColor: "rgba(21,101,192,0.1)", tension: 0.4 }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { backgroundColor: C.prim, bodyColor: "#fff" } }, scales: { x: { ticks: { color: C.muted, font: { size: 9 }, maxTicksLimit: 6 } }, y: { min: 30, max: 80, ticks: { color: C.muted, font: { size: 9 } } } } },
+      })
     }
     init()
-    return () => {
-      dead = true
-      buzzInst.current?.destroy()
-      socialInst.current?.destroy()
-      buzzInst.current = null
-      socialInst.current = null
-    }
+    return () => { dead = true; socialInst.current?.destroy(); socialInst.current = null }
   }, [tab])
 
   return (
@@ -1140,51 +1176,51 @@ const NewsSentiment = () => {
             {articles.map((a, i) => (
               <div key={i} className="border border-outline-variant/30 rounded-lg p-3.5 hover:border-primary/30 transition-colors">
                 <div className="flex items-center gap-2 mb-1.5">
-                  <span className={`text-[10px] font-ui-button uppercase tracking-widest px-1.5 py-0.5 rounded border ${srcColor(a.src)}`}>{a.src}</span>
-                  <span className="text-xs text-on-surface-variant">{a.time}</span>
-                  <span className="ml-auto">{a.rel === "High" ? <span className={blueBadge}>High</span> : a.rel === "Medium" ? <span className={neutBadge}>Medium</span> : <span className="bg-surface-container-low text-on-surface-variant/60 border border-outline-variant/20 rounded-full text-xs px-2 py-0.5">Low</span>}</span>
+                  <span className={`text-[10px] font-ui-button uppercase tracking-widest px-1.5 py-0.5 rounded border ${srcColor(a.source)}`}>{a.source}</span>
+                  <span className="text-xs text-on-surface-variant">{a.timeAgo}</span>
                 </div>
-                <div className="font-medium text-sm text-primary mb-1 hover:underline cursor-pointer leading-snug">{a.hl}</div>
+                <a href={a.url} target="_blank" rel="noopener noreferrer"
+                   className="font-medium text-sm text-primary mb-1 hover:underline cursor-pointer leading-snug block">{a.headline}</a>
                 <div className="flex items-center gap-2 mt-2">
-                  <span className={a.sent === "Bullish" ? posBadge : a.sent === "Bearish" ? negBadge : neutBadge}>{a.sent}</span>
-                  <button onClick={() => setExpandedAI(expandedAI === i ? null : i)} className="text-xs text-on-surface-variant hover:text-primary transition-colors ml-auto">AI Summary {expandedAI === i ? "▲" : "▾"}</button>
+                  <span className={a.sentiment === "Bullish" ? posBadge : a.sentiment === "Bearish" ? negBadge : neutBadge}>{a.sentiment}</span>
+                  {a.summary && (
+                    <button onClick={() => setExpandedSummary(expandedSummary === i ? null : i)}
+                      className="text-xs text-on-surface-variant hover:text-primary transition-colors ml-auto">
+                      Summary {expandedSummary === i ? "▲" : "▾"}
+                    </button>
+                  )}
                 </div>
-                {expandedAI === i && (
-                  <div className="mt-2 text-xs italic text-on-surface-variant border-t border-outline-variant/20 pt-2">{a.ai}</div>
+                {expandedSummary === i && a.summary && (
+                  <div className="mt-2 text-xs text-on-surface-variant border-t border-outline-variant/20 pt-2 line-clamp-3">{a.summary}</div>
                 )}
               </div>
             ))}
+            {!articles.length && (
+              <div className="text-sm text-on-surface-variant py-8 text-center">Loading news…</div>
+            )}
           </div>
           <div className="space-y-4">
-            <div className="border border-outline-variant/20 rounded-lg p-4">
-              <p className="font-ui-button text-[10px] uppercase tracking-widest text-on-surface-variant mb-2">NLP Sentiment Score</p>
-              <div className="h-3 bg-surface-container rounded-full overflow-hidden mb-1.5">
-                <div className="h-full bg-success rounded-full" style={{ width: "67%" }} />
-              </div>
-              <p className="text-xs text-success font-medium">67/100 — Moderately Bullish</p>
-            </div>
-            <div className="border border-outline-variant/20 rounded-lg p-4">
-              <p className="font-ui-button text-[10px] uppercase tracking-widest text-on-surface-variant mb-1">Social Media Buzz</p>
-              <p className="text-xs text-on-surface mb-3">Volume: <strong>142K mentions</strong> · <span className="text-success">+34% vs avg</span></p>
-              <div style={{ height: 80 }}><canvas ref={buzzRef} /></div>
-            </div>
-            <div className="border border-outline-variant/20 rounded-lg p-4">
-              <p className="font-ui-button text-[10px] uppercase tracking-widest text-on-surface-variant mb-2">Top Keywords</p>
-              <div className="flex flex-wrap gap-1.5">
-                {[["AI","text-base"],["iPhone16","text-sm"],["earnings","text-sm"],["Fed","text-xs"],["buyback","text-xs"]].map(([kw, sz]) => (
-                  <span key={kw} className={`${neutBadge} ${sz}`}>{kw}</span>
-                ))}
-              </div>
-            </div>
-            <div className="border border-outline-variant/20 rounded-lg p-4">
-              <p className="font-ui-button text-[10px] uppercase tracking-widest text-on-surface-variant mb-2">Subreddit Mentions</p>
-              {[["r/investing","2,847"],["r/stocks","1,923"],["r/wallstreetbets","7,441"]].map(([sub, cnt]) => (
-                <div key={sub} className="flex justify-between py-1 text-xs">
-                  <span className="text-blue-700 font-medium">{sub}</span>
-                  <span className="text-success font-mono">{cnt} ▲</span>
+            {(() => {
+              const bullCnt = articles.filter(a => a.sentiment === "Bullish").length
+              const bearCnt = articles.filter(a => a.sentiment === "Bearish").length
+              const total   = articles.length || 1
+              const bullPct = Math.round(bullCnt / total * 100)
+              const bearPct = Math.round(bearCnt / total * 100)
+              return (
+                <div className="border border-outline-variant/20 rounded-lg p-4">
+                  <p className="font-ui-button text-[10px] uppercase tracking-widest text-on-surface-variant mb-2">News Sentiment</p>
+                  <div className="h-3 bg-surface-container rounded-full overflow-hidden flex mb-1.5">
+                    <div className="h-full bg-success" style={{ width: `${bullPct}%` }} />
+                    <div className="h-full bg-error"   style={{ width: `${bearPct}%` }} />
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-success font-semibold">Bullish {bullPct}%</span>
+                    <span className="text-error font-semibold">Bearish {bearPct}%</span>
+                  </div>
+                  <p className="text-xs text-on-surface-variant mt-2">Based on {articles.length} recent articles</p>
                 </div>
-              ))}
-            </div>
+              )
+            })()}
           </div>
         </div>
       )}
@@ -1676,15 +1712,35 @@ export default function ResearchPage() {
   const [range, setRange] = useState("1Y")
   const [chartType, setChartType] = useState("Line")
   const [ticker, setTicker] = useState("AAPL")
-  const [stockData, setStockData] = useState<StockData | null>(null)
+  const [stockData, setStockData]         = useState<StockData | null>(null)
+  const [metrics, setMetrics]             = useState<StockMetrics | null>(null)
+  const [recommendations, setRecs]        = useState<RecommendationData | null>(null)
+  const [earnings, setEarnings]           = useState<EarningsData | null>(null)
+  const [news, setNews]                   = useState<NewsArticle[] | null>(null)
 
-  // Load AAPL quote on mount so the header shows real data immediately
-  useEffect(() => {
-    fetch("/api/stock?symbol=AAPL")
-      .then(r => (r.ok ? r.json() : null))
-      .then(json => { if (json?.data) setStockData(json.data as StockData) })
-      .catch(() => {})
+  const loadAllData = useCallback(async (sym: string) => {
+    const safe = (p: Promise<Response>) => p.then(r => r.ok ? r.json() : null).catch(() => null)
+    const [q, m, r, e, n] = await Promise.all([
+      safe(fetch(`/api/stock?symbol=${sym}`)),
+      safe(fetch(`/api/stock/metrics?symbol=${sym}`)),
+      safe(fetch(`/api/stock/recommendations?symbol=${sym}`)),
+      safe(fetch(`/api/stock/earnings?symbol=${sym}`)),
+      safe(fetch(`/api/stock/news?symbol=${sym}`)),
+    ])
+    if (q?.data)    setStockData(q.data)
+    if (m?.data)    setMetrics(m.data)
+    if (r?.data)    setRecs(r.data)
+    if (e?.data)    setEarnings(e.data)
+    if (n?.data)    setNews(n.data)
   }, [])
+
+  useEffect(() => { loadAllData("AAPL") }, [loadAllData])
+
+  const handleTickerChange = useCallback((sym: string) => {
+    setTicker(sym)
+    setMetrics(null); setRecs(null); setEarnings(null); setNews(null)
+    loadAllData(sym)
+  }, [loadAllData])
 
   return (
     <>
@@ -1705,23 +1761,23 @@ export default function ResearchPage() {
           <CommandBar
             range={range} setRange={setRange}
             chartType={chartType} setChartType={setChartType}
-            ticker={ticker} onTickerChange={setTicker}
+            ticker={ticker} onTickerChange={handleTickerChange}
             stockData={stockData} onStockData={setStockData}
           />
           <PriceChart range={range} setRange={setRange} chartType={chartType} ticker={ticker} />
-          <KeyStats />
-          <AnalystRatings />
+          <KeyStats stockData={stockData} metrics={metrics} />
+          <AnalystRatings recommendations={recommendations} />
           <FinancialStatements />
           <TechnicalAnalysis />
-          <EarningsHistory />
+          <EarningsHistory earnings={earnings} />
           <Ownership />
-          <NewsSentiment />
+          <NewsSentiment news={news} />
           <ComparisonTool />
           <ValuationModels />
           <RiskQuality />
 
           <div className="text-xs text-on-surface-variant text-right pb-4">
-            Data shown is static demo data · Not financial advice · Prices delayed 15+ min
+            Market data via Finnhub · Prices delayed 15+ min · Not financial advice
           </div>
         </Container>
       </div>
