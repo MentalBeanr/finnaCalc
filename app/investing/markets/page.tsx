@@ -157,18 +157,27 @@ const WatchlistSparkline = ({ ticker, pos }: { ticker: string; pos: boolean }) =
     )
 }
 
-// ── Company logo with initials fallback ──────────────────────────────────────
+// ── Company logo — tries Finnhub URL, then Parqet CDN, then initials ─────────
 const CompanyLogo = ({ ticker, logoUrl, size = 24 }: { ticker: string; logoUrl?: string; size?: number }) => {
-    const [err, setErr] = useState(false)
-    if (logoUrl && !err) {
+    const [srcIdx, setSrcIdx] = useState(0)
+    useEffect(() => { setSrcIdx(0) }, [ticker, logoUrl])
+
+    // Source priority: API-provided URL → Parqet symbol CDN → initials fallback
+    const sources = [
+        ...(logoUrl ? [logoUrl] : []),
+        `https://assets.parqet.com/logos/symbol/${encodeURIComponent(ticker)}?format=png`,
+    ]
+    const src = srcIdx < sources.length ? sources[srcIdx] : null
+
+    if (src) {
         return (
             <Image
-                src={logoUrl}
+                src={src}
                 alt={ticker}
                 width={size}
                 height={size}
-                className="rounded object-contain flex-shrink-0"
-                onError={() => setErr(true)}
+                className="rounded object-contain flex-shrink-0 bg-white"
+                onError={() => setSrcIdx(i => i + 1)}
                 unoptimized
             />
         )
@@ -178,7 +187,7 @@ const CompanyLogo = ({ ticker, logoUrl, size = 24 }: { ticker: string; logoUrl?:
             className="rounded bg-primary/10 text-primary font-bold flex items-center justify-center flex-shrink-0 text-[10px]"
             style={{ width: size, height: size }}
         >
-            {ticker.slice(0, 2)}
+            {ticker.replace(/[^A-Z]/gi, "").slice(0, 2).toUpperCase()}
         </span>
     )
 }
@@ -510,6 +519,13 @@ export default function MarketsPage() {
         })
     }, [sortCol, sortDir, activeHoldings])
 
+    const allMovers = React.useMemo<{ ticker: string; companyName: string; price: number; changePct: number; logoUrl?: string }[]>(() => {
+        const g = liveGainers ?? GAINERS.map(m => ({ ticker: m.tick, companyName: m.name, price: m.price, changePct: m.chg, logoUrl: undefined }))
+        const l = liveLosers  ?? LOSERS.map(m  => ({ ticker: m.tick, companyName: m.name, price: m.price, changePct: m.chg, logoUrl: undefined }))
+        const a = liveActive  ?? MOST_ACTIVE.map(m => ({ ticker: m.tick, companyName: m.tick, price: m.price, changePct: m.chg, logoUrl: undefined }))
+        return [...g, ...l, ...a]
+    }, [liveGainers, liveLosers, liveActive])
+
     const handleSort = (col: string) => {
         if (sortCol === col) setSortDir(d => d * -1)
         else { setSortCol(col); setSortDir(1) }
@@ -561,22 +577,25 @@ export default function MarketsPage() {
             .mkts-range::-moz-range-thumb { width:14px; height:14px; border-radius:50%; background:#00061a; cursor:pointer; border:none; }
             .mkts-pulse { animation:mkts-pulse 2s infinite; }
             @keyframes mkts-pulse { 0%{box-shadow:0 0 0 0 rgba(63,107,63,.5)} 70%{box-shadow:0 0 0 8px rgba(63,107,63,0)} 100%{box-shadow:0 0 0 0 rgba(63,107,63,0)} }
+            .mkts-marquee { display:flex; width:max-content; animation:mkts-scroll 30s linear infinite; }
+            .mkts-marquee:hover { animation-play-state:paused; }
+            @keyframes mkts-scroll { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
         `}</style>
 
         <div className="bg-surface min-h-screen">
 
-        {/* Market summary bar */}
-        <div className="mkts-bar bg-surface-container-low border-b border-outline-variant/20 overflow-x-auto">
-            <div className="flex px-6 py-2.5 gap-2 min-w-max max-w-[1440px] mx-auto">
-                {MARKETS.map((m, i) => {
-                    const live = liveIndices?.[i]
+        {/* Market summary bar — continuous marquee */}
+        <div className="bg-surface-container-low border-b border-outline-variant/20 overflow-hidden relative">
+            <div className="mkts-marquee py-2.5 gap-2 px-2">
+                {[...MARKETS, ...MARKETS].map((m, i) => {
+                    const live = liveIndices?.[i % MARKETS.length]
                     const pos = live ? live.changePct >= 0 : m.pos
                     const val = live ? (live.price > 1000 ? live.price.toLocaleString("en-US", {maximumFractionDigits:0}) : live.price.toFixed(2)) : m.val
                     const chgAbs = live ? (live.change >= 0 ? "+" : "") + live.change.toFixed(2) : m.chg
                     const chgPct = live ? (live.changePct >= 0 ? "+" : "") + live.changePct.toFixed(2) + "%" : m.pct
                     const pts = live?.pts?.length ? live.pts : m.pts
                     return (
-                        <div key={m.name} className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-surface-container-lowest border border-outline-variant/30 cursor-pointer hover:border-primary/30 transition-colors flex-shrink-0 whitespace-nowrap">
+                        <div key={i} className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-surface-container-lowest border border-outline-variant/30 cursor-pointer hover:border-primary/30 transition-colors flex-shrink-0 whitespace-nowrap">
                             <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">{m.name}</span>
                             <span className="text-[13px] font-semibold font-mono text-on-surface">{val}</span>
                             <span className={`text-[11px] font-medium ${pos ? posText : negText}`}>{pos ? "▲" : "▼"} {chgAbs} ({chgPct})</span>
