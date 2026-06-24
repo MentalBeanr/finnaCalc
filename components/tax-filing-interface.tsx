@@ -8,6 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Container } from "@/components/ds/container"
 import { Section } from "@/components/ds/section"
 import { MaterialIcon } from "@/components/ds/material-icon"
+import { calculateStateTax, isDirectFileEligible, STATE_TAXES } from "@/lib/taxes/state-taxes"
+import { openTaxSummaryPDF } from "@/lib/taxes/generate-pdf"
 
 interface TaxFilingInterfaceProps {
     onBack: () => void
@@ -123,8 +125,13 @@ export default function TaxFilingInterface({ onBack }: TaxFilingInterfaceProps) 
         numChildren: "",
         childcareExpenses: "",
         educationExpenses: "",
+        stateWithheld: "",
+        routingNumber: "",
+        accountNumber: "",
+        accountType: "checking",
     })
     const [taxCalculation, setTaxCalculation] = useState<TaxCalculation | null>(null)
+    const [stateTaxResult, setStateTaxResult] = useState<ReturnType<typeof calculateStateTax> | null>(null)
 
     const updateForm = (field: keyof typeof formData, value: string) =>
         setFormData((prev) => ({ ...prev, [field]: value }))
@@ -244,6 +251,15 @@ export default function TaxFilingInterface({ onBack }: TaxFilingInterfaceProps) 
         const taxAfterCredits = Math.max(0, tax - credits)
         const withheld = Number.parseFloat(formData.w2Withheld) || 0
         const refundOrOwed = withheld - taxAfterCredits
+
+        const filingStatusKey =
+            formData.filingStatus === "Married Filing Jointly"   ? "married_jointly"    :
+            formData.filingStatus === "Married Filing Separately" ? "married_separately" :
+            formData.filingStatus === "Head of Household"         ? "head_of_household"  :
+            "single"
+
+        const stateResult = calculateStateTax(agi, formData.state, filingStatusKey)
+        setStateTaxResult(stateResult)
 
         setTaxCalculation({
             totalIncome,
@@ -723,14 +739,50 @@ export default function TaxFilingInterface({ onBack }: TaxFilingInterfaceProps) 
                         <div className="flex flex-col gap-gutter">
                             {/* Federal Tax Summary */}
                             <div className="border border-outline-variant/30 rounded-lg bg-surface-container-lowest p-10 flex flex-col gap-stack-lg">
-                                <div className="text-center">
-                                    <h2 className="font-headline-md text-headline-md text-primary mb-stack-sm">
-                                        Review &amp; File
-                                    </h2>
-                                    <p className="font-body-md text-body-md text-on-surface-variant">
-                                        Review your federal tax return summary
-                                        {taxCalculation.state ? ` (${taxCalculation.state})` : ""} before filing.
-                                    </p>
+                                <div className="flex items-start justify-between">
+                                    <div>
+                                        <h2 className="font-headline-md text-headline-md text-primary mb-stack-sm">
+                                            Review &amp; File
+                                        </h2>
+                                        <p className="font-body-md text-body-md text-on-surface-variant">
+                                            Review your federal tax return summary
+                                            {taxCalculation.state ? ` (${taxCalculation.state})` : ""} before filing.
+                                        </p>
+                                    </div>
+                                    <button
+                                        onClick={() => openTaxSummaryPDF({
+                                            filingStatus: formData.filingStatus === "Married Filing Jointly" ? "married_jointly" :
+                                                          formData.filingStatus === "Married Filing Separately" ? "married_separately" :
+                                                          formData.filingStatus === "Head of Household" ? "head_of_household" : "single",
+                                            state: taxCalculation.state,
+                                            taxYear: 2024,
+                                            totalIncome: taxCalculation.totalIncome,
+                                            agi: taxCalculation.agi,
+                                            deduction: taxCalculation.deduction,
+                                            usingItemized: taxCalculation.usingItemized,
+                                            taxableIncome: taxCalculation.taxableIncome,
+                                            taxBeforeCredits: taxCalculation.taxBeforeCredits,
+                                            credits: taxCalculation.credits,
+                                            taxAfterCredits: taxCalculation.taxAfterCredits,
+                                            withheld: taxCalculation.withheld,
+                                            refundOrOwed: taxCalculation.refundOrOwed,
+                                            owes: taxCalculation.owes,
+                                            marginalRate: taxCalculation.marginalRate / 100,
+                                            effectiveFederalRate: taxCalculation.taxableIncome > 0 ? taxCalculation.taxAfterCredits / taxCalculation.taxableIncome : 0,
+                                            stateName: stateTaxResult?.stateName ?? taxCalculation.state,
+                                            stateNoIncomeTax: stateTaxResult?.noIncomeTax ?? false,
+                                            stateTaxableIncome: stateTaxResult?.taxableIncome ?? 0,
+                                            stateTax: stateTaxResult?.stateTax ?? 0,
+                                            stateEffectiveRate: stateTaxResult?.effectiveRate ?? 0,
+                                            stateWithheld: formData.stateWithheld ? Number(formData.stateWithheld) : undefined,
+                                            firstName: formData.firstName,
+                                            lastName: formData.lastName,
+                                        })}
+                                        className="inline-flex items-center gap-stack-sm px-4 py-2 rounded-lg border border-outline-variant/40 font-ui-button text-ui-button uppercase tracking-[0.05em] text-on-surface-variant hover:border-primary/40 hover:text-primary transition-colors flex-shrink-0"
+                                    >
+                                        <MaterialIcon name="download" size={16} />
+                                        Export PDF
+                                    </button>
                                 </div>
 
                                 <div className="max-w-2xl mx-auto flex flex-col gap-stack-md w-full">
@@ -804,69 +856,194 @@ export default function TaxFilingInterface({ onBack }: TaxFilingInterfaceProps) 
                             <div className="border border-outline-variant/30 rounded-lg bg-surface-container-lowest p-10 flex flex-col gap-stack-lg">
                                 <p className="font-ui-button text-ui-button uppercase tracking-[0.05em] text-on-surface-variant flex items-center gap-stack-sm">
                                     <MaterialIcon name="description" size={16} />
-                                    State Tax Summary ({taxCalculation.state || "N/A"})
+                                    State Tax Summary — {stateTaxResult?.stateName ?? (taxCalculation.state || "N/A")}
                                 </p>
-                                <p className="font-body-md text-body-md text-on-surface-variant text-center py-stack-lg">
-                                    State tax calculation is not yet implemented. Please consult your state&apos;s tax resources or a professional for state tax estimates and filing.
-                                </p>
+                                {stateTaxResult?.noIncomeTax ? (
+                                    <div className="flex items-center gap-stack-md p-4 rounded-lg bg-success/10">
+                                        <MaterialIcon name="check_circle" size={20} className="text-success flex-shrink-0" />
+                                        <p className="font-body-md text-body-md text-on-surface">
+                                            <strong>{stateTaxResult.stateName}</strong> has no state income tax. $0 owed.
+                                        </p>
+                                    </div>
+                                ) : stateTaxResult ? (
+                                    <div className="max-w-2xl mx-auto flex flex-col gap-stack-md w-full">
+                                        {[
+                                            ["State Taxable Income", `$${(stateTaxResult.taxableIncome).toLocaleString("en-US",{maximumFractionDigits:0})}`],
+                                            ["State Tax Liability", `$${(stateTaxResult.stateTax).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2})}`],
+                                            ["Effective State Rate", `${(stateTaxResult.effectiveRate*100).toFixed(2)}%`],
+                                        ].map(([label, val]) => (
+                                            <div key={label} className="flex justify-between items-center p-3 rounded-lg bg-surface-container">
+                                                <span className="font-body-md text-body-md text-on-surface-variant">{label}</span>
+                                                <span className="font-body-md text-body-md text-on-surface font-semibold">{val}</span>
+                                            </div>
+                                        ))}
+                                        <div className="flex flex-col gap-stack-sm">
+                                            <Label htmlFor="stateWithheld">State Tax Withheld (from W-2 Box 17)</Label>
+                                            <Input id="stateWithheld" placeholder="$0" type="number" value={formData.stateWithheld} onChange={e => updateForm("stateWithheld", e.target.value)} />
+                                        </div>
+                                        {formData.stateWithheld && (
+                                            (() => {
+                                                const stateOwed = stateTaxResult.stateTax - Number(formData.stateWithheld)
+                                                return (
+                                                    <div className={`flex justify-between items-center p-4 rounded-lg ${stateOwed > 0 ? "bg-error/10" : "bg-success/10"}`}>
+                                                        <span className="font-body-md text-body-md text-on-surface font-semibold">
+                                                            {stateOwed > 0 ? "State Tax Owed" : "Estimated State Refund"}
+                                                        </span>
+                                                        <span className={`font-headline-md text-[24px] font-bold ${stateOwed > 0 ? "text-error" : "text-success"}`}>
+                                                            ${Math.abs(stateOwed).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2})}
+                                                        </span>
+                                                    </div>
+                                                )
+                                            })()
+                                        )}
+                                        <p className="font-label-caps uppercase tracking-[0.15em] text-[10px] text-on-surface-variant text-center">
+                                            *State tax estimated using published 2024 {stateTaxResult.stateName} income tax brackets. Consult a professional for exact liability.
+                                        </p>
+                                    </div>
+                                ) : null}
                             </div>
 
-                            {/* Payment & Refund */}
+                            {/* Direct Deposit / Payment */}
                             <div className="border border-outline-variant/30 rounded-lg bg-surface-container-lowest p-10 flex flex-col gap-stack-lg">
-                                <p className="font-headline-md text-headline-md text-primary">
-                                    Payment &amp; Refund
+                                <div>
+                                    <p className="font-headline-md text-headline-md text-primary mb-stack-sm">
+                                        {taxCalculation.owes ? "Payment Information" : "Direct Deposit"}
+                                    </p>
+                                    <p className="font-body-md text-body-md text-on-surface-variant">
+                                        {taxCalculation.owes
+                                            ? "Enter your bank details to pay federal taxes owed electronically."
+                                            : "Enter your bank details to receive your federal refund by direct deposit — the fastest option."}
+                                    </p>
+                                </div>
+                                <div className="grid grid-cols-2 gap-gutter max-w-2xl">
+                                    <div className="flex flex-col gap-stack-sm">
+                                        <Label htmlFor="routingNumber">Routing Number (9 digits)</Label>
+                                        <Input id="routingNumber" placeholder="021000021" maxLength={9} value={formData.routingNumber} onChange={e => updateForm("routingNumber", e.target.value.replace(/\D/g,""))} />
+                                    </div>
+                                    <div className="flex flex-col gap-stack-sm">
+                                        <Label htmlFor="accountNumber">Account Number</Label>
+                                        <Input id="accountNumber" placeholder="••••••••••" value={formData.accountNumber} onChange={e => updateForm("accountNumber", e.target.value.replace(/\D/g,""))} />
+                                    </div>
+                                    <div className="flex flex-col gap-stack-sm col-span-2">
+                                        <Label>Account Type</Label>
+                                        <div className="flex gap-gutter">
+                                            {["checking","savings"].map(t => (
+                                                <button key={t} onClick={() => updateForm("accountType", t)}
+                                                    className={`flex-1 py-2 rounded-lg border font-ui-button text-ui-button uppercase tracking-[0.05em] transition-colors ${formData.accountType===t ? "border-primary bg-primary/5 text-primary" : "border-outline-variant/40 text-on-surface-variant hover:border-primary/40"}`}>
+                                                    {t.charAt(0).toUpperCase()+t.slice(1)}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                                {formData.routingNumber.length===9 && formData.accountNumber.length>=4 && (
+                                    <div className="flex items-center gap-stack-sm p-3 rounded-lg bg-success/10 max-w-2xl">
+                                        <MaterialIcon name="check_circle" size={16} className="text-success flex-shrink-0" />
+                                        <p className="font-body-md text-body-md text-on-surface">Bank account confirmed. Your routing and account numbers look valid.</p>
+                                    </div>
+                                )}
+                                <p className="font-label-caps uppercase tracking-[0.15em] text-[10px] text-on-surface-variant max-w-2xl">
+                                    Your banking information is used solely to facilitate direct deposit or tax payment. It is not stored on our servers.
                                 </p>
-                                <p className="font-body-md text-body-md text-on-surface-variant">
-                                    Securely connect your bank account to {taxCalculation.owes ? "pay your federal taxes" : "receive your federal refund"}.
-                                </p>
-                                <button
-                                    disabled
-                                    className="inline-flex items-center justify-center gap-stack-sm px-6 py-3 rounded-lg bg-surface-container font-ui-button text-ui-button uppercase tracking-[0.05em] text-on-surface-variant opacity-50 cursor-not-allowed"
-                                >
-                                    <MaterialIcon name="payments" size={16} />
-                                    Connect Bank Account with Plaid (Coming Soon)
-                                </button>
                             </div>
 
                             {/* Filing Options */}
                             <div className="border border-outline-variant/30 rounded-lg bg-surface-container-lowest p-10 flex flex-col gap-stack-lg">
                                 <p className="font-headline-md text-headline-md text-primary">
-                                    Filing Options
+                                    How to File Your Return
                                 </p>
                                 <div className="grid grid-cols-2 gap-gutter">
-                                    <div className="flex flex-col items-center p-8 rounded-lg border border-primary bg-primary/5 text-center">
-                                        <MaterialIcon name="description" size={32} className="text-primary mb-stack-md" />
-                                        <p className="font-body-md text-body-md text-on-surface font-medium mb-stack-sm">
-                                            E-File Federal Return
-                                        </p>
-                                        <p className="font-body-md text-body-md text-on-surface-variant mb-stack-md">
-                                            Fast, secure electronic filing
-                                        </p>
-                                        <span className="font-label-caps text-label-caps uppercase tracking-[0.15em] text-primary border border-primary rounded-full px-3 py-1">
-                                            Recommended
-                                        </span>
-                                    </div>
-                                    <div className="flex flex-col items-center p-8 rounded-lg border border-outline-variant/30 text-center">
-                                        <MaterialIcon name="upload" size={32} className="text-on-surface-variant mb-stack-md" />
-                                        <p className="font-body-md text-body-md text-on-surface font-medium mb-stack-sm">
-                                            Print &amp; Mail Federal Return
-                                        </p>
-                                        <p className="font-body-md text-body-md text-on-surface-variant">
-                                            Traditional paper filing
-                                        </p>
+                                    {/* IRS Direct File */}
+                                    {isDirectFileEligible(taxCalculation.agi, taxCalculation.state) ? (
+                                        <div className="flex flex-col items-center p-8 rounded-lg border border-primary bg-primary/5 text-center gap-stack-md">
+                                            <MaterialIcon name="verified" size={32} className="text-primary" />
+                                            <div>
+                                                <p className="font-body-md text-body-md text-on-surface font-semibold mb-stack-sm">IRS Direct File</p>
+                                                <p className="font-body-md text-body-md text-on-surface-variant mb-stack-md">Free, official IRS e-filing — you're eligible based on your income and state.</p>
+                                                <span className="font-label-caps text-label-caps uppercase tracking-[0.15em] text-primary border border-primary rounded-full px-3 py-1">
+                                                    Free &amp; Recommended
+                                                </span>
+                                            </div>
+                                            <a
+                                                href="https://directfile.irs.gov"
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="inline-flex items-center gap-stack-sm px-6 py-3 rounded-lg bg-primary text-on-primary font-ui-button text-ui-button uppercase tracking-[0.05em] hover:opacity-90 transition-opacity w-full justify-center"
+                                            >
+                                                <MaterialIcon name="open_in_new" size={16} />
+                                                File with IRS Direct File
+                                            </a>
+                                        </div>
+                                    ) : (
+                                        <div className="flex flex-col items-center p-8 rounded-lg border border-outline-variant/30 text-center gap-stack-md">
+                                            <MaterialIcon name="description" size={32} className="text-on-surface-variant" />
+                                            <div>
+                                                <p className="font-body-md text-body-md text-on-surface font-semibold mb-stack-sm">IRS Free File</p>
+                                                <p className="font-body-md text-body-md text-on-surface-variant mb-stack-md">
+                                                    {!STATE_TAXES[taxCalculation.state] || taxCalculation.agi > 200_000
+                                                        ? `IRS Direct File is not available for ${taxCalculation.state || "your state"} or your income level — use IRS Free File instead.`
+                                                        : "Use IRS Free File for guided federal e-filing through partner software."}
+                                                </p>
+                                            </div>
+                                            <a
+                                                href="https://www.irs.gov/filing/free-file-do-your-federal-taxes-for-free"
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="inline-flex items-center gap-stack-sm px-6 py-3 rounded-lg border border-primary text-primary font-ui-button text-ui-button uppercase tracking-[0.05em] hover:bg-primary hover:text-on-primary transition-colors w-full justify-center"
+                                            >
+                                                <MaterialIcon name="open_in_new" size={16} />
+                                                IRS Free File
+                                            </a>
+                                        </div>
+                                    )}
+                                    {/* Print & Mail */}
+                                    <div className="flex flex-col items-center p-8 rounded-lg border border-outline-variant/30 text-center gap-stack-md">
+                                        <MaterialIcon name="print" size={32} className="text-on-surface-variant" />
+                                        <div>
+                                            <p className="font-body-md text-body-md text-on-surface font-semibold mb-stack-sm">Print &amp; Mail</p>
+                                            <p className="font-body-md text-body-md text-on-surface-variant mb-stack-md">
+                                                Download your tax summary PDF, then complete a paper 1040 and mail to the IRS.
+                                            </p>
+                                        </div>
+                                        <button
+                                            onClick={() => openTaxSummaryPDF({
+                                                filingStatus: formData.filingStatus === "Married Filing Jointly" ? "married_jointly" :
+                                                              formData.filingStatus === "Married Filing Separately" ? "married_separately" :
+                                                              formData.filingStatus === "Head of Household" ? "head_of_household" : "single",
+                                                state: taxCalculation.state,
+                                                taxYear: 2024,
+                                                totalIncome: taxCalculation.totalIncome,
+                                                agi: taxCalculation.agi,
+                                                deduction: taxCalculation.deduction,
+                                                usingItemized: taxCalculation.usingItemized,
+                                                taxableIncome: taxCalculation.taxableIncome,
+                                                taxBeforeCredits: taxCalculation.taxBeforeCredits,
+                                                credits: taxCalculation.credits,
+                                                taxAfterCredits: taxCalculation.taxAfterCredits,
+                                                withheld: taxCalculation.withheld,
+                                                refundOrOwed: taxCalculation.refundOrOwed,
+                                                owes: taxCalculation.owes,
+                                                marginalRate: taxCalculation.marginalRate / 100,
+                                                effectiveFederalRate: taxCalculation.taxableIncome > 0 ? taxCalculation.taxAfterCredits / taxCalculation.taxableIncome : 0,
+                                                stateName: stateTaxResult?.stateName ?? taxCalculation.state,
+                                                stateNoIncomeTax: stateTaxResult?.noIncomeTax ?? false,
+                                                stateTaxableIncome: stateTaxResult?.taxableIncome ?? 0,
+                                                stateTax: stateTaxResult?.stateTax ?? 0,
+                                                stateEffectiveRate: stateTaxResult?.effectiveRate ?? 0,
+                                                stateWithheld: formData.stateWithheld ? Number(formData.stateWithheld) : undefined,
+                                                firstName: formData.firstName,
+                                                lastName: formData.lastName,
+                                            })}
+                                            className="inline-flex items-center gap-stack-sm px-6 py-3 rounded-lg border border-outline-variant/40 text-on-surface-variant font-ui-button text-ui-button uppercase tracking-[0.05em] hover:border-primary/40 hover:text-primary transition-colors w-full justify-center"
+                                        >
+                                            <MaterialIcon name="download" size={16} />
+                                            Export PDF Summary
+                                        </button>
                                     </div>
                                 </div>
-                                <div className="flex flex-col items-center gap-stack-sm">
-                                    <button
-                                        disabled
-                                        className="inline-flex items-center gap-stack-sm px-8 py-3 rounded-lg bg-primary text-on-primary font-ui-button text-ui-button uppercase tracking-[0.05em] opacity-40 cursor-not-allowed"
-                                    >
-                                        File My Federal Tax Return (Coming Soon)
-                                    </button>
-                                    <p className="font-label-caps uppercase tracking-[0.15em] text-[10px] text-on-surface-variant">
-                                        State filing options will be available soon.
-                                    </p>
-                                </div>
+                                <p className="font-label-caps uppercase tracking-[0.15em] text-[10px] text-on-surface-variant text-center">
+                                    IRS filing deadline: April 15, 2025. For extensions use Form 4868 at irs.gov.
+                                </p>
                             </div>
                         </div>
                     )}
