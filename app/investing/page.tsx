@@ -10,7 +10,6 @@ import InvestingOptions from "@/components/investing-options"
 import StocksPage from "@/components/stocks-page"
 import BondsPage from "@/components/bonds-page"
 import SafeInvestmentsPage from "@/components/safe-investments-page"
-import StockResearchTools from "@/components/stock-research-tools"
 import Link from "next/link"
 
 const TOOLS = [
@@ -20,13 +19,6 @@ const TOOLS = [
         title: "Safe investing options",
         body: "Curated safe investment options including index funds, ETFs, and bonds.",
         cta: "View safe options",
-    },
-    {
-        id: "stock-research",
-        icon: "trending_up",
-        title: "Stock research tools",
-        body: "Basic stock screener and analysis tools designed for beginners.",
-        cta: "Explore tools",
     },
 ] as const
 
@@ -53,10 +45,6 @@ export default function InvestingPage() {
     if (activeSection === "safe-investments") {
         return <SafeInvestmentsPage onBack={() => setActiveSection("investing-options")} />
     }
-    if (activeSection === "stock-research") {
-        return <StockResearchTools onBack={handleBack} />
-    }
-
     return (
         <div className="flex flex-col">
             <Section spacing="loose" className="pt-section-gap-sm">
@@ -89,6 +77,27 @@ export default function InvestingPage() {
                             </p>
                             <span className="inline-flex items-center gap-stack-sm pt-stack-sm font-ui-button text-ui-button uppercase tracking-[0.05em] text-primary">
                                 Open dashboard
+                                <MaterialIcon
+                                    name="arrow_forward"
+                                    size={16}
+                                    className="transition-transform duration-200 group-hover:translate-x-0.5"
+                                />
+                            </span>
+                        </Link>
+                        {/* Stock Research Tools — links to dedicated research page */}
+                        <Link
+                            href="/investing/research"
+                            className="group flex flex-col gap-stack-md p-10 border border-outline-variant/30 rounded-lg bg-surface-container-lowest transition-colors duration-200 hover:border-primary/40"
+                        >
+                            <MaterialIcon name="trending_up" size={28} className="text-primary" />
+                            <h3 className="font-headline-md text-headline-md text-primary">
+                                Stock research tools
+                            </h3>
+                            <p className="font-body-md text-body-md text-on-surface-variant flex-grow">
+                                Deep-dive research: price charts, analyst ratings, financials, technicals, DCF calculator, and more.
+                            </p>
+                            <span className="inline-flex items-center gap-stack-sm pt-stack-sm font-ui-button text-ui-button uppercase tracking-[0.05em] text-primary">
+                                Open research tools
                                 <MaterialIcon
                                     name="arrow_forward"
                                     size={16}
